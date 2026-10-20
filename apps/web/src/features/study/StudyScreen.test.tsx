@@ -1,6 +1,6 @@
 import { cardIdFor, encodeHlc, newId, Rating, type ReviewLog } from '@estudio/shared';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Link, MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deviceId } from '@/db/clock';
 import { db } from '@/db/schema';
@@ -51,6 +51,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('StudyScreen (LEARNING-DESIGN §4)', () => {
@@ -79,6 +80,50 @@ describe('StudyScreen (LEARNING-DESIGN §4)', () => {
     const [log] = await db.reviewLogs.toArray();
     expect(log).toMatchObject({ rating: Rating.Good, durationMs: 6_500, type: 'learn', confidence: null });
     expect(log?.sessionId).toBe(useStudy.getState().session?.id);
+  });
+
+  it('R3: con la app en segundo plano o el teléfono bloqueado, ese tiempo no cuenta', async () => {
+    let visibility: DocumentVisibilityState = 'visible';
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);
+    const goTo = (state: DocumentVisibilityState, at: number) => {
+      vi.setSystemTime(at);
+      visibility = state;
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+    };
+    renderStudy();
+    await screen.findByText(humerus.front); // en pantalla desde T0
+    goTo('hidden', T0 + 3_000);
+    goTo('visible', T0 + 3_603_000); // una hora bloqueado
+    vi.setSystemTime(T0 + 3_605_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await screen.findByText(femur.front);
+    expect((await db.reviewLogs.toArray())[0]?.durationMs).toBe(5_000);
+  });
+
+  it('R3: "Salir" deja la tarjeta donde quedó y el tiempo fuera no cuenta', async () => {
+    render(
+      <MemoryRouter initialEntries={['/study']}>
+        <Routes>
+          <Route path="/study" element={<StudyScreen />} />
+          <Route path="/" element={<Link to="/study">Volver a estudiar</Link>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText(humerus.front); // en pantalla desde T0
+    vi.setSystemTime(T0 + 4_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Salir' }));
+    vi.setSystemTime(T0 + 600_000);
+    fireEvent.click(await screen.findByRole('link', { name: 'Volver a estudiar' }));
+
+    expect(await screen.findByText(humerus.back)).toBeTruthy(); // ya la había revelado
+    vi.setSystemTime(T0 + 602_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await screen.findByText(femur.front);
+    expect((await db.reviewLogs.toArray())[0]?.durationMs).toBe(6_000);
   });
 
   it('FE12: Espacio revela y los números califican; ningún atajo salta el intento', async () => {

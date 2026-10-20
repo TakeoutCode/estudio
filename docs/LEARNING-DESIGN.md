@@ -54,7 +54,7 @@ Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una 
 
 **LD7 · NO DEBE** existir un modo de releer, subrayar o resumir que genere `ReviewLog` o que se presente como forma principal de estudiar. *Razón:* R15.
 
-`ReviewLog` (R3): `{ id, cardId, cardKind, reviewedAt, rating: 1-4, durationMs, type: 'learn' | 'review' | 'exam' | 'contrast', confidence: 1-3 | null, sessionId, deviceId, answer? }`, guardado al responder (SYNC SY6). `cardKind` es una foto del tipo de nota o ejercicio en ese momento (el "tipo" de R3), porque la nota puede cambiar después.
+`ReviewLog` (R3): `{ id, cardId, cardKind, reviewedAt, rating: 1-4, durationMs, type: 'learn' | 'review' | 'exam' | 'contrast', confidence: 1-3 | null, sessionId, deviceId, answer? }`, guardado al responder (SYNC SY6). `cardKind` es una foto del tipo de nota o ejercicio en ese momento (el "tipo" de R3), porque la nota puede cambiar después. `durationMs` es el tiempo con la tarjeta a la vista, de mostrarla a calificarla (`cardElapsedMs()` en `srs`): no cuenta el descanso del temporizador, la app en segundo plano o con el teléfono bloqueado, ni el tiempo fuera de la pantalla de estudio, al volver de "Salir" con la tarjeta a medias (*diseño*). En simulacros va de mostrar la pregunta a responderla, sin el tiempo con la app oculta. Alimenta P1, P5 y el tiempo activo (§5).
 
 ## 5. FSRS (R2, R18)
 

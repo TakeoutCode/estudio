@@ -1,8 +1,16 @@
 import { type Confidence, MOCK_ANSWER_MAX_LENGTH, type MockItem, type StudySession } from '@estudio/shared';
-import { mockResults } from '@estudio/srs';
-import { type SubmitEvent, useId, useState } from 'react';
+import {
+  type CardClock,
+  cardElapsedMs,
+  mockResults,
+  pauseCardClock,
+  resumeCardClock,
+  startCardClock,
+} from '@estudio/srs';
+import { type SubmitEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
+import { usePageVisibility } from '@/lib/use-page-visibility';
 import { EmptyState } from '@/ui/EmptyState';
 import { answerMockItem, gradeMockItem, NoMockQuestionsError, startMock } from './commands';
 import { type MockCardView, type MockView, useMockView } from './queries';
@@ -118,7 +126,13 @@ function AskStep({
 }) {
   const { t } = useTranslation();
   const ids = useId();
-  const [shownAt] = useState(() => Date.now());
+  // R3: la duración no cuenta el tiempo con la app en segundo plano o el teléfono bloqueado.
+  // Empieza al montar la pregunta (el primer aviso de `usePageVisibility`).
+  const clock = useRef<CardClock | null>(null);
+  usePageVisibility((hidden, at) => {
+    const current = clock.current ?? startCardClock(at);
+    clock.current = hidden ? pauseCardClock(current, 'hidden', at) : resumeCardClock(current, 'hidden', at);
+  });
   const [confidence, setConfidence] = useState<Confidence | null>(null);
   const [answer, setAnswer] = useState('');
   const [busy, setBusy] = useState(false);
@@ -127,7 +141,8 @@ function AskStep({
     event.preventDefault();
     if (confidence === null || busy) return;
     setBusy(true);
-    answerMockItem(session.id, index, { confidence, answer, durationMs: Date.now() - shownAt }).catch(() => {
+    const durationMs = clock.current ? cardElapsedMs(clock.current, Date.now()) : 0;
+    answerMockItem(session.id, index, { confidence, answer, durationMs }).catch(() => {
       setFailed(true); // su respuesta sigue en el campo
       setBusy(false);
     });

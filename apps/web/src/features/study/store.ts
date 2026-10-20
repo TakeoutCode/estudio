@@ -1,5 +1,13 @@
 import type { Confidence } from '@estudio/shared';
-import type { SessionPlan, StopReason } from '@estudio/srs';
+import {
+  type CardClock,
+  type CardPause,
+  pauseCardClock,
+  resumeCardClock,
+  type SessionPlan,
+  startCardClock,
+  type StopReason,
+} from '@estudio/srs';
 import { create } from 'zustand';
 
 // FRONTEND FE2: estado efímero de la sesión. La cola es una foto del plan al empezar (§3:
@@ -38,9 +46,11 @@ interface StudyState {
   /** Tarjeta en pantalla; `null` tras calificar, para presentar la siguiente aunque sea la misma. */
   readonly currentCardId: string | null;
   readonly phase: CardPhase;
-  readonly shownAt: number;
-  /** Inicio del descanso con una tarjeta en pantalla; ese tiempo no cuenta en su duración (R3). */
-  readonly heldAt: number | null;
+  /**
+   * R3: duración de la tarjeta en pantalla, sin descansos, app oculta ni tiempo fuera de la
+   * sesión. Sus pausas siguen abiertas entre tarjetas: son de la pantalla.
+   */
+  readonly clock: CardClock;
   readonly confidence: Confidence | null;
   /** null en las tarjetas que ella califica (basic, cloze). */
   readonly attempt: Attempt | null;
@@ -57,10 +67,10 @@ interface StudyState {
   /** R6: confianza antes de escribir o elegir, sin revelar todavía. */
   readonly chooseConfidence: (confidence: Confidence) => void;
   readonly markAnswered: () => void;
-  /** Empieza un descanso (§3) con la tarjeta en pantalla. */
-  readonly hold: (now: number) => void;
-  /** Termina el descanso: la duración de la tarjeta sigue desde donde quedó. */
-  readonly release: (now: number) => void;
+  /** Detiene el reloj de la tarjeta desde `at` (descanso, app oculta o fuera de la sesión). */
+  readonly hold: (reason: CardPause, at: number) => void;
+  /** Cierra esa pausa: la duración de la tarjeta sigue desde donde quedó. */
+  readonly release: (reason: CardPause, at: number) => void;
   /** P5: aviso de fatiga con `answers` respuestas en la sesión. */
   readonly warnFatigue: (answers: number) => void;
   readonly dismissFatigue: () => void;
@@ -75,8 +85,7 @@ const idle = {
   session: null,
   currentCardId: null,
   phase: 'prompt',
-  shownAt: 0,
-  heldAt: null,
+  clock: startCardClock(0),
   confidence: null,
   attempt: null,
   answered: 0,
@@ -91,14 +100,13 @@ export const useStudy = create<StudyState>()((set) => ({
     set({ ...idle, session });
   },
   present: (cardId, now) => {
-    set({
+    set((s) => ({
       currentCardId: cardId,
       phase: 'prompt',
-      shownAt: now,
-      heldAt: null,
+      clock: startCardClock(now, s.clock),
       confidence: null,
       attempt: null,
-    });
+    }));
   },
   reveal: (confidence, attempt) => {
     set((s) =>
@@ -114,17 +122,22 @@ export const useStudy = create<StudyState>()((set) => ({
     set((s) => ({
       currentCardId: null,
       phase: 'prompt',
-      heldAt: null,
       confidence: null,
       attempt: null,
       answered: s.answered + 1,
     }));
   },
-  hold: (now) => {
-    set((s) => (s.currentCardId && s.heldAt === null ? { heldAt: now } : s));
+  hold: (reason, at) => {
+    set((s) => {
+      const clock = pauseCardClock(s.clock, reason, at);
+      return clock === s.clock ? s : { clock };
+    });
   },
-  release: (now) => {
-    set((s) => (s.heldAt === null ? s : { heldAt: null, shownAt: s.shownAt + Math.max(0, now - s.heldAt) }));
+  release: (reason, at) => {
+    set((s) => {
+      const clock = resumeCardClock(s.clock, reason, at);
+      return clock === s.clock ? s : { clock };
+    });
   },
   warnFatigue: (answers) => {
     set((s) => ({ fatigue: { inRow: s.fatigue.inRow + 1, since: answers, showing: true } }));

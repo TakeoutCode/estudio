@@ -1,5 +1,5 @@
 import { cardIdFor, Rating } from '@estudio/shared';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
@@ -79,6 +79,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('simulacro (P7, LD13)', () => {
@@ -145,6 +146,29 @@ describe('simulacro (P7, LD13)', () => {
     expect(await screen.findByText('Pregunta 2 de 3')).toBeTruthy();
     const [log] = (await db.reviewLogs.toArray()).filter((l) => l.type === 'exam');
     expect(log).toMatchObject({ rating: Rating.Hard, confidence: 1 }); // acierto con poca confianza
+  });
+
+  it('R3: el tiempo con la app en segundo plano no cuenta en la duración de la pregunta', async () => {
+    let visibility: DocumentVisibilityState = 'visible';
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);
+    const goTo = (state: DocumentVisibilityState, at: number) => {
+      vi.setSystemTime(at);
+      visibility = state;
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+    };
+    renderAt(`/exams/${examId}/mock`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Empezar simulacro' }));
+    await screen.findByText('Pregunta 1 de 3'); // en pantalla desde T0
+    goTo('hidden', T0 + 2_000);
+    goTo('visible', T0 + 3_602_000); // una hora bloqueado
+    vi.setSystemTime(T0 + 3_605_000);
+    answer('Algo');
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await screen.findByText('Pregunta 2 de 3');
+    const [mock] = await db.studySessions.toArray();
+    expect(mock?.items[0]?.durationMs).toBe(5_000);
   });
 
   it('se retoma donde quedó al volver', async () => {

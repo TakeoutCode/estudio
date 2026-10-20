@@ -1,5 +1,6 @@
 import { newId, type Rating } from '@estudio/shared';
 import {
+  cardElapsedMs,
   type CardState,
   isTypedAnswerCorrect,
   needsTopicIntro,
@@ -20,6 +21,7 @@ import {
   useTimerView,
 } from '@/features/timer';
 import { useBreakEndNotice } from '@/features/notifications';
+import { usePageVisibility } from '@/lib/use-page-visibility';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
@@ -106,7 +108,10 @@ export function StudyScreen() {
   return <Session plan={session.plan} sessionId={session.id} startedAt={session.startedAt} />;
 }
 
-/** "Salir" no corta nada: lo respondido ya está guardado (R3) y la sesión sigue al volver. */
+/**
+ * "Salir" no corta nada: lo respondido ya está guardado (R3) y la sesión sigue al volver, con
+ * la tarjeta a medias donde quedó; el tiempo fuera no cuenta en su duración.
+ */
 function StudyHeader({ done, total }: { readonly done?: number; readonly total?: number }) {
   const { t } = useTranslation();
   const examReview = useStudy((s) => s.session?.examReviewId ?? null) !== null;
@@ -157,19 +162,34 @@ function Session({
     timer?.isOwner === true &&
     (timer.session?.state === 'break_short' || timer.session?.state === 'break_long');
 
-  // R3: la duración de una tarjeta no incluye el descanso. Durante el descanso no se presenta
-  // la siguiente, y la que ya estaba en pantalla descuenta el tiempo de descanso. Se mide con
-  // las marcas del temporizador (hora del servidor → del dispositivo), no con la hora a la que
-  // corre el efecto, que puede llegar tarde.
+  // R3: la duración de una tarjeta cuenta solo el tiempo con ella a la vista. Durante el
+  // descanso no se presenta la siguiente, y la que ya estaba en pantalla descuenta el descanso,
+  // medido con las marcas del temporizador (hora del servidor → del dispositivo) y no con la
+  // hora a la que corre el efecto, que puede llegar tarde.
   const hold = useStudy((s) => s.hold);
   const release = useStudy((s) => s.release);
   const offsetMs = timer?.offsetMs ?? 0;
   const breakStartedAt = onBreak ? timer.session.startedAt : null;
   const focusStartedAt = timer?.session?.state === 'focus' ? timer.session.startedAt : null;
   useEffect(() => {
-    if (onBreak) hold(breakStartedAt === null ? Date.now() : breakStartedAt - offsetMs);
-    else release(focusStartedAt === null ? Date.now() : Math.min(Date.now(), focusStartedAt - offsetMs));
+    if (onBreak) hold('break', breakStartedAt === null ? Date.now() : breakStartedAt - offsetMs);
+    else {
+      const resumedAt = focusStartedAt === null ? Date.now() : Math.min(Date.now(), focusStartedAt - offsetMs);
+      release('break', resumedAt);
+    }
   }, [onBreak, breakStartedAt, focusStartedAt, offsetMs, hold, release]);
+  // Tampoco cuenta con la app en segundo plano o el teléfono bloqueado, ni fuera de la sesión
+  // ("Salir"): al volver, la tarjeta sigue donde quedó.
+  usePageVisibility((hidden, at) => {
+    if (hidden) hold('hidden', at);
+    else release('hidden', at);
+  });
+  useEffect(() => {
+    release('away', Date.now());
+    return () => {
+      hold('away', Date.now());
+    };
+  }, [hold, release]);
   // LD5: antes de la primera tarjeta nueva de un tema, su explicación y la autoexplicación.
   // La tarjeta se presenta después, así su duración no incluye la escritura (R3).
   const explained = useExplainedTopics();
@@ -357,7 +377,14 @@ function CurrentCard({
           ? { option: state.attempt.option }
           : undefined;
     answerCard(
-      { cardId, rating, durationMs: now - state.shownAt, sessionId, confidence: state.confidence, answer },
+      {
+        cardId,
+        rating,
+        durationMs: cardElapsedMs(state.clock, now),
+        sessionId,
+        confidence: state.confidence,
+        answer,
+      },
       { now },
     )
       .then(({ state: next }) => {
