@@ -114,6 +114,55 @@
       "generic": "No se pudo entrar. Intenta de nuevo en un momento."
     }
   },
+  "dashboard": {
+    "title": "Tu semana",
+    "back": "Volver",
+    "intro": "Últimos 7 días, comparados con tus semanas anteriores.",
+    "fewData": "Pocos datos todavía. Las métricas aparecen cuando tengas {{min}} repasos o más; con menos cambian mucho de un día a otro.",
+    "failed": "No se pudo calcular el resumen. Tus repasos siguen guardados.",
+    "allHidden": "Ocultaste todas las métricas. Puedes mostrarlas en Ajustes.",
+    "noBaseline": "Todavía no hay semanas anteriores para comparar.",
+    "duration": {
+      "hm": "{{h}} h {{m}} min",
+      "m": "{{m}} min"
+    },
+    "activeTime": {
+      "title": "Tiempo activo",
+      "baseline": "Tus semanas anteriores: de {{min}} a {{max}}.",
+      "hint": "Suma el tiempo entre respuestas; las pausas de más de {{seconds}} s no cuentan."
+    },
+    "retention": {
+      "title": "Retención real",
+      "week_one": "{{rate}} en {{count}} repaso",
+      "week_other": "{{rate}} en {{count}} repasos",
+      "range": "Rango probable: {{low}} a {{high}} · objetivo {{target}}",
+      "baseline_one": "Tus semanas anteriores: {{rate}} en {{count}} repaso.",
+      "baseline_other": "Tus semanas anteriores: {{rate}} en {{count}} repasos.",
+      "none": "Esta semana no hubo repasos de tarjetas ya aprendidas.",
+      "expected": "Con {{target}}, olvidar unas {{forget}} de cada 100 al repasarlas es lo esperado."
+    },
+    "calibration": {
+      "title": "Tu intuición frente a lo que pasó",
+      "over": "Esta semana tu confianza fue más alta que tus aciertos.",
+      "under": "Esta semana acertaste más de lo que esperabas.",
+      "aligned": "Esta semana tu confianza y tus aciertos coincidieron bastante.",
+      "distinguishes": "Cuando dudabas, solías fallar más: tu confianza distingue lo que sabes.",
+      "weak": "Tu confianza todavía no distingue bien lo que sabes de lo que no.",
+      "few": "Pocos datos todavía: aparece cuando respondas con confianza {{min}} veces o más en la semana.",
+      "off": "Aparece si respondes con confianza antes de ver la respuesta. Puedes activarlo en Ajustes."
+    },
+    "load": {
+      "title": "Pendientes",
+      "today": "Hoy"
+    },
+    "improve": {
+      "title": "Para mejorar",
+      "count_zero": "Ninguna tarjeta para reformular.",
+      "count_one": "{{count}} tarjeta para reformular.",
+      "count_other": "{{count}} tarjetas para reformular.",
+      "link": "Ver en Hoy"
+    }
+  },
   "settings": {
     "title": "Ajustes",
     "back": "Volver",
@@ -142,6 +191,20 @@
       "shortBreakMin": "Descanso corto (min)",
       "longBreakMin": "Descanso largo (min)",
       "cyclesBeforeLong": "Bloques antes del largo"
+    },
+    "review": {
+      "title": "Repaso",
+      "askConfidence": "Pedir tu confianza antes de mostrar la respuesta",
+      "askConfidenceHint": "Opcional. Con eso, Tu semana compara tu intuición con lo que pasó."
+    },
+    "metrics": {
+      "title": "Métricas de Tu semana",
+      "hint": "Oculta las que no quieras ver; tus repasos se siguen guardando igual.",
+      "activeTime": "Tiempo activo",
+      "retention": "Retención real",
+      "calibration": "Tu intuición frente a lo que pasó",
+      "load": "Pendientes",
+      "improveList": "Para mejorar"
     }
   },
   "ui": {

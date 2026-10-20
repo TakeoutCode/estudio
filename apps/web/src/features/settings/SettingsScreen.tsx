@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ActionBar } from '@/ui/ActionBar';
 import { NumberField } from '@/ui/NumberField';
+import { Toggle } from '@/ui/Toggle';
 import { updateStudyConfig } from './commands';
 import { useStudyConfig } from './queries';
 import { type ProjectedLoad, useProjectedLoad } from './use-projected-load';
@@ -21,7 +22,14 @@ const TIMER_KEYS = ['focusMin', 'shortBreakMin', 'longBreakMin', 'cyclesBeforeLo
 type TimerKey = (typeof TIMER_KEYS)[number];
 type TimerDraft = Record<TimerKey, number | null>;
 
-/** Ajustes de estudio: retención objetivo con su carga (R2, LD8) y el temporizador (R7). */
+/** UX9: cada métrica de Tu semana se puede apagar por separado. */
+const METRIC_KEYS = ['activeTime', 'retention', 'calibration', 'load', 'improveList'] as const;
+type MetricKey = (typeof METRIC_KEYS)[number];
+
+/**
+ * Ajustes de estudio: retención objetivo con su carga (R2, LD8), temporizador (R7), confianza
+ * en repasos (R6) y métricas visibles (UX9).
+ */
 export function SettingsScreen() {
   const config = useStudyConfig();
   return config ? <SettingsForm config={config} /> : null;
@@ -40,6 +48,14 @@ function SettingsForm({ config }: { readonly config: StudyConfig }) {
     longBreakMin: config.timer.longBreakMin,
     cyclesBeforeLong: config.timer.cyclesBeforeLong,
   }));
+  const [askConfidence, setAskConfidence] = useState(config.review.askConfidence);
+  const [visible, setVisible] = useState<Record<MetricKey, boolean>>(() => ({
+    activeTime: config.metrics.visible.activeTime,
+    retention: config.metrics.visible.retention,
+    calibration: config.metrics.visible.calibration,
+    load: config.metrics.visible.load,
+    improveList: config.metrics.visible.improveList,
+  }));
   const [status, setStatus] = useState<Status>('idle');
   const [busy, setBusy] = useState(false);
   const load = useProjectedLoad([savedPoints, points]);
@@ -47,7 +63,11 @@ function SettingsForm({ config }: { readonly config: StudyConfig }) {
     new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 0 }).format(p / 100);
 
   const invalid = TIMER_KEYS.some((key) => timer[key] === null);
-  const dirty = points !== savedPoints || TIMER_KEYS.some((key) => timer[key] !== config.timer[key]);
+  const dirty =
+    points !== savedPoints ||
+    TIMER_KEYS.some((key) => timer[key] !== config.timer[key]) ||
+    askConfidence !== config.review.askConfidence ||
+    METRIC_KEYS.some((key) => visible[key] !== config.metrics.visible[key]);
   const choose = (next: number) => {
     setPoints(Math.min(MAX_POINTS, Math.max(MIN_POINTS, next)));
     setStatus('idle');
@@ -69,6 +89,8 @@ function SettingsForm({ config }: { readonly config: StudyConfig }) {
         longBreakMin: chosen('longBreakMin'),
         cyclesBeforeLong: chosen('cyclesBeforeLong'),
       },
+      review: { ...cfg.review, askConfidence },
+      metrics: { ...cfg.metrics, visible: { ...cfg.metrics.visible, ...visible } },
     }))
       .then(() => {
         setStatus('saved');
@@ -171,6 +193,39 @@ function SettingsForm({ config }: { readonly config: StudyConfig }) {
             />
           ))}
         </div>
+      </section>
+
+      <section aria-labelledby={`${ids}-review`} className="flex flex-col gap-2">
+        <h2 id={`${ids}-review`} className="m-0 text-body font-semibold">
+          {t('settings.review.title')}
+        </h2>
+        <Toggle
+          label={t('settings.review.askConfidence')}
+          hint={t('settings.review.askConfidenceHint')}
+          checked={askConfidence}
+          onChange={(checked) => {
+            setAskConfidence(checked);
+            setStatus('idle');
+          }}
+        />
+      </section>
+
+      <section aria-labelledby={`${ids}-metrics`} className="flex flex-col gap-2">
+        <h2 id={`${ids}-metrics`} className="m-0 text-body font-semibold">
+          {t('settings.metrics.title')}
+        </h2>
+        <p className="m-0 text-caption text-muted">{t('settings.metrics.hint')}</p>
+        {METRIC_KEYS.map((key) => (
+          <Toggle
+            key={key}
+            label={t(`settings.metrics.${key}`)}
+            checked={visible[key]}
+            onChange={(checked) => {
+              setVisible((prev) => ({ ...prev, [key]: checked }));
+              setStatus('idle');
+            }}
+          />
+        ))}
       </section>
 
       <ActionBar>

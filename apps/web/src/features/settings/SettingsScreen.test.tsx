@@ -141,3 +141,19 @@ describe('Ajustes · temporizador (R7)', () => {
     });
   });
 });
+
+describe('Ajustes · confianza y métricas (R6, UX9)', () => {
+  it('R6, UX9: pedir confianza y ocultar una métrica se guardan con "Guardar cambios"', async () => {
+    renderSettings();
+    const confidence = await screen.findByRole('checkbox', { name: /Pedir tu confianza/ });
+    expect((confidence as HTMLInputElement).checked).toBe(false); // R6: opcional, apagada al inicio
+    fireEvent.click(confidence);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Retención real' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByText('Cambios guardados.')).toBeTruthy();
+    const config = await readStudyConfig(db);
+    expect(config.review.askConfidence).toBe(true);
+    expect(config.metrics.visible).toMatchObject({ retention: false, activeTime: true, calibration: true });
+  });
+});

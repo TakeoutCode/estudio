@@ -20,9 +20,14 @@ export function TodayScreen() {
     <>
       <header className="flex items-center justify-between gap-3">
         <h1 className="m-0 text-title font-semibold">{t('today.title')}</h1>
-        <Link className={`-mr-2 inline-flex min-h-11 items-center px-2 text-primary ${focus}`} to="/settings">
-          {t('settings.title')}
-        </Link>
+        <nav className="-mr-2 flex gap-1">
+          <Link className={`inline-flex min-h-11 items-center px-2 text-primary ${focus}`} to="/dashboard">
+            {t('dashboard.title')}
+          </Link>
+          <Link className={`inline-flex min-h-11 items-center px-2 text-primary ${focus}`} to="/settings">
+            {t('settings.title')}
+          </Link>
+        </nav>
       </header>
       {snapshot ? <Summary snapshot={snapshot} /> : null}
     </>

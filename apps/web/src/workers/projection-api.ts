@@ -6,6 +6,9 @@ import {
   type ReplayCard,
   replayCards,
   type ReviewLoad,
+  weeklyMetrics,
+  type WeeklyMetrics,
+  type WeeklyMetricsInput,
 } from '@estudio/srs';
 
 // Lo que corre en `projection.worker.ts` (FRONTEND FE4). Vive aparte del worker para probarlo
@@ -38,6 +41,10 @@ export const projectionApi = {
   /** ARC5: replay completo tras cambiar la retención (o recibirla por sync). */
   replayCards(input: ReplayInput): CardState[] {
     return replayCards(input.cards, input.logs, input.config);
+  },
+  /** §5: el resumen semanal. */
+  weeklyMetrics(input: WeeklyMetricsInput): WeeklyMetrics {
+    return weeklyMetrics(input);
   },
 };
 
