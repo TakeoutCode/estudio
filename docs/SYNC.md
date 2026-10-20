@@ -12,7 +12,7 @@
 | Solo inserción | `ReviewLog`, `TimerBlockLog`, `RewardRedemption`, `AiFeedback` | `INSERT … ON CONFLICT (id) DO NOTHING`; un trigger impide `UPDATE` y `DELETE` |
 | Proyección (no viaja) | `cardStates`, XP y monedas, métricas | Se recalcula con `srs` a partir de las anteriores (ARC5) |
 
-Columnas comunes: `id` (UUIDv7 del cliente), `userId` (lo pone el servidor desde el JWT), `hlc`, `updatedAt` (ms, la parte de reloj del HLC), `deletedAt` (ms o null) y `serverSeq` (solo en el servidor). `UserSettings` es una fila por sección (`profile`, `study`, `notifications`, `gamification`, `ui`) con `id = uuidv5(userId, sección)`, para que editar la retención en el iPhone y la hora del recordatorio en la PC no choquen.
+Columnas comunes: `id` (UUIDv7 del cliente), `userId` (lo pone el servidor desde el JWT), `hlc`, `updatedAt` (ms, la parte de reloj del HLC), `deletedAt` (ms o null) y `serverSeq` (solo en el servidor). `UserSettings` es una fila por sección (`profile`, `study`, `notifications`, `gamification`, `ui`) con `id = uuidv5(userId, sección)`, para que editar la retención en el iPhone y la hora del recordatorio en la PC no choquen. Por la misma razón, cada `Card` tiene `id = uuidv5(noteId, ordinal)` (`cardIdFor`): dos dispositivos sin red que activan la inversa de la misma nota escriben la misma fila en lugar de duplicarla. Son las dos excepciones a AGENTS AG7.
 
 ## 2. Reloj lógico híbrido (HLC)
 
@@ -59,7 +59,7 @@ RETURNING server_seq;
 
 **SY3 · DEBE** paginar por `serverSeq` con `GET /sync/pull?cursor=<seq>&limit=500` → `{ changes: { entity, row }[], cursor: string, hasMore: boolean, serverNow: number }`. El servidor hace `UNION ALL` por tabla (`WHERE user_id = $1 AND server_seq > $2 ORDER BY server_seq LIMIT $3`, que Postgres resuelve con Merge Append sobre el índice). **NO DEBE** usar `updatedAt` como cursor. *Razón:* bajo el lock por usuario, `serverSeq` crece en orden de confirmación; los timestamps empatan o retroceden.
 
-**SY4 · DEBE** aplicar el pull en una sola transacción de Dexie. LWW se aplica solo si `remote.hlc > local.hlc` (puede haber una edición local sin enviar); append solo si la fila no existe; el cursor se guarda en la misma transacción. Después, `replay()` corre en el worker para las tarjetas afectadas. *Razón:* si la app se cierra a mitad, nunca queda un cursor adelantado a los datos.
+**SY4 · DEBE** aplicar el pull en una sola transacción de Dexie. LWW se aplica solo si `remote.hlc > local.hlc` (puede haber una edición local sin enviar); append solo si la fila no existe; el cursor se guarda en la misma transacción. En esa misma transacción, `projectCards()` reproduce el log solo de las tarjetas que tocó la página (filas `card` o `reviewLog`); el `replay()` completo, por ejemplo tras cambiar la retención, va al worker (FRONTEND FE4). *Razón:* si la app se cierra a mitad, nunca queda un cursor adelantado a los datos ni una proyección atrasada respecto del log.
 
 Cada ciclo envía el outbox hasta vaciarlo y luego hace pull hasta `hasMore = false`, dentro de `navigator.locks.request('sync', …)` para que dos pestañas no sincronicen a la vez. Si el cursor es menor que `purgedThroughSeq`, la respuesta es `410 cursor_expired`: el cliente hace un pull completo desde 0 y conserva su outbox.
 

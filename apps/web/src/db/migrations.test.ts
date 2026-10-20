@@ -23,7 +23,7 @@ function openVersion1(name: string): Dexie {
 }
 
 describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
-  it('v1 → v2: datos, outbox y reloj intactos; aparece userSettings', async () => {
+  it('v1 → última: datos, outbox y reloj intactos; aparecen userSettings, notes y cards', async () => {
     const name = `migracion-${newId()}`;
     names.push(name);
     const deck = { id: newId(), name: 'Carpo', description: null, hlc: 'h', updatedAt: 1, deletedAt: null };
@@ -44,11 +44,38 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(2);
+    expect(current.verno).toBe(3);
     expect(await current.decks.toArray()).toEqual([deck]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
     expect(await current.userSettings.count()).toBe(0);
+    expect(await current.notes.count()).toBe(0);
+    expect(await current.cards.count()).toBe(0);
+    current.close();
+  });
+
+  it('v2 → v3: el cursor vuelve a 0 para bajar notas y tarjetas que la v2 ignoró; el resto intacto', async () => {
+    const name = `migracion-${newId()}`;
+    names.push(name);
+    const v2 = openVersion1(name);
+    v2.version(2).stores({ userSettings: 'id, section' });
+    const log = { id: newId(), cardId: newId(), reviewedAt: 1 };
+    const pending = { mutationId: newId(), op: 'append', entity: 'reviewLog', row: log, createdAt: 1 };
+    await v2.table('reviewLogs').add(log);
+    await v2.table('outbox').add(pending);
+    await v2.table('meta').bulkPut([
+      { key: 'syncCursor', value: '42' },
+      { key: 'deviceId', value: 'dispositivo' },
+    ]);
+    v2.close();
+
+    const current = new EstudioDb(name);
+    await current.open();
+    expect(current.verno).toBe(3);
+    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
+    expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
+    expect(await current.reviewLogs.toArray()).toEqual([log]);
+    expect(await current.outbox.toArray()).toEqual([pending]);
     current.close();
   });
 });

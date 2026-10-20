@@ -13,7 +13,8 @@ import {
 } from '@estudio/shared';
 import { z } from 'zod';
 import { deviceId, observeHlc } from '@/db/clock';
-import { type EstudioDb, type OutboxEntry, syncedTables, TABLE_FOR } from '@/db/schema';
+import type { projectCards as ProjectCardsFn } from '@/db/projection';
+import { type EstudioDb, type OutboxEntry, SYNC_CURSOR_KEY, syncedTables, TABLE_FOR } from '@/db/schema';
 import { ApiError } from '@/lib/api';
 
 // Motor de sync del cliente (SYNC §3-§6). Sin estado propio: la base y el transporte entran
@@ -30,7 +31,12 @@ export interface SyncReport {
   readonly pulled: number;
 }
 
-const CURSOR_KEY = 'syncCursor';
+const CURSOR_KEY = SYNC_CURSOR_KEY;
+type ProjectCards = typeof ProjectCardsFn;
+
+/** FE9: srs (ts-fsrs) fuera del JS inicial; la sync lo carga al bajar el primer cambio. */
+const loadProjection = async (): Promise<ProjectCards> => (await import('@/db/projection')).projectCards;
+
 const OFFSET_KEY = 'serverOffsetMs';
 
 const toMutation = ({ mutationId, op, entity, row }: OutboxEntry): Mutation => ({
@@ -88,14 +94,22 @@ async function readCursor(database: EstudioDb): Promise<string> {
  * haber una edición local sin enviar); append solo si no existe; el cursor va en la misma
  * transacción que los datos.
  */
-export async function applyPage(database: EstudioDb, page: PullResponse, now: number): Promise<void> {
+export async function applyPage(
+  database: EstudioDb,
+  page: PullResponse,
+  now: number,
+  projectCards: ProjectCards,
+): Promise<void> {
   await database.transaction('rw', syncedTables(database), async () => {
     let newest: string | null = null;
+    const touchedCards: string[] = [];
     for (const change of page.changes) {
       if (!isSyncedEntity(change.entity)) continue; // entidad de una versión más nueva de la app
       const entity: SyncedEntity = change.entity;
       const row = SYNC_ROW_SCHEMAS[entity].parse(change.row);
       const table = database.table<{ id: string }, string>(TABLE_FOR[entity]);
+      const cardId = cardTouchedBy(entity, row);
+      if (cardId) touchedCards.push(cardId);
 
       if (ENTITY_STRATEGY[entity] === 'append') {
         if (!(await table.get(row.id))) await table.add(row);
@@ -111,28 +125,48 @@ export async function applyPage(database: EstudioDb, page: PullResponse, now: nu
       if (!newest || compareHlc(remote.hlc, newest) > 0) newest = remote.hlc;
     }
     if (newest) await observeHlc(database, newest, now);
+    // ARC5: la proyección se reconstruye en la misma transacción que los datos que la cambian.
+    await projectCards(database, touchedCards);
     await database.meta.put({ key: CURSOR_KEY, value: page.cursor });
     await database.meta.put({ key: OFFSET_KEY, value: page.serverNow - now });
   });
 }
 
+/** Tarjeta cuya proyección cambia con esta fila: la propia tarjeta o la de un repaso. */
+function cardTouchedBy(entity: SyncedEntity, row: { id: string }): string | null {
+  if (entity === 'card') return row.id;
+  if (entity === 'reviewLog' && 'cardId' in row && typeof row.cardId === 'string') return row.cardId;
+  return null;
+}
+
 /** SY9 y §4: tras un 410, se vacían las tablas sincronizadas; el outbox se conserva. */
 async function resetForFullResync(database: EstudioDb): Promise<void> {
-  await database.transaction('rw', [...syncedTables(database), database.cardStates], async () => {
-    await Promise.all([database.decks.clear(), database.userSettings.clear(), database.reviewLogs.clear()]);
-    await database.cardStates.clear();
+  await database.transaction('rw', syncedTables(database), async () => {
+    await Promise.all(
+      [
+        database.decks,
+        database.notes,
+        database.cards,
+        database.userSettings,
+        database.reviewLogs,
+        database.cardStates,
+      ].map((table) => table.clear()),
+    );
     await database.meta.put({ key: CURSOR_KEY, value: '0' });
   });
 }
 
 /** Vuelve a poner en local lo que sigue en el outbox después de un pull completo. */
-async function reapplyOutbox(database: EstudioDb): Promise<void> {
+async function reapplyOutbox(database: EstudioDb, projectCards: ProjectCards): Promise<void> {
   const pending = await database.outbox.toArray();
   await database.transaction('rw', syncedTables(database), async () => {
+    const touchedCards: string[] = [];
     for (const entry of pending) {
       if (!isSyncedEntity(entry.entity)) continue;
       const table = database.table<{ id: string }, string>(TABLE_FOR[entry.entity]);
       const row = entry.row as { id: string; hlc?: string; deletedAt?: number | null };
+      const cardId = cardTouchedBy(entry.entity, row);
+      if (cardId) touchedCards.push(cardId);
       const local = (await table.get(row.id)) as SyncMeta | undefined;
       if (entry.op === 'append') {
         if (!local) await table.add(row);
@@ -141,6 +175,7 @@ async function reapplyOutbox(database: EstudioDb): Promise<void> {
         else await table.delete(row.id);
       }
     }
+    await projectCards(database, touchedCards);
   });
 }
 
@@ -150,6 +185,8 @@ export async function pullAll(
   transport: SyncTransport,
   now: () => number,
 ): Promise<number> {
+  // Antes de cualquier transacción: dentro de una, esperar el import la cerraría.
+  const projectCards = await loadProjection();
   let pulled = 0;
   let cursor = await readCursor(database);
   let resynced = false;
@@ -166,12 +203,12 @@ export async function pullAll(
       }
       throw error;
     }
-    await applyPage(database, page, now());
+    await applyPage(database, page, now(), projectCards);
     pulled += page.changes.length;
     cursor = page.cursor;
     if (!page.hasMore) break;
   }
-  if (resynced) await reapplyOutbox(database);
+  if (resynced) await reapplyOutbox(database, projectCards);
   return pulled;
 }
 

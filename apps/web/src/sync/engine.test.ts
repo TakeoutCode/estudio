@@ -1,10 +1,20 @@
-import { compareHlc, encodeHlc, newId, type PushRequest, type ReviewLog } from '@estudio/shared';
+import {
+  cardIdFor,
+  compareHlc,
+  encodeHlc,
+  newId,
+  type PushRequest,
+  Rating,
+  type ReviewLog,
+} from '@estudio/shared';
 import fc from 'fast-check';
 import { afterEach, describe, expect, it } from 'vitest';
-import { nextHlc } from '@/db/clock';
+import { hlcWall, nextHlc } from '@/db/clock';
 import { EstudioDb } from '@/db/schema';
 import { writeAndQueue } from '@/db/write';
 import { createDeck, deleteDeck, renameDeck } from '@/features/decks';
+import { createNote, deleteNote, noteTables } from '@/features/notes';
+import { answerCard } from '@/features/study';
 import { ApiError } from '@/lib/api';
 import { FakeSyncServer } from '@/test/fake-sync-server';
 import { pullAll, pushOutbox, syncOnce, type SyncTransport } from './engine';
@@ -198,6 +208,58 @@ describe('pull (SYNC SY4)', () => {
     expect(await database.decks.get(ghost.id)).toBeUndefined();
     expect(await database.decks.get(offline.id)).toMatchObject({ name: 'Creado sin red' });
     expect(await database.outbox.count()).toBe(1);
+  });
+});
+
+describe('proyección de tarjetas tras el pull (ARC5)', () => {
+  it('otro dispositivo llega al mismo estado FSRS aunque los repasos bajen antes que la tarjeta', async () => {
+    const source = replica();
+    const target = replica();
+    const server = new FakeSyncServer(1); // una fila por página
+    const content = { kind: 'basic', front: '¿C2?', back: 'Axis', explanation: '', reverse: false } as const;
+    const note = await createNote({ deck: { name: 'Columna' }, content }, { database: source, now: T0 });
+    const cardId = cardIdFor(note.id, 0);
+    const answer = (rating: Rating, at: number) =>
+      answerCard(
+        { cardId, rating, durationMs: 4_000, sessionId: newId(), confidence: null },
+        { database: source, now: at },
+      );
+    await answer(Rating.Good, T0 + 60_000);
+    await answer(Rating.Good, T0 + 11 * 60_000);
+    await answer(Rating.Again, T0 + 4 * 86_400_000);
+    // Reescribir la tarjeta le da un server_seq posterior a sus repasos.
+    await source.transaction('rw', noteTables(source), async () => {
+      const card = await source.cards.get(cardId);
+      const hlc = await nextHlc(source, T0 + 5 * 86_400_000);
+      await writeAndQueue(source, 'card', { ...card!, hlc, updatedAt: hlcWall(hlc) }, T0);
+    });
+    await syncOnce(source, server.transport, () => T0);
+
+    await pullAll(target, server.transport, () => T0);
+    expect(await target.cardStates.get(cardId)).toEqual(await source.cardStates.get(cardId));
+    expect((await target.cardStates.get(cardId))?.lapses).toBe(1);
+  });
+
+  it('una tarjeta borrada en otro dispositivo sale de la proyección', async () => {
+    const source = replica();
+    const target = replica();
+    const server = new FakeSyncServer();
+    const content = {
+      kind: 'basic',
+      front: '¿C7?',
+      back: 'Prominente',
+      explanation: '',
+      reverse: false,
+    } as const;
+    const note = await createNote({ deck: { name: 'Columna' }, content }, { database: source, now: T0 });
+    await syncOnce(source, server.transport, () => T0);
+    await pullAll(target, server.transport, () => T0);
+    expect(await target.cardStates.count()).toBe(1);
+
+    await deleteNote(note.id, { database: source, now: T0 + 1 });
+    await syncOnce(source, server.transport, () => T0);
+    await pullAll(target, server.transport, () => T0);
+    expect(await target.cardStates.count()).toBe(0);
   });
 });
 

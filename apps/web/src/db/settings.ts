@@ -1,0 +1,24 @@
+import {
+  type ProfileSettings,
+  ProfileSettingsSchema,
+  type SettingsSection,
+  type StudyConfig,
+  StudyConfigSchema,
+} from '@estudio/shared';
+import type { EstudioDb } from './schema';
+
+// ARCHITECTURE ARC9 y AGENTS AG2: la configuración se vuelve a parsear al leerla. Así una
+// fila guardada antes de que existiera una clave nueva recibe su valor inicial.
+
+async function sectionData(database: EstudioDb, section: SettingsSection): Promise<unknown> {
+  const row = await database.userSettings.where('section').equals(section).first();
+  return row?.deletedAt === null ? row.data : {};
+}
+
+export async function readStudyConfig(database: EstudioDb): Promise<StudyConfig> {
+  return StudyConfigSchema.parse(await sectionData(database, 'study'));
+}
+
+export async function readProfile(database: EstudioDb): Promise<ProfileSettings> {
+  return ProfileSettingsSchema.parse(await sectionData(database, 'profile'));
+}

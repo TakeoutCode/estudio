@@ -14,6 +14,11 @@ export interface EntitySyncHandler<E extends SyncedEntity> {
   readonly table: string;
   /** Reglas que el esquema no expresa (fuera de la transacción). `null` si la fila es aceptable. */
   check(userId: string, row: SyncedRow<E>, now: number): ApiErrorCode | null;
+  /**
+   * BE2: las entidades que referencia son de ella. Corre dentro de la transacción y antes de
+   * registrar la mutación, así un rechazo nunca se responde después como `duplicate`.
+   */
+  refs?(userId: string, row: SyncedRow<E>): Promise<ApiErrorCode | null>;
   /** Escribe dentro de la transacción del push. */
   apply(userId: string, row: SyncedRow<E>): Promise<ApplyStatus>;
   /** Fila de `to_jsonb(tabla)` → forma del contrato (luego se valida con su esquema). */

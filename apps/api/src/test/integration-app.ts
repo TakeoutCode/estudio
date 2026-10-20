@@ -1,4 +1,4 @@
-import { CONTRACT_HEADER, CONTRACT_VERSION, encodeHlc, newId } from '@estudio/shared';
+import { cardIdFor, CONTRACT_HEADER, CONTRACT_VERSION, encodeHlc, newId } from '@estudio/shared';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { ThrottlerStorage } from '@nestjs/throttler';
@@ -107,6 +107,46 @@ export const deckRow = (wall: number, node: string, overrides: Record<string, un
   id: newId(),
   name: 'Huesos del carpo',
   description: null,
+  hlc: hlcAt(wall, node),
+  updatedAt: wall,
+  deletedAt: null,
+  ...overrides,
+});
+
+export const noteRow = (
+  wall: number,
+  node: string,
+  deckId: string,
+  overrides: Record<string, unknown> = {},
+) => ({
+  id: newId(),
+  deckId,
+  topicId: null,
+  content: {
+    kind: 'basic',
+    front: '¿Qué hueso del carpo se fractura más?',
+    back: 'El escafoides',
+    explanation: 'Por caídas sobre la mano extendida.',
+    reverse: false,
+  },
+  origin: 'manual',
+  hlc: hlcAt(wall, node),
+  updatedAt: wall,
+  deletedAt: null,
+  ...overrides,
+});
+
+export const cardRow = (
+  wall: number,
+  node: string,
+  noteId: string,
+  overrides: Record<string, unknown> = {},
+) => ({
+  id: cardIdFor(noteId, 0),
+  noteId,
+  ordinal: 0,
+  createdAt: wall,
+  lapseBaseline: 0,
   hlc: hlcAt(wall, node),
   updatedAt: wall,
   deletedAt: null,

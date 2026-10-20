@@ -17,7 +17,7 @@ export class DeckSyncHandler implements EntitySyncHandler<'deck'> {
   }
 
   apply(userId: string, row: Deck): Promise<ApplyStatus> {
-    return this.repo.upsertLww(userId, row);
+    return this.repo.upsertDeckLww(userId, row);
   }
 
   fromDb(d: Readonly<Record<string, unknown>>): unknown {

@@ -46,7 +46,8 @@ push(@CurrentUser() user: AuthUser, @Body(new ZodPipe(PushRequestSchema)) body: 
 export class NoteSyncHandler implements LwwHandler<Note> {
   readonly schema = NoteSchema;
   constructor(private readonly repo: DecksRepository) {}
-  assertRefs(userId: UserId, row: Note) { return this.repo.assertOwned(userId, { deckId: row.deckId }); }
+  // Dentro de la transacción y antes de registrar la mutación: un rechazo nunca vuelve como `duplicate`.
+  async refs(userId: UserId, row: Note) { return (await this.repo.owns('deck', userId, row.deckId)) ? null : 'not_found'; }
   upsert(userId: UserId, row: Note) { return this.repo.upsertNoteLww(userId, row); } // upsertLwwSql (SYNC.md §3)
 }
 ```

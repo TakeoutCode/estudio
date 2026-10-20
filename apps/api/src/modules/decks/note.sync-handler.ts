@@ -1,0 +1,39 @@
+import type { ApiErrorCode, Note } from '@estudio/shared';
+import { Injectable } from '@nestjs/common';
+import { dbNumber, dbNumberOrNull } from '../sync/sql.js';
+import { type ApplyStatus, type EntitySyncHandler, SyncHandler } from '../sync/sync-handler.js';
+import { DecksRepository } from './decks.repository.js';
+
+@Injectable()
+@SyncHandler('note')
+export class NoteSyncHandler implements EntitySyncHandler<'note'> {
+  readonly entity = 'note';
+  readonly table = 'note';
+
+  constructor(private readonly repo: DecksRepository) {}
+
+  check(): null {
+    return null;
+  }
+
+  async refs(userId: string, row: Note): Promise<ApiErrorCode | null> {
+    return (await this.repo.owns('deck', userId, row.deckId)) ? null : 'not_found';
+  }
+
+  apply(userId: string, row: Note): Promise<ApplyStatus> {
+    return this.repo.upsertNoteLww(userId, row);
+  }
+
+  fromDb(d: Readonly<Record<string, unknown>>): unknown {
+    return {
+      id: d.id,
+      deckId: d.deck_id,
+      topicId: d.topic_id,
+      content: d.content,
+      origin: d.origin,
+      hlc: d.hlc,
+      updatedAt: dbNumber(d.updated_at),
+      deletedAt: dbNumberOrNull(d.deleted_at),
+    };
+  }
+}

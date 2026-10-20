@@ -2,23 +2,29 @@ import { type ApiErrorCode, MAX_HLC_DRIFT_MS, type ReviewLog } from '@estudio/sh
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
+import { DecksRepository } from '../decks/decks.repository.js';
 import { dbNumber, dbNumberOrNull, insertAppendSql } from '../sync/sql.js';
 import { type ApplyStatus, type EntitySyncHandler, SyncHandler } from '../sync/sync-handler.js';
 
-/**
- * R3: el ReviewLog es solo de inserción; Postgres impide UPDATE y DELETE con un trigger.
- * La verificación de que `cardId` sea de ella llega con la entidad Card (BE2).
- */
+/** R3: el ReviewLog es solo de inserción; Postgres impide UPDATE y DELETE con un trigger. */
 @Injectable()
 @SyncHandler('reviewLog')
 export class ReviewLogSyncHandler implements EntitySyncHandler<'reviewLog'> {
   readonly entity = 'reviewLog';
   readonly table = 'review_log';
 
-  constructor(private readonly txHost: TransactionHost) {}
+  constructor(
+    private readonly txHost: TransactionHost,
+    private readonly decks: DecksRepository,
+  ) {}
 
   check(_userId: string, row: ReviewLog, now: number): ApiErrorCode | null {
     return row.reviewedAt - now > MAX_HLC_DRIFT_MS ? 'validation_failed' : null;
+  }
+
+  /** BE2: la tarjeta es de ella (aunque esté borrada: sus repasos se conservan, SYNC §5). */
+  async refs(userId: string, row: ReviewLog): Promise<ApiErrorCode | null> {
+    return (await this.decks.owns('card', userId, row.cardId)) ? null : 'not_found';
   }
 
   async apply(userId: string, row: ReviewLog): Promise<ApplyStatus> {

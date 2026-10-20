@@ -71,6 +71,12 @@ export class SyncService {
     await this.repo.lockUser(userId);
     const results: PushResult[] = [];
     for (const { mutationId, handler, row } of accepted) {
+      // En orden: una tarjeta creada en este mismo lote ya existe cuando llega su repaso.
+      const refError = (await handler.refs?.(userId, row)) ?? null;
+      if (refError) {
+        results.push({ mutationId, status: 'rejected', code: refError });
+        continue;
+      }
       if (!(await this.repo.recordMutation(userId, mutationId))) {
         results.push({ mutationId, status: 'duplicate' });
         continue;

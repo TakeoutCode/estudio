@@ -39,10 +39,16 @@ describe('UserSettings por sección (SYNC §1)', () => {
 });
 
 describe('esquemas de fila sincronizables', () => {
-  it('solo deck, userSettings y reviewLog viajan por ahora', () => {
-    expect(Object.keys(SYNC_ROW_SCHEMAS).sort()).toEqual(['deck', 'reviewLog', 'userSettings']);
-    expect(isSyncedEntity('deck')).toBe(true);
-    expect(isSyncedEntity('note')).toBe(false);
+  it('viajan deck, note, card, userSettings y reviewLog por ahora', () => {
+    expect(Object.keys(SYNC_ROW_SCHEMAS).sort()).toEqual([
+      'card',
+      'deck',
+      'note',
+      'reviewLog',
+      'userSettings',
+    ]);
+    expect(isSyncedEntity('card')).toBe(true);
+    expect(isSyncedEntity('topic')).toBe(false);
   });
 });
 

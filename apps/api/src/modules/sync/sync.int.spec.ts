@@ -9,9 +9,11 @@ import {
 } from '@estudio/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  cardRow,
   deckRow,
   hlcAt,
   type IntegrationApp,
+  noteRow,
   signIn,
   startIntegrationApp,
 } from '../../test/integration-app.js';
@@ -139,8 +141,56 @@ describe('sync contra Postgres real (SYNC.md)', () => {
     });
   });
 
+  /** Mazo, nota y tarjeta de ella: lo mínimo para que un repaso tenga a qué referirse (BE2). */
+  const ownedCard = async (token: string) => {
+    const deck = deckRow(now, NODE);
+    const note = noteRow(now, NODE, deck.id);
+    const card = cardRow(now, NODE, note.id);
+    const results = (await push(token, [upsert(deck), upsert(note, 'note'), upsert(card, 'card')])).results;
+    expect(results.map((r) => r.status)).toEqual(['applied', 'applied', 'applied']);
+    return { deck, note, card };
+  };
+
+  it('BE2: nota, tarjeta y repaso solo pueden referirse a filas de ella', async () => {
+    const mine = await ownedCard(a.token);
+    const results = (
+      await push(b.token, [
+        upsert(noteRow(now, NODE, mine.deck.id), 'note'), // mazo ajeno
+        upsert(cardRow(now, NODE, mine.note.id), 'card'), // nota ajena
+        append(reviewLog({ cardId: mine.card.id })), // tarjeta ajena
+        upsert(noteRow(now, NODE, newId()), 'note'), // mazo inexistente
+      ])
+    ).results;
+    expect(results.map((r) => [r.status, r.code])).toEqual([
+      ['rejected', 'not_found'],
+      ['rejected', 'not_found'],
+      ['rejected', 'not_found'],
+      ['rejected', 'not_found'],
+    ]);
+    // Un rechazo no queda registrado: corregido, el mismo mutationId se aplica (no `duplicate`).
+    const retry = upsert(noteRow(now, NODE, newId()), 'note');
+    expect((await push(a.token, [retry])).results[0]?.status).toBe('rejected');
+    const fixed = { ...retry, row: { ...retry.row, deckId: mine.deck.id } };
+    expect((await push(a.token, [fixed])).results[0]?.status).toBe('applied');
+  });
+
+  it('mazo, nota, tarjeta y repaso creados sin red llegan en un solo lote y en orden', async () => {
+    const deck = deckRow(now, NODE);
+    const note = noteRow(now, NODE, deck.id);
+    const card = cardRow(now, NODE, note.id);
+    const log = reviewLog({ cardId: card.id });
+    const results = (
+      await push(a.token, [upsert(deck), upsert(note, 'note'), upsert(card, 'card'), append(log)])
+    ).results;
+    expect(results.map((r) => r.status)).toEqual(['applied', 'applied', 'applied', 'applied']);
+    const changes = await allChanges(a.token);
+    expect(changes.find((c) => c.entity === 'note' && c.row.id === note.id)?.row).toEqual(note);
+    expect(changes.find((c) => c.entity === 'card' && c.row.id === card.id)?.row).toEqual(card);
+  });
+
   it('R3: el ReviewLog es solo de inserción, y Postgres lo hace cumplir', async () => {
-    const log = reviewLog({ confidence: 2, answer: { typed: 'escafoides' } });
+    const { card } = await ownedCard(a.token);
+    const log = reviewLog({ cardId: card.id, confidence: 2, answer: { typed: 'escafoides' } });
     expect((await push(a.token, [append(log)])).results[0]?.status).toBe('applied');
     // Otra mutación con el mismo log (p. ej. tras purgar applied_mutation): no se duplica.
     expect((await push(a.token, [append(log)])).results[0]?.status).toBe('duplicate');

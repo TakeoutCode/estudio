@@ -24,6 +24,8 @@ export const ProfileSettingsSchema = z.object({
   bedtime: LocalTimeSchema.nullable().default(null),
 });
 
+export type ProfileSettings = z.output<typeof ProfileSettingsSchema>;
+
 export const UiSettingsSchema = z.object({
   theme: z.enum(['system', 'light', 'dark']).default('system'), // UI-UX UX5
 });
