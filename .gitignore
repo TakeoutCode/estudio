@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Entorno: solo se versionan los .env.example
+.env
+.env.*
+!.env.example
+
+# Cliente Prisma generado
+apps/api/src/generated/
+
+# Playwright
+playwright-report/
+test-results/
+
+.DS_Store
+Thumbs.db

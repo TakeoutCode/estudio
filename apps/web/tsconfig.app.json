@@ -1,0 +1,9 @@
+{
+  "extends": "@estudio/config/tsconfig/react.json",
+  "compilerOptions": {
+    "types": ["vite/client", "vite-plugin-pwa/react"],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src"],
+  "exclude": ["src/sw.ts"]
+}

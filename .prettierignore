@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist/
+dev-dist/
+coverage/
+apps/api/src/generated/
+apps/api/prisma/migrations/
+docs/
+*.md

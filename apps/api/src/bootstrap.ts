@@ -1,0 +1,29 @@
+import { CONTRACT_HEADER } from '@estudio/shared';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import express from 'express';
+import { Logger } from 'nestjs-pino';
+import { AppConfig } from './config/app-config.js';
+
+/** Middleware global de la app; lo comparten `main.ts` y las pruebas de integración. */
+export function configureApp(app: NestExpressApplication): NestExpressApplication {
+  const config = app.get(AppConfig);
+  const origins = config.get('WEB_ORIGINS');
+
+  app.useLogger(app.get(Logger));
+  // BACKEND BE12: cabeceras de seguridad nativas de Nest 12 (mismos valores que helmet 8)
+  // y protección CSRF por Fetch Metadata, con la web como único origen confiable.
+  app.useSecurityHeaders();
+  app.enableCsrfProtection({ trustedOrigins: origins });
+  app.enableCors({
+    origin: origins,
+    credentials: true,
+    allowedHeaders: ['content-type', 'authorization', 'x-request-id', CONTRACT_HEADER],
+    exposedHeaders: ['x-request-id'],
+    maxAge: 600,
+  });
+  // BE12: 2 MB para un lote de sync (hasta 200 mutaciones), 1 MB para lo demás.
+  app.use('/sync/push', express.json({ limit: '2mb' }));
+  app.useBodyParser('json', { limit: '1mb' });
+  app.enableShutdownHooks();
+  return app;
+}

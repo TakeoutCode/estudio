@@ -1,0 +1,126 @@
+# LEARNING-DESIGN.md — Tarjetas, ejercicios, calificación, exámenes e IA
+
+**Precedencia:** [STUDY-METHODS.md](STUDY-METHODS.md) gana sobre este documento; si algo aquí lo contradice, aplica STUDY-METHODS. La implementación vive en `@estudio/srs` (ARC2) y todos los umbrales en `StudyConfig` (AGENTS AG4). Los marcados *diseño* no salen de STUDY-METHODS: son hipótesis propias.
+
+## 1. Modelo: nota y tarjeta
+
+Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una **`Card`** es la unidad que programa FSRS: una por lado, por hueco cloze, por grupo de máscaras o por pregunta de ejercicio. Cada `Card` tiene su propio estado FSRS (`cardStates`, ARC5). Un `Exercise` también genera `Card`s.
+
+| Tipo de nota | Cards que genera | Intento (R1) | Calificación |
+|---|---|---|---|
+| `basic` | 1 (+1 inversa opcional) | Recordar con la pregunta visible → "Mostrar" | Ella elige entre 4 botones |
+| `cloze` | 1 por cada `{{cN::…}}` | Igual | Ella elige |
+| `image_occlusion` | 1 por grupo de máscaras (`hide_one` o `hide_all`); coordenadas normalizadas de 0 a 1 | Igual, con la etiqueta oculta | Ella elige |
+| `type_answer` | 1 | Escribir → "Comprobar" | Automática (§3) |
+| `multiple_choice` | 1 (3 a 5 opciones, una correcta) | Elegir una opción | Automática (§3) |
+
+**LD1 · DEBE** acompañar cada imagen con texto y oclusión de etiquetas cuando la imagen es el contenido. **NO DEBE** ofrecerse imagen decorativa, de stock ni plantilla con ilustración (R10).
+
+## 2. Ejercicios de aplicación
+
+| Tipo | Unidad programable | Puntaje `s ∈ [0,1]` |
+|---|---|---|
+| `clinical_case` | 1 Card por subpregunta (`multiple_choice`, `type_answer` u `open`) | El de cada subpregunta |
+| `sequence` | 1 | `1 − inversiones / inversiones máximas` (Kendall) |
+| `matching` | 1 | pares correctos / total |
+| `label_image` | 1 | etiquetas correctas / total |
+| `true_false_justify` | 1 | V/F automático; ella autoevalúa la justificación |
+| `open_question` | 1 | Ella se califica tras ver la clave y, si quiere, la retroalimentación de IA |
+
+## 3. De la respuesta a la calificación FSRS
+
+**LD2 · DEBE** convertir la respuesta en calificación con `toRating()` en `srs`, de forma determinista. *Razón:* la misma respuesta debe dar la misma calificación en cualquier dispositivo y al reproducir el log (ARC5).
+- Autoevaluadas (`basic`, `cloze`, `image_occlusion`, `open_question`): ella elige `Again`, `Hard`, `Good` o `Easy`.
+- Objetivas (`type_answer`, `multiple_choice`): un error es `Again` fijo. Un acierto deja elegir entre `Hard`, `Good` y `Easy`, con `Good` preseleccionado. En `type_answer` se normalizan mayúsculas, espacios y acentos, y siempre se muestra la ortografía correcta.
+- Con puntaje (*diseño*): `s ≥ exercise.goodMinScore` (1.0) da `Good` (puede subir a `Easy`); `s ≥ exercise.hardMinScore` (0.8) da `Hard`; lo demás, `Again`.
+- `true_false_justify`: V/F incorrecto es `Again`. V/F correcto con justificación suficiente es `Good`; con justificación débil, `Hard`.
+- **Simulacros (P7):** acierto con `confidence ≥ exam.highConfidenceMin` (3) es `Good`; acierto con menos confianza es `Hard` (la confianza 2 cuenta como poca, confirmado por el responsable); fallo es `Again`. Se guarda con `type: 'exam'`. Entra al `replay()` solo si `exam.affectsScheduling` (inicial `true`, confirmado; ADR-009).
+```ts
+// ❌ const rating = correct ? Rating.Good : Rating.Again;                   // ignora confianza (P7)
+// ✅ const rating = toRating({ kind: 'exam', correct, confidence }, cfg.exam);
+```
+
+## 4. Flujo de un intento (R1, R4, R5, R6, R15)
+
+`prompt → [confianza] → intento → revelar (respuesta + explicación) → calificación → ReviewLog`
+
+**LD3 · DEBE** registrar el intento antes de revelar; la respuesta no está en el DOM antes (FRONTEND FE10). *Razón:* R1.
+
+**LD4 · DEBE** mostrar la respuesta y `explanation` (máximo 400 caracteres) tras **cada** intento, también si acertó con poca confianza. *Razón:* R4.
+
+**LD5 · DEBE** mostrar `Topic.explanation` y pedir una autoexplicación ("Explícalo con tus palabras", que se guarda como `SelfExplanation`) antes de la primera Card nueva de un tema. Esto no cuenta como repaso. *Razón:* R5 y R15.
+
+**LD6 · DEBE** pedir la confianza (1-3) antes de revelar: siempre en simulacros y, en repasos, solo si `review.askConfidence` (inicial `false`). *Razón:* R6.
+
+**LD7 · NO DEBE** existir un modo de releer, subrayar o resumir que genere `ReviewLog` o que se presente como forma principal de estudiar. *Razón:* R15.
+
+`ReviewLog` (R3): `{ id, cardId, cardKind, reviewedAt, rating: 1-4, durationMs, type: 'learn' | 'review' | 'exam' | 'contrast', confidence: 1-3 | null, sessionId, deviceId, answer? }`, guardado al responder (SYNC SY6). `cardKind` es una foto del tipo de nota o ejercicio en ese momento (el "tipo" de R3), porque la nota puede cambiar después.
+
+## 5. FSRS (R2, R18)
+
+**LD8 · DEBE** programar con ts-fsrs y `fsrs.requestRetention` (inicial 0.90, rango 0.80-0.95), con fuzz determinista. Al cambiar la retención, Ajustes muestra la carga proyectada antes de guardar: "Con 0.95: ≈ 74 repasos al día (ahora 48)", calculada con `replay()` y 30 días simulados. *Razón:* R2.
+
+**LD9 · NO DEBE** la app cambiar la retención objetivo por su cuenta, ni editar a mano fechas de FSRS, ni afirmar que los intervalos crecientes son mejores. Los pesos de FSRS son los de fábrica; optimizarlos queda fuera de la v1. *Razón:* P3 ("nunca bajar la retención sin avisar"), §3 y R18.
+
+## 6. Planificador (P1-P8)
+
+| Regla | Claves de `StudyConfig.planner` (valor inicial) | Comportamiento |
+|---|---|---|
+| P1 | `newPerSessionMax` (10, rango 0-30), `bootstrapReviewSec` (20), `bootstrapNewSec` (60) | `nuevas = min(tope, ⌊(presupuesto − vencidas × t_repaso) / t_nueva⌋)`, con medianas de su historial |
+| P2 | `overdueFactorForZeroNew` (2) | Si las vencidas superan 2 × lo que cabe en la sesión: 0 nuevas |
+| P3 | `lowRetentionWindowDays` (3), `lowRetentionDropPts` (10), `leechLapses` (6), `lowRetentionPersistDays` (7), `persistNewFactor` (0.5) | 0 nuevas si la retención cae; con ≥6 lapsos la Card va a "reformular"; si persiste, se propone la mitad de nuevas |
+| P4 | `reviewMaxSameTopicRun` (5), `newMaxSameTopicRun` (10) | Repasos mezclados; nuevas por tema y luego mezcladas |
+| P5 | `fatigueWindowCards` (10), `fatigueAccuracyDropPts` (20), `fatigueLatencyFactor` (1.5) | Sugerencia suave de descanso |
+| P6 | `stopAfterNetBlocks` (4), `fatigueWarningsToStop` (2); hora de dormir en `profile.bedtime` (si es `null`, se usa `quietHours.start`) | Sugerir parar, nunca bloquear |
+| P7 | `exam.mockWeeksBeforeExam` (8), `exam.mocksPerWeek` (1), `exam.feedbackTiming` (`'end'`) | Simulacros acumulativos |
+| P8 | `backlogSpreadMinDays` (3), `backlogSpreadMaxDays` (7) | Repartir el atraso de menor a mayor retrievability |
+| R7, R8, §3 | `timer.focusMin` (25, rango 5-120), `shortBreakMin` (5, 1-30), `longBreakMin` (20, 5-60), `cyclesBeforeLong` (4, 2-6), `mode` (`flexible`, *diseño*), `pauseTimeoutMin` (10), `endOfBlockGraceSec` (60), `flexExtendMin` (5) | Presets 25/5, 24/6, 12/3, 50/10, 90/20 y personalizado; ninguno se presenta como óptimo (R17) |
+| R21, §5, R6 | `metrics.inactivityCutoffSec` (90), `metrics.minReviewsToShow` (100), `metrics.baselineWeeks` (4, *diseño*), `review.askConfidence` (`false`) | Tiempo activo, métricas visibles, confianza en repasos |
+
+**LD10 · DEBE** implementar los sets de contraste (R9, P4) solo sobre `ContrastGroup`s marcados como confundibles, y después del primer acierto de cada miembro. Cada grupo recibe al crearse un `abArm: 'contrast' | 'control'` (sorteo con semilla guardada), y se compara la retención a 7 días entre brazos. *Razón:* la evidencia es contradictoria ([7] frente a [8]).
+
+## 7. Exámenes y simulacros (R11, P7)
+
+**LD11 · DEBE** pedir para cada `Exam` título, fecha y temas. Con eso el plan muestra por tema las nuevas que faltan y los días disponibles, y sugiere `⌈faltan / días⌉` por día, limitado por P1. *Razón:* R11.
+
+**LD12 · DEBE** agregar, en los últimos `exam.finalReviewWindowDays` días (*diseño*, 7), una vuelta de "repaso previo al examen" con las Cards del alcance cuyo `due` cae después del examen. Se registran como repasos normales y FSRS los procesa como repasos anticipados, sin editar fechas. *Razón:* R11 manda ajustar hacia la fecha; así R18 y §3 se respetan porque el intervalo lo sigue calculando FSRS.
+
+**LD13 · DEBE** armar cada simulacro de forma acumulativa: `exam.mockSize` preguntas (*diseño*, 30), con `exam.previousTopicsShare` (*diseño*, 0.3) de temas de exámenes anteriores. Confianza obligatoria (R6), retroalimentación por pregunta al terminar (por defecto) o inmediata. El resultado se da por tema, con calibración y "pocos datos" cuando corresponda (UI-UX UX9). Sin nota de aprobado ni comparación con nadie. *Razón:* P7 y §5.
+
+## 8. IA (opcional; la captura manual siempre existe)
+
+**LD14 · DEBE** usar la IA solo para: borradores de notas a partir de texto que ella pega, distractores de opción múltiple, borradores de casos clínicos y retroalimentación de respuestas abiertas. **NO DEBE** calificar para FSRS, programar repasos ni guardar contenido sin que ella lo revise. *Razón:* la clave vive solo en el servidor y la calificación es de ella.
+
+**LD15 · DEBE** definir la salida con esquemas zod de `shared`, convertidos con `z.toJSONSchema` a `json_schema` estricto (todos los campos requeridos; los opcionales como `nullable`), y validarla otra vez con zod. *Razón:* la forma garantizada evita contenido a medias.
+```ts
+export const AiNoteDraftSchema = z.object({
+  kind: z.enum(['basic', 'cloze', 'multiple_choice']),
+  front: z.string().min(1).max(500), back: z.string().min(1).max(1000),
+  explanation: z.string().max(400),                    // R4
+  sourceQuote: z.string().min(1).max(300),             // debe aparecer literal en el texto de entrada
+  options: z.array(z.string().max(200)).min(3).max(5).nullable(),
+}).strict();
+export const AiOpenFeedbackSchema = z.object({
+  covered: z.array(z.string()), missing: z.array(z.string()), misconceptions: z.array(z.string()), suggestion: z.string(),
+}).strict();                                           // sin nota numérica: la calificación es de ella
+```
+
+**LD16 · DEBE** guardar todo lo generado como `AiDraft` (`draft` → `accepted` | `rejected`). Ella lo ve completo y lo edita antes de aceptarlo; aceptarlo crea la `Note` con `origin: 'ai'`. Un borrador cuyo `sourceQuote` no aparece en el texto de entrada se marca "Sin respaldo en tu texto" y no se acepta sin editarlo. **NO DEBE** haber aceptación automática. *Razón:* la IA puede inventar anatomía.
+
+**LD17 · DEBE** manejar errores y costos así. *Razón:* cuidar el costo y que ella no pierda su texto.
+- Sin red: botón deshabilitado con "Requiere conexión".
+- Cuota agotada (`429`): "Disponible de nuevo a las 00:00".
+- Rechazo del modelo, timeout de 30 s o salida inválida: un reintento y luego un error con su texto intacto. Los ítems inválidos se descartan e informan.
+- Cuota diaria por usuario (`AI_DAILY_REQUESTS`, `AI_DAILY_TOKENS`), entrada de 12 000 caracteres como máximo, `max_output_tokens` explícito y modelo por `OPENAI_MODEL`.
+- `ai_usage` registra tokens, modelo, latencia y estado, nunca el contenido (BACKEND BE6). Se avisa que no pegue datos de pacientes.
+
+## 9. Checklist de revisión
+
+- [ ] ¿Cada tipo nuevo de nota o ejercicio define sus Cards, su intento y su `toRating()` (LD2)?
+- [ ] ¿La confianza se pide antes de revelar en simulacros, y P7 mapea Good/Hard/Again con `type: 'exam'` (LD2, LD6)?
+- [ ] ¿Respuesta y explicación tras cada intento, y explicación con autoexplicación en temas nuevos (LD4, LD5)?
+- [ ] ¿Algún modo de releer que genere `ReviewLog` (LD7)?
+- [ ] ¿Algún cambio automático de retención o edición de fechas FSRS (LD9, LD12)?
+- [ ] ¿Cada umbral de P1-P8 y de *diseño* vive en `StudyConfig` y tiene prueba con otro valor (QUALITY.md)?
+- [ ] ¿Los sets de contraste tienen `abArm` y aparecen solo tras el primer acierto (LD10)?
+- [ ] ¿La salida de IA se valida con zod, queda como borrador y se verifica su `sourceQuote` (LD15, LD16)?

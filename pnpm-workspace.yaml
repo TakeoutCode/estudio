@@ -1,0 +1,15 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 10 no ejecuta scripts de instalación salvo los que se listan aquí.
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - '@swc/core'
+  - esbuild
+  - prisma
+
+# Node del proyecto: pnpm lo descarga y lo usa para revisar engines y correr scripts,
+# sin tocar el Node global (.nvmrc dice lo mismo para CI, Vercel y Railway).
+nodeVersion: 24.22.0
+useNodeVersion: 24.22.0

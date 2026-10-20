@@ -1,0 +1,187 @@
+import {
+  compareHlc,
+  ENTITY_STRATEGY,
+  isSyncedEntity,
+  MAX_MUTATIONS_PER_PUSH,
+  type Mutation,
+  type PullResponse,
+  type PushRequest,
+  type PushResponse,
+  type SyncedEntity,
+  type SyncMeta,
+  SYNC_ROW_SCHEMAS,
+} from '@estudio/shared';
+import { z } from 'zod';
+import { deviceId, observeHlc } from '@/db/clock';
+import { type EstudioDb, type OutboxEntry, syncedTables, TABLE_FOR } from '@/db/schema';
+import { ApiError } from '@/lib/api';
+
+// Motor de sync del cliente (SYNC §3-§6). Sin estado propio: la base y el transporte entran
+// como parámetros, así se prueba contra un servidor falso y con varias réplicas.
+
+export interface SyncTransport {
+  push(request: PushRequest): Promise<PushResponse>;
+  pull(cursor: string): Promise<PullResponse>;
+}
+
+export interface SyncReport {
+  readonly pushed: number;
+  readonly rejected: number;
+  readonly pulled: number;
+}
+
+const CURSOR_KEY = 'syncCursor';
+const OFFSET_KEY = 'serverOffsetMs';
+
+const toMutation = ({ mutationId, op, entity, row }: OutboxEntry): Mutation => ({
+  mutationId,
+  op,
+  entity,
+  row,
+});
+
+/** SY8: envía el outbox por lotes, en orden de creación (UUIDv7). Lo rechazado se queda. */
+export async function pushOutbox(
+  database: EstudioDb,
+  transport: SyncTransport,
+): Promise<{ pushed: number; rejected: number }> {
+  let pushed = 0;
+  let rejected = 0;
+  const device = await database.transaction('rw', database.meta, () => deviceId(database));
+  for (;;) {
+    const batch = (await database.outbox.where('status').equals('pending').sortBy('mutationId')).slice(
+      0,
+      MAX_MUTATIONS_PER_PUSH,
+    );
+    if (batch.length === 0) break;
+    const { results } = await transport.push({ deviceId: device, mutations: batch.map(toMutation) });
+    let settled = 0;
+    await database.transaction('rw', database.outbox, async () => {
+      for (const result of results) {
+        const entry = await database.outbox.get(result.mutationId);
+        if (!entry) continue;
+        settled += 1;
+        if (result.status === 'rejected') {
+          rejected += 1;
+          await database.outbox.update(result.mutationId, {
+            status: 'rejected',
+            attempts: entry.attempts + 1,
+          });
+        } else {
+          pushed += 1; // applied, duplicate o stale: el servidor ya tiene su versión
+          await database.outbox.delete(result.mutationId);
+        }
+      }
+    });
+    if (settled === 0) throw new Error('push_without_results'); // nunca repetir el mismo lote sin fin
+  }
+  return { pushed, rejected };
+}
+
+async function readCursor(database: EstudioDb): Promise<string> {
+  const stored = z.string().safeParse((await database.meta.get(CURSOR_KEY))?.value);
+  return stored.success ? stored.data : '0';
+}
+
+/**
+ * SY4: aplica una página en una sola transacción. LWW solo si el HLC remoto es mayor (puede
+ * haber una edición local sin enviar); append solo si no existe; el cursor va en la misma
+ * transacción que los datos.
+ */
+export async function applyPage(database: EstudioDb, page: PullResponse, now: number): Promise<void> {
+  await database.transaction('rw', syncedTables(database), async () => {
+    let newest: string | null = null;
+    for (const change of page.changes) {
+      if (!isSyncedEntity(change.entity)) continue; // entidad de una versión más nueva de la app
+      const entity: SyncedEntity = change.entity;
+      const row = SYNC_ROW_SCHEMAS[entity].parse(change.row);
+      const table = database.table<{ id: string }, string>(TABLE_FOR[entity]);
+
+      if (ENTITY_STRATEGY[entity] === 'append') {
+        if (!(await table.get(row.id))) await table.add(row);
+        continue;
+      }
+      const remote = row as SyncMeta;
+      const local = (await table.get(row.id)) as SyncMeta | undefined;
+      if (!local || compareHlc(remote.hlc, local.hlc) > 0) {
+        // SY5: un borrado remoto que gana elimina la fila local.
+        if (remote.deletedAt === null) await table.put(row);
+        else await table.delete(row.id);
+      }
+      if (!newest || compareHlc(remote.hlc, newest) > 0) newest = remote.hlc;
+    }
+    if (newest) await observeHlc(database, newest, now);
+    await database.meta.put({ key: CURSOR_KEY, value: page.cursor });
+    await database.meta.put({ key: OFFSET_KEY, value: page.serverNow - now });
+  });
+}
+
+/** SY9 y §4: tras un 410, se vacían las tablas sincronizadas; el outbox se conserva. */
+async function resetForFullResync(database: EstudioDb): Promise<void> {
+  await database.transaction('rw', [...syncedTables(database), database.cardStates], async () => {
+    await Promise.all([database.decks.clear(), database.userSettings.clear(), database.reviewLogs.clear()]);
+    await database.cardStates.clear();
+    await database.meta.put({ key: CURSOR_KEY, value: '0' });
+  });
+}
+
+/** Vuelve a poner en local lo que sigue en el outbox después de un pull completo. */
+async function reapplyOutbox(database: EstudioDb): Promise<void> {
+  const pending = await database.outbox.toArray();
+  await database.transaction('rw', syncedTables(database), async () => {
+    for (const entry of pending) {
+      if (!isSyncedEntity(entry.entity)) continue;
+      const table = database.table<{ id: string }, string>(TABLE_FOR[entry.entity]);
+      const row = entry.row as { id: string; hlc?: string; deletedAt?: number | null };
+      const local = (await table.get(row.id)) as SyncMeta | undefined;
+      if (entry.op === 'append') {
+        if (!local) await table.add(row);
+      } else if (!local || (row.hlc && compareHlc(row.hlc, local.hlc) > 0)) {
+        if (row.deletedAt === null) await table.put(row);
+        else await table.delete(row.id);
+      }
+    }
+  });
+}
+
+/** SY3, SY4: pull hasta `hasMore = false`. */
+export async function pullAll(
+  database: EstudioDb,
+  transport: SyncTransport,
+  now: () => number,
+): Promise<number> {
+  let pulled = 0;
+  let cursor = await readCursor(database);
+  let resynced = false;
+  for (;;) {
+    let page: PullResponse;
+    try {
+      page = await transport.pull(cursor);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'cursor_expired' && !resynced) {
+        await resetForFullResync(database);
+        resynced = true;
+        cursor = '0';
+        continue;
+      }
+      throw error;
+    }
+    await applyPage(database, page, now());
+    pulled += page.changes.length;
+    cursor = page.cursor;
+    if (!page.hasMore) break;
+  }
+  if (resynced) await reapplyOutbox(database);
+  return pulled;
+}
+
+/** Un ciclo completo: primero se vacía el outbox, luego se baja todo lo nuevo (SYNC §4). */
+export async function syncOnce(
+  database: EstudioDb,
+  transport: SyncTransport,
+  now: () => number = Date.now,
+): Promise<SyncReport> {
+  const { pushed, rejected } = await pushOutbox(database, transport);
+  const pulled = await pullAll(database, transport, now);
+  return { pushed, rejected, pulled };
+}

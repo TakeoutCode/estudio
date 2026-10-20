@@ -1,0 +1,21 @@
+name: estudio
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: estudio
+      POSTGRES_PASSWORD: estudio
+      POSTGRES_DB: estudio
+    ports:
+      - '5433:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U estudio -d estudio']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  db-data:

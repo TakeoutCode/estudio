@@ -1,0 +1,9 @@
+{
+  "extends": "@estudio/config/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "preserve",
+    "moduleResolution": "bundler"
+  },
+  "include": ["vite.config.ts"]
+}

@@ -1,0 +1,46 @@
+{
+  "app": {
+    "name": "Estudio"
+  },
+  "today": {
+    "title": "Hoy",
+    "empty": "No hay tarjetas pendientes. Puedes añadir nuevas o descansar."
+  },
+  "auth": {
+    "email": "Correo",
+    "password": "Contraseña (12 caracteres o más)",
+    "login": {
+      "title": "Entrar",
+      "submit": "Entrar",
+      "switch": "¿Primera vez aquí? Crea tu cuenta"
+    },
+    "register": {
+      "title": "Crear cuenta",
+      "submit": "Crear cuenta",
+      "switch": "Ya tengo cuenta"
+    },
+    "error": {
+      "format": "Revisa el correo y que la contraseña tenga 12 caracteres o más.",
+      "invalid": "El correo o la contraseña no coinciden.",
+      "registerFailed": "No se pudo crear la cuenta con ese correo.",
+      "offline": "Requiere conexión. Tus datos de este dispositivo siguen aquí.",
+      "rateLimited": "Hubo varios intentos seguidos. Espera un minuto y vuelve a intentar.",
+      "accountMismatch": "Este dispositivo tiene cambios de otra cuenta que aún no se enviaron. Entra con esa cuenta para guardarlos.",
+      "generic": "No se pudo entrar. Intenta de nuevo en un momento."
+    }
+  },
+  "offline": {
+    "banner": "Sin conexión · tus repasos se guardan en este dispositivo"
+  },
+  "update": {
+    "available": "Hay una versión nueva de la app.",
+    "required": "Actualiza la app para seguir sincronizando. Lo que respondiste está guardado.",
+    "apply": "Actualizar",
+    "afterSession": "Se actualizará al terminar la sesión"
+  },
+  "error": {
+    "boot": "No se pudo abrir la app. Recarga la página; lo que respondiste sigue guardado en este dispositivo.",
+    "generic": "Algo no salió bien. Lo que respondiste sigue guardado en este dispositivo.",
+    "retry": "Reintentar"
+  }
+}

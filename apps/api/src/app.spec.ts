@@ -1,0 +1,111 @@
+import { CONTRACT_HEADER, CONTRACT_VERSION } from '@estudio/shared';
+import { Controller, Get, Post } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { Test } from '@nestjs/testing';
+import request from 'supertest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppModule } from './app.module.js';
+import { configureApp } from './bootstrap.js';
+import { Public } from './modules/auth/public.js';
+import { HealthRepository } from './modules/health/health.repository.js';
+import { PrismaService } from './prisma/prisma.service.js';
+
+const WEB = 'http://localhost:5180';
+
+// Pública para aislar contrato, CSRF y CORS; el access token se prueba en auth.int.spec.ts.
+@Controller('probe')
+@Public()
+class ProbeController {
+  @Get()
+  read() {
+    return { ok: true };
+  }
+
+  @Post()
+  write() {
+    return { ok: true };
+  }
+}
+
+describe('app (integración HTTP, sin base)', () => {
+  let app: NestExpressApplication;
+  const ping = vi.fn<() => Promise<void>>();
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule], controllers: [ProbeController] })
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .overrideProvider(HealthRepository)
+      .useValue({ ping })
+      .compile();
+    app = configureApp(moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false }));
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    ping.mockReset().mockResolvedValue(undefined);
+  });
+
+  it('GET /health responde sin cabecera de contrato', async () => {
+    await request(app.getHttpServer()).get('/health').expect(200, { status: 'ok' });
+  });
+
+  it('QA8: GET /health responde 503 problem+json si la base no contesta', async () => {
+    ping.mockRejectedValue(new Error('connection refused'));
+    const res = await request(app.getHttpServer()).get('/health').expect(503);
+    expect(res.headers['content-type']).toContain('application/problem+json');
+    expect(res.body).toMatchObject({ code: 'unavailable' });
+  });
+
+  it('ARC6: sin cabecera de contrato responde 426', async () => {
+    const res = await request(app.getHttpServer()).get('/probe').expect(426);
+    expect(res.body).toMatchObject({ code: 'contract_outdated' });
+  });
+
+  it('ARC6: con el contrato vigente deja pasar', async () => {
+    await request(app.getHttpServer())
+      .get('/probe')
+      .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
+      .expect(200, { ok: true });
+  });
+
+  it('BE12: rechaza un POST de otro origen (CSRF) y acepta el de la web', async () => {
+    const post = (origin: string) =>
+      request(app.getHttpServer())
+        .post('/probe')
+        .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
+        .set('Origin', origin)
+        .set('Sec-Fetch-Site', 'cross-site');
+    const rejected = await post('https://malicioso.example').expect(403);
+    expect(rejected.body).toMatchObject({ code: 'forbidden' });
+    await post(WEB).expect(201);
+  });
+
+  it('BE12: CORS solo para la web', async () => {
+    const preflight = (origin: string) =>
+      request(app.getHttpServer())
+        .options('/probe')
+        .set('Origin', origin)
+        .set('Access-Control-Request-Method', 'POST');
+    expect((await preflight(WEB)).headers['access-control-allow-origin']).toBe(WEB);
+    expect(
+      (await preflight('https://malicioso.example')).headers['access-control-allow-origin'],
+    ).toBeUndefined();
+  });
+
+  it('BE12: cabeceras de seguridad, request id y sin X-Powered-By', async () => {
+    const res = await request(app.getHttpServer()).get('/health').set('x-request-id', 'abc-123');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-powered-by']).toBeUndefined();
+    expect(res.headers['x-request-id']).toBe('abc-123');
+  });
+
+  it('BE5: una ruta desconocida responde 404 problem+json', async () => {
+    const res = await request(app.getHttpServer()).get('/no-existe').expect(404);
+    expect(res.body).toMatchObject({ code: 'not_found', status: 404 });
+  });
+});

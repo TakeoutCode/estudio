@@ -1,0 +1,74 @@
+# QUALITY QA4: checks obligatorios para fusionar a main. Los pasos de integración con
+# Testcontainers, Playwright y Lighthouse se agregan cuando existan sync y los flujos de estudio.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+
+      - name: Tipos
+        run: pnpm typecheck
+
+      - name: Lint (incluye lint:copy)
+        run: pnpm lint
+
+      - name: Formato
+        run: pnpm format:check
+
+      - name: Pruebas (con cobertura mínima en shared y srs)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Ningún secreto en el bundle de la web
+        run: |
+          if grep -rEl 'sk-[A-Za-z0-9_-]{20,}|CLOUDINARY_API_SECRET|VAPID_PRIVATE' apps/web/dist; then
+            echo "Hay un secreto en apps/web/dist (AGENTS §5)" && exit 1
+          fi
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Secretos en el historial
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Dependencias con vulnerabilidades altas
+        run: pnpm audit --prod --audit-level high
