@@ -20,7 +20,10 @@ import { buildSessionQueue, type PlannerCard } from '../planner/queue.js';
 const TOPICS_IN_TEXT = 3;
 
 export interface ReminderInput {
+  /** Todas sus tarjetas vivas: el plan de cada examen las toma por tema (LD11). */
   readonly cards: readonly PlannerCard[];
+  /** Las que cuentan como pendientes de hoy, como en Hoy (sin mazos en pausa); por defecto, `cards`. */
+  readonly dueCards?: readonly PlannerCard[];
   readonly logs: readonly ReviewLog[];
   readonly config: StudyConfig;
   readonly scheduler: Scheduler;
@@ -78,7 +81,7 @@ const topTopics = (topicIds: readonly (string | null)[]): string[] => {
 export function reminderCandidates(input: ReminderInput): ReminderCandidates {
   const { now, timeZone, config } = input;
   const plan = buildSessionQueue({
-    cards: input.cards,
+    cards: input.dueCards ?? input.cards,
     logs: input.logs,
     config,
     scheduler: input.scheduler,

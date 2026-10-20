@@ -184,6 +184,17 @@ describe('NT3: qué recordatorios califican', () => {
     expect(result.dueToday).toEqual({ count: 7, topicIds: ['nervios', 'huesos'] });
   });
 
+  it('mazos en pausa: no cuentan como pendientes, pero el plan del examen sí ve sus tarjetas', () => {
+    const active = range(1, 3).map((n) => reviewCard(n, { topic: 'nervios' }));
+    const paused = [...range(10, 4).map((n) => reviewCard(n, { topic: 'huesos' })), newCard(20, 'huesos')];
+    const exams = [{ id: 'parcial', date: TODAY_START + 10 * DAY, topicIds: ['huesos'] }];
+    const result = reminderCandidates({ ...base, cards: [...active, ...paused], dueCards: active, exams });
+    expect(result.dueToday).toEqual({ count: 3, topicIds: ['nervios'] });
+    expect(result.studyPlan).toEqual({ newToday: 1, topicIds: ['huesos'] });
+    // Sin `dueCards`, cuenta todas (compatibilidad).
+    expect(reminderCandidates({ ...base, cards: [...active, ...paused] }).dueToday.count).toBe(7);
+  });
+
   it('NT-T11: un aviso por examen y por cada N de `examSoonDaysBefore`', () => {
     const exams = [
       { id: 'parcial', date: TODAY_START + 7 * DAY, topicIds: ['nervios'] },
