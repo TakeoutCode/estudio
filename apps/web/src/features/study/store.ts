@@ -14,6 +14,8 @@ export interface StudySession {
   readonly plan: SessionPlan;
   /** R6, LD6: pedir confianza antes de revelar (`review.askConfidence`). */
   readonly askConfidence: boolean;
+  /** LD12: la vuelta de repaso previa a este examen; null en la sesión de Hoy. */
+  readonly examReviewId: string | null;
 }
 
 /** P5 en la sesión. */

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { useExamsOverview } from '@/features/exams';
 import { type PlanSnapshot, useTodayPlan } from '@/features/study';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
@@ -55,6 +56,7 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
       {plan.backlogSpreadDays ? (
         <Banner>{t('study.notice.spread', { days: plan.backlogSpreadDays })}</Banner>
       ) : null}
+      <FinalReviewOffers />
       {toImprove.length > 0 ? (
         <section className="flex flex-col gap-2" aria-labelledby="today-improve">
           <h2 id="today-improve" className="m-0 text-body font-semibold">
@@ -89,6 +91,36 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
           {t('today.addCard')}
         </Link>
       </ActionBar>
+    </>
+  );
+}
+
+/** LD12: en los últimos días antes de un examen, la vuelta de repaso previa. */
+function FinalReviewOffers() {
+  const { t } = useTranslation();
+  const overview = useExamsOverview();
+  if (!overview) return null;
+  const offers = overview.exams.flatMap((exam) => {
+    const count = overview.finalReviews.get(exam.id) ?? 0;
+    return count > 0 ? [{ exam, count }] : [];
+  });
+  return (
+    <>
+      {offers.map(({ exam, count }) => (
+        <Banner
+          key={exam.id}
+          action={
+            <Link
+              className={`inline-flex min-h-11 shrink-0 items-center px-2 text-primary ${focus}`}
+              to={`/study?examen=${exam.id}`}
+            >
+              {t('today.finalReviewStart')}
+            </Link>
+          }
+        >
+          {t('today.finalReview', { exam: exam.title, count })}
+        </Banner>
+      ))}
     </>
   );
 }

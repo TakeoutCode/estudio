@@ -7,8 +7,10 @@ import {
   type Topic,
 } from '@estudio/shared';
 import {
+  createScheduler,
   type ExamPlan,
   examPlan,
+  finalReviewQueue,
   mockResults,
   mocksDue,
   mockTaken,
@@ -26,6 +28,8 @@ export interface ExamsOverview {
   readonly topics: ReadonlyMap<string, Topic>;
   /** P7, LD13: simulacros de cada examen. */
   readonly mocks: ReadonlyMap<string, ExamMocks>;
+  /** LD12: tarjetas del repaso previo de cada examen (0 fuera de la ventana). */
+  readonly finalReviews: ReadonlyMap<string, number>;
   readonly config: StudyConfig;
   readonly timeZone: string;
 }
@@ -53,12 +57,22 @@ export const useExamsOverview = (): ExamsOverview | undefined =>
       topicId: notes.get(card.noteId)?.topicId ?? null,
       lapseBaseline: card.lapseBaseline,
     }));
+    // Los temas borrados ya no cuentan en el alcance.
+    const scopeOf = (exam: Exam) => ({ ...exam, topicIds: exam.topicIds.filter((id) => topics.has(id)) });
     const plans = new Map(
-      exams.map((exam) => {
-        // Los temas borrados ya no cuentan en el alcance.
-        const scope = { ...exam, topicIds: exam.topicIds.filter((id) => topics.has(id)) };
-        return [exam.id, examPlan(scope, plannerCards, now, profile.timeZone, config)] as const;
-      }),
+      exams.map(
+        (exam) => [exam.id, examPlan(scopeOf(exam), plannerCards, now, profile.timeZone, config)] as const,
+      ),
+    );
+    const scheduler = createScheduler(config.fsrs);
+    const finalReviews = new Map(
+      exams.map(
+        (exam) =>
+          [
+            exam.id,
+            finalReviewQueue(scopeOf(exam), plannerCards, scheduler, now, profile.timeZone, config).length,
+          ] as const,
+      ),
     );
     const sessions = await alive(db.studySessions.toCollection()).toArray();
     const due = mocksDue(
@@ -82,7 +96,7 @@ export const useExamsOverview = (): ExamsOverview | undefined =>
         ] as const;
       }),
     );
-    return { exams, plans, topics, mocks, config, timeZone: profile.timeZone };
+    return { exams, plans, topics, mocks, finalReviews, config, timeZone: profile.timeZone };
   }, []);
 
 /** El examen a editar; `null` si no existe o está borrado. */

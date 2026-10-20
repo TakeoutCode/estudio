@@ -16,7 +16,10 @@
       "title": "Para mejorar",
       "hint": "Estas tarjetas quedan aparte: cambiarles la explicación o escribirlas con tus palabras suele ayudar más que repetirlas.",
       "edit": "Reformular"
-    }
+    },
+    "finalReview_one": "Repaso previo para {{exam}}: {{count}} tarjeta.",
+    "finalReview_other": "Repaso previo para {{exam}}: {{count}} tarjetas.",
+    "finalReviewStart": "Empezar"
   },
   "study": {
     "title": "Repaso",
@@ -76,6 +79,10 @@
       "reveal": "Espacio o Enter: mostrar la respuesta",
       "rate": "1 a 4: calificar",
       "help": "?: mostrar u ocultar esta ayuda"
+    },
+    "examReview": {
+      "title": "Repaso previo",
+      "empty": "No hay tarjetas para el repaso previo: lo de este examen ya vence antes de la fecha o ya lo repasaste en estos días."
     }
   },
   "notes": {
@@ -142,7 +149,10 @@
     "mockLast_one": "Último simulacro: {{correct}} de {{count}} pregunta.",
     "mockLast_other": "Último simulacro: {{correct}} de {{count}} preguntas.",
     "mockStart": "Hacer simulacro",
-    "mockContinue": "Seguir simulacro"
+    "mockContinue": "Seguir simulacro",
+    "finalReview_one": "Repaso previo: {{count}} tarjeta que FSRS programó para después del examen.",
+    "finalReview_other": "Repaso previo: {{count}} tarjetas que FSRS programó para después del examen.",
+    "finalReviewStart": "Hacer el repaso previo"
   },
   "topics": {
     "title": "Tema",

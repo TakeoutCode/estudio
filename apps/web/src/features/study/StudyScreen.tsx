@@ -8,7 +8,7 @@ import {
 } from '@estudio/srs';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
   AwayPrompt,
   BreakPanel,
@@ -24,6 +24,7 @@ import { EmptyState } from '@/ui/EmptyState';
 import { RatingButton } from '@/ui/RatingButton';
 import { answerCard } from './commands';
 import {
+  planExamReviewNow,
   planSessionNow,
   type StudyCardView,
   useExplainedTopics,
@@ -53,14 +54,23 @@ export function StudyScreen() {
   const session = useStudy((s) => s.session);
   const start = useStudy((s) => s.start);
   const [loadFailed, setLoadFailed] = useState(false);
+  // LD12: `?examen=<id>` abre la vuelta de repaso previa a ese examen.
+  const [params] = useSearchParams();
+  const examReviewId = params.get('examen');
 
   useEffect(() => {
-    if (session) return;
+    if (session?.examReviewId === examReviewId) return;
     let cancelled = false;
-    planSessionNow()
+    (examReviewId ? planExamReviewNow(examReviewId) : planSessionNow())
       .then(({ plan, config }) => {
         if (!cancelled) {
-          start({ id: newId(), startedAt: Date.now(), plan, askConfidence: config.review.askConfidence });
+          start({
+            id: newId(),
+            startedAt: Date.now(),
+            plan,
+            askConfidence: config.review.askConfidence,
+            examReviewId,
+          });
         }
       })
       .catch(() => {
@@ -69,15 +79,16 @@ export function StudyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [session, start]);
+  }, [session, start, examReviewId]);
 
   if (loadFailed) return <EmptyState message={t('error.generic')} />;
   if (!session) return null;
+  if (session.examReviewId !== examReviewId) return null; // se está armando la otra
   if (session.plan.queue.length === 0) {
     return (
       <>
         <StudyHeader />
-        <EmptyState message={t('today.empty')} />
+        <EmptyState message={t(examReviewId ? 'study.examReview.empty' : 'today.empty')} />
         <ActionBar>
           <Link className={primary} to="/notes/new">
             {t('today.addCard')}
@@ -92,12 +103,15 @@ export function StudyScreen() {
 /** "Salir" no corta nada: lo respondido ya está guardado (R3) y la sesión sigue al volver. */
 function StudyHeader({ done, total }: { readonly done?: number; readonly total?: number }) {
   const { t } = useTranslation();
+  const examReview = useStudy((s) => s.session?.examReviewId ?? null) !== null;
   return (
     <header className="flex min-h-11 items-center justify-between gap-3">
       <Link className={`-ml-2 inline-flex min-h-11 min-w-11 items-center px-2 text-primary ${focus}`} to="/">
         {t('study.exit')}
       </Link>
-      <h1 className="m-0 text-body font-semibold">{t('study.title')}</h1>
+      <h1 className="m-0 text-body font-semibold">
+        {t(examReview ? 'study.examReview.title' : 'study.title')}
+      </h1>
       <span className="min-w-11 text-right text-caption text-muted">
         {done !== undefined && total !== undefined ? t('study.progress', { done, total }) : null}
       </span>

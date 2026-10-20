@@ -1,10 +1,11 @@
-import { encodeHlc, newId, Rating, type ReviewLog } from '@estudio/shared';
+import { cardIdFor, encodeHlc, newId, Rating, type ReviewLog } from '@estudio/shared';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deviceId } from '@/db/clock';
 import { db } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
+import { createExam } from '@/features/exams';
 import { createNote } from '@/features/notes';
 import { updateStudyConfig } from '@/features/settings';
 import { saveSelfExplanation } from './commands';
@@ -13,6 +14,7 @@ import { useStudy } from './store';
 import { StudyScreen } from './StudyScreen';
 
 const T0 = Date.UTC(2026, 9, 20, 15);
+const DAY = 86_400_000;
 
 const humerus = {
   kind: 'basic',
@@ -273,7 +275,7 @@ describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
   /** Sesión ya empezada con 20 respuestas que muestran fatiga (P5). */
   async function fatiguedSession() {
     const { plan } = await planSessionNow();
-    useStudy.getState().start({ id: SESSION, startedAt: T0, plan, askConfidence: false });
+    useStudy.getState().start({ id: SESSION, startedAt: T0, plan, askConfidence: false, examReviewId: null });
     const fresh = Array.from({ length: 10 }, (_, i) => sessionLog(T0 + i * 10_000, Rating.Good, 5_000));
     await db.reviewLogs.bulkAdd([...fresh, ...tired(T0 + 200_000, 10)]);
   }
@@ -408,5 +410,73 @@ describe('StudyScreen · LD5 (entender antes de recordar)', () => {
     renderStudy();
     expect(await screen.findByText(deltoid.front)).toBeTruthy();
     expect(screen.queryByLabelText('Explícalo con tus palabras')).toBeNull();
+  });
+});
+
+describe('StudyScreen · LD12 (repaso previo al examen)', () => {
+  it('LD12: ?examen= arma la vuelta con lo que FSRS programó para después del examen; cuenta como repaso', async () => {
+    const note = await createNote(
+      {
+        deck: { name: 'Hombro' },
+        content: {
+          kind: 'basic',
+          front: '¿Nervio del deltoides?',
+          back: 'El axilar',
+          explanation: '',
+          reverse: false,
+        },
+        topic: { name: 'Plexo braquial', explanation: '' },
+      },
+      { now: T0 - 60 * DAY },
+    );
+    const cardId = cardIdFor(note.id, 0);
+    await db.cardStates.put({
+      cardId,
+      due: T0 + 20 * DAY, // después del examen
+      stability: 40,
+      difficulty: 5,
+      scheduledDays: 40,
+      learningSteps: 0,
+      reps: 4,
+      lapses: 0,
+      phase: 'review',
+      lastReview: T0 - 20 * DAY, // antes de la ventana
+    });
+    const exam = await createExam({ title: 'Parcial 1', date: T0 + 3 * DAY, topicIds: [note.topicId ?? ''] });
+    // R5 ya atendido para que vaya directo a la tarjeta.
+    await saveSelfExplanation({ topicId: note.topicId ?? '', text: 'Ya lo expliqué.' }, { now: T0 - DAY });
+
+    render(
+      <MemoryRouter initialEntries={[`/study?examen=${exam.id}`]}>
+        <StudyScreen />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Repaso previo' })).toBeTruthy();
+    expect(await screen.findByText('¿Nervio del deltoides?')).toBeTruthy();
+    expect(screen.queryByText(humerus.front)).toBeNull(); // la cola es solo la del examen
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await waitFor(async () => {
+      expect(await db.reviewLogs.toArray()).toMatchObject([{ cardId, type: 'review' }]);
+    });
+  });
+
+  it('LD12: fuera de la ventana no hay nada que repasar y lo dice', async () => {
+    const note = await createNote({
+      deck: { name: 'Hombro' },
+      content: { kind: 'basic', front: '¿X?', back: 'Y', explanation: '', reverse: false },
+      topic: { name: 'Plexo braquial', explanation: '' },
+    });
+    const exam = await createExam({
+      title: 'Parcial 2',
+      date: T0 + 30 * DAY,
+      topicIds: [note.topicId ?? ''],
+    });
+    render(
+      <MemoryRouter initialEntries={[`/study?examen=${exam.id}`]}>
+        <StudyScreen />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/No hay tarjetas para el repaso previo/)).toBeTruthy();
   });
 });

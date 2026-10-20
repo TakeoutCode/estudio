@@ -2,3 +2,4 @@ export { answerMockItem, createExam, deleteExam, gradeMockItem, startMock, updat
 export { ExamEditorScreen } from './ExamEditorScreen';
 export { ExamsScreen } from './ExamsScreen';
 export { MockScreen } from './MockScreen';
+export { type ExamsOverview, useExamsOverview } from './queries';

@@ -112,3 +112,35 @@ describe('exámenes (R11, LD11)', () => {
     expect((await db.outbox.toArray()).filter((e) => e.entity === 'exam')).toHaveLength(3);
   });
 });
+
+describe('LD12 en Exámenes', () => {
+  it('LD12: en la ventana final ofrece el repaso previo con su cantidad', async () => {
+    const topicId = await topicWith(1);
+    const [card] = await db.cards.toArray();
+    await db.cardStates.put({
+      cardId: card?.id ?? '',
+      due: T0 + 30 * DAY,
+      stability: 40,
+      difficulty: 5,
+      scheduledDays: 40,
+      learningSteps: 0,
+      reps: 4,
+      lapses: 0,
+      phase: 'review',
+      lastReview: T0 - 20 * DAY,
+    });
+    const exam = await createExam({
+      title: 'Parcial 1',
+      date: startOfLocalDate('2026-10-24', TZ),
+      topicIds: [topicId],
+    });
+    renderAt('/exams');
+    const region = await screen.findByRole('region', { name: 'Parcial 1' });
+    expect(
+      await within(region).findByText('Repaso previo: 1 tarjeta que FSRS programó para después del examen.'),
+    ).toBeTruthy();
+    expect(within(region).getByRole('link', { name: 'Hacer el repaso previo' }).getAttribute('href')).toBe(
+      `/study?examen=${exam.id}`,
+    );
+  });
+});

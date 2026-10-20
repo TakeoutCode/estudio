@@ -124,8 +124,30 @@ function ExamCard({
           </li>
         ))}
       </ul>
+      <FinalReviewLine examId={exam.id} overview={overview} />
       <MockLine examId={exam.id} overview={overview} />
     </section>
+  );
+}
+
+/** LD12: en los últimos días, la vuelta por lo que FSRS programó para después del examen. */
+function FinalReviewLine({
+  examId,
+  overview,
+}: {
+  readonly examId: string;
+  readonly overview: ExamsOverview;
+}) {
+  const { t } = useTranslation();
+  const count = overview.finalReviews.get(examId) ?? 0;
+  if (count === 0) return null;
+  return (
+    <div className="flex flex-col gap-1 border-t border-muted/30 pt-2">
+      <p className="m-0">{t('exams.finalReview', { count })}</p>
+      <Link className={`-ml-2 self-start ${link}`} to={`/study?examen=${examId}`}>
+        {t('exams.finalReviewStart')}
+      </Link>
+    </div>
   );
 }
 

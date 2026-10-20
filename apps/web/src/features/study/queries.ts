@@ -13,6 +13,7 @@ import {
   buildSessionQueue,
   type CardState,
   createScheduler,
+  finalReviewQueue,
   newCardState,
   type PlannerCard,
   type SessionPlan,
@@ -27,6 +28,8 @@ export interface PlanSnapshot {
   readonly profile: ProfileSettings;
   /** P3: notas con tarjetas para reformular, la lista "Para mejorar" (§5). */
   readonly toImprove: readonly { readonly noteId: string; readonly prompt: string }[];
+  /** Tarjetas vivas con su estado y tema, de donde salió la cola. */
+  readonly cards: readonly PlannerCard[];
 }
 
 /** ARC2: la cola la arma `srs`; aquí solo se juntan sus datos desde Dexie (ARC3). */
@@ -60,11 +63,40 @@ export async function loadPlan(
     const note = notes.get(noteId);
     return note ? [{ noteId, prompt: cardFaces(note.content, 0).prompt }] : [];
   });
-  return { plan, config, profile, toImprove };
+  return { plan, config, profile, toImprove, cards: plannerCards };
 }
 
 /** Plan para empezar una sesión ahora (una sola lectura: la cola queda fija, §3). */
 export const planSessionNow = (): Promise<PlanSnapshot> => loadPlan(db, Date.now());
+
+/**
+ * LD12: la vuelta de repaso previa al examen. Usa el mismo plan (tiempos, retención) con la
+ * cola de `finalReviewQueue`: lo del alcance que FSRS programó para después del examen.
+ */
+export async function loadExamReviewPlan(
+  database: EstudioDb,
+  examId: string,
+  now: number,
+): Promise<PlanSnapshot> {
+  const snapshot = await loadPlan(database, now);
+  const exam = await database.exams.get(examId);
+  if (exam?.deletedAt !== null) throw new Error('exam_not_found');
+  const alive = new Set(
+    (await database.topics.bulkGet(exam.topicIds)).flatMap((t) => (t?.deletedAt === null ? [t.id] : [])),
+  );
+  const queue = finalReviewQueue(
+    { date: exam.date, topicIds: exam.topicIds.filter((id) => alive.has(id)) },
+    snapshot.cards,
+    createScheduler(snapshot.config.fsrs),
+    now,
+    snapshot.profile.timeZone,
+    snapshot.config,
+  );
+  return { ...snapshot, plan: { ...snapshot.plan, queue, newBlockedBy: null, backlogSpreadDays: null } };
+}
+
+export const planExamReviewNow = (examId: string): Promise<PlanSnapshot> =>
+  loadExamReviewPlan(db, examId, Date.now());
 
 /** Resumen de Hoy; se recalcula cuando cambian sus datos (p. ej. tras un pull). */
 export const useTodayPlan = (): PlanSnapshot | undefined => useLiveQuery(() => loadPlan(db, Date.now()), []);
