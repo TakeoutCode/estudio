@@ -1,4 +1,4 @@
-import type { Card, Deck, Note } from '@estudio/shared';
+import type { Card, Deck, Note, Topic } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
@@ -6,7 +6,7 @@ import { type Column, ident, syncMetaColumns, upsertLwwSql } from '../sync/sql.j
 import type { ApplyStatus } from '../sync/sync-handler.js';
 
 /** Tablas que otras entidades referencian (BE2). */
-export type OwnedTable = 'deck' | 'note' | 'card';
+export type OwnedTable = 'deck' | 'topic' | 'note' | 'card';
 
 @Injectable()
 export class DecksRepository {
@@ -28,6 +28,17 @@ export class DecksRepository {
       { name: 'name', value: deck.name },
       { name: 'description', value: deck.description },
       ...syncMetaColumns(deck),
+    ]);
+  }
+
+  upsertTopicLww(userId: string, topic: Topic): Promise<ApplyStatus> {
+    return this.upsert('topic', [
+      { name: 'id', value: topic.id, cast: 'uuid' },
+      { name: 'user_id', value: userId, cast: 'uuid' },
+      { name: 'deck_id', value: topic.deckId, cast: 'uuid' },
+      { name: 'name', value: topic.name },
+      { name: 'explanation', value: topic.explanation },
+      ...syncMetaColumns(topic),
     ]);
   }
 

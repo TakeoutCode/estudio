@@ -1,7 +1,8 @@
 import { compareHlc, decodeHlc, MutationSchema } from '@estudio/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/schema';
-import { createDeck, deleteDeck, renameDeck } from './commands';
+import { createNote } from '@/features/notes';
+import { createDeck, deleteDeck, deleteTopic, renameDeck, updateTopic } from './commands';
 
 const T0 = 1_760_000_000_000;
 
@@ -42,5 +43,53 @@ describe('comandos de mazo (FRONTEND FE3)', () => {
     expect(deleted.deletedAt).toBe(deleted.updatedAt);
     expect(await db.decks.get(deck.id)).toMatchObject({ deletedAt: deleted.updatedAt });
     await expect(renameDeck(deck.id, 'Otro')).rejects.toThrow('deck_not_found');
+  });
+});
+
+describe('temas (LD5, SY5)', () => {
+  const content = {
+    kind: 'basic',
+    front: '¿C5?',
+    back: 'Raíz superior',
+    explanation: '',
+    reverse: false,
+  } as const;
+
+  it('editar el tema cambia nombre y explicación con un HLC nuevo', async () => {
+    const note = await createNote({
+      deck: { name: 'Hombro' },
+      content,
+      topic: { name: 'Plexo', explanation: '' },
+    });
+    const topicId = note.topicId ?? '';
+    const updated = await updateTopic(topicId, { name: 'Plexo braquial', explanation: 'C5-T1' }, { now: T0 });
+    expect(await db.topics.get(topicId)).toEqual(updated);
+    expect(updated).toMatchObject({ name: 'Plexo braquial', explanation: 'C5-T1' });
+  });
+
+  it('SY5: borrar un tema deja sus notas sin tema, cada una como su propia escritura', async () => {
+    const note = await createNote({
+      deck: { name: 'Hombro' },
+      content,
+      topic: { name: 'Plexo', explanation: '' },
+    });
+    const topicId = note.topicId ?? '';
+    await db.outbox.clear();
+    const deleted = await deleteTopic(topicId, { now: T0 + 5 });
+    expect(deleted.deletedAt).toBe(deleted.updatedAt);
+    expect((await db.notes.get(note.id))?.topicId).toBeNull();
+    expect((await db.outbox.toArray()).map((e) => e.entity)).toEqual(['topic', 'note']);
+    await expect(updateTopic(topicId, { name: 'Otro', explanation: '' })).rejects.toThrow('topic_not_found');
+  });
+
+  it('SY5: borrar un mazo borra también sus temas', async () => {
+    const note = await createNote({
+      deck: { name: 'Hombro' },
+      content,
+      topic: { name: 'Plexo', explanation: '' },
+    });
+    await deleteDeck(note.deckId, { now: T0 + 10 });
+    expect((await db.topics.get(note.topicId ?? ''))?.deletedAt).not.toBeNull();
+    expect((await db.notes.get(note.id))?.deletedAt).not.toBeNull();
   });
 });

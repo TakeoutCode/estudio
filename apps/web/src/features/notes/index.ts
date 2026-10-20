@@ -1,6 +1,8 @@
 export {
+  clearTopicOfNotes,
   createNote,
   type DeckChoice,
+  type TopicChoice,
   deleteNote,
   noteTables,
   softDeleteNotesOfDeck,

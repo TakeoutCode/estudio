@@ -64,11 +64,11 @@ describe('comandos de notas (LEARNING-DESIGN §1, FRONTEND FE3)', () => {
       { cardId: reverseId, rating: Rating.Good, durationMs: 4_000, sessionId: SESSION, confidence: null },
       { now: T0 + MIN },
     );
-    await updateNote(note.id, { ...content, reverse: false }, { now: T0 + 2 * MIN });
+    await updateNote(note.id, { content: { ...content, reverse: false } }, { now: T0 + 2 * MIN });
     expect(await db.cards.get(reverseId)).toMatchObject({ deletedAt: expect.any(Number) as number });
     expect(await db.cardStates.get(reverseId)).toBeUndefined();
 
-    await updateNote(note.id, { ...content, reverse: true }, { now: T0 + 3 * MIN });
+    await updateNote(note.id, { content: { ...content, reverse: true } }, { now: T0 + 3 * MIN });
     expect(await db.cards.get(reverseId)).toMatchObject({ deletedAt: null, createdAt: T0 });
     expect(await db.cardStates.get(reverseId)).toMatchObject({ reps: 1 }); // ARC5: replay de su log
   });
@@ -87,7 +87,7 @@ describe('comandos de notas (LEARNING-DESIGN §1, FRONTEND FE3)', () => {
     expect((await db.cards.toArray()).every((c) => c.deletedAt !== null)).toBe(true);
     expect(await db.cardStates.count()).toBe(0);
     expect((await outboxEntities()).sort()).toEqual(['card', 'card', 'card', 'deck', 'note', 'note']);
-    await expect(updateNote(a.id, content)).rejects.toThrow('note_not_found');
+    await expect(updateNote(a.id, { content })).rejects.toThrow('note_not_found');
     await expect(deleteNote(b.id)).rejects.toThrow('note_not_found');
   });
 
@@ -97,12 +97,59 @@ describe('comandos de notas (LEARNING-DESIGN §1, FRONTEND FE3)', () => {
     const state = await db.cardStates.get(cardId);
     await db.cardStates.put({ ...state!, phase: 'review', lapses: 6 });
 
-    await updateNote(note.id, { ...content, explanation: 'Otra forma de verlo.' }, { now: T0 + MIN });
+    await updateNote(
+      note.id,
+      { content: { ...content, explanation: 'Otra forma de verlo.' } },
+      { now: T0 + MIN },
+    );
     expect(await db.cards.get(cardId)).toMatchObject({ lapseBaseline: 6 });
 
     await db.outbox.clear();
-    await updateNote(note.id, { ...content, explanation: 'Un ajuste menor.' }, { now: T0 + 2 * MIN });
+    await updateNote(
+      note.id,
+      { content: { ...content, explanation: 'Un ajuste menor.' } },
+      { now: T0 + 2 * MIN },
+    );
     expect(await db.cards.get(cardId)).toMatchObject({ lapseBaseline: 6 });
     expect(await outboxEntities()).toEqual(['note']); // la Card no se reescribe
+  });
+});
+
+describe('temas de las notas (LD5, P4)', () => {
+  const topic = { name: 'Plexo braquial', explanation: 'Raíces C5-T1.' };
+
+  it('LD5: un tema nuevo se crea con la nota, en la misma transacción y antes en el outbox', async () => {
+    const note = await createNote({ deck: { name: 'Hombro' }, content, topic }, { now: T0 });
+    const saved = await db.topics.get(note.topicId ?? '');
+    expect(saved).toMatchObject({
+      deckId: note.deckId,
+      name: 'Plexo braquial',
+      explanation: 'Raíces C5-T1.',
+    });
+    expect(await outboxEntities()).toEqual(['deck', 'topic', 'note', 'card']);
+  });
+
+  it('LD5: elegir un tema de otro mazo falla y no escribe nada', async () => {
+    const first = await createNote({ deck: { name: 'Hombro' }, content, topic }, { now: T0 });
+    const other = await createDeck({ name: 'Codo' }, { now: T0 + 1 });
+    const before = await db.outbox.count();
+    await expect(
+      createNote({ deck: { id: other.id }, content, topic: { id: first.topicId ?? '' } }),
+    ).rejects.toThrow('topic_not_found');
+    expect(await db.outbox.count()).toBe(before);
+  });
+
+  it('al editar: sin `topic` lo conserva; con null lo quita; con otro del mazo lo cambia', async () => {
+    const note = await createNote({ deck: { name: 'Hombro' }, content, topic }, { now: T0 });
+    const kept = await updateNote(note.id, { content }, { now: T0 + MIN });
+    expect(kept.topicId).toBe(note.topicId);
+    const cleared = await updateNote(note.id, { content, topic: null }, { now: T0 + 2 * MIN });
+    expect(cleared.topicId).toBeNull();
+    const moved = await updateNote(
+      note.id,
+      { content, topic: { name: 'Manguito rotador', explanation: '' } },
+      { now: T0 + 3 * MIN },
+    );
+    expect((await db.topics.get(moved.topicId ?? ''))?.name).toBe('Manguito rotador');
   });
 });

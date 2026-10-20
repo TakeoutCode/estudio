@@ -1,11 +1,19 @@
-import { BasicContentSchema, type Deck, EXPLANATION_MAX_LENGTH, type Note } from '@estudio/shared';
+import {
+  BasicContentSchema,
+  type Deck,
+  EXPLANATION_MAX_LENGTH,
+  type Note,
+  TOPIC_EXPLANATION_MAX_LENGTH,
+} from '@estudio/shared';
 import { type SubmitEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
-import { createNote, type DeckChoice, deleteNote, updateNote } from './commands';
-import { useDecks, useNote } from './queries';
+import { createNote, type DeckChoice, deleteNote, type TopicChoice, updateNote } from './commands';
+import { useDecks, useNote, useTopics } from './queries';
 
 const NEW_DECK = 'new';
+const NO_TOPIC = '';
+const NEW_TOPIC = 'new';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
@@ -23,7 +31,7 @@ export function NoteEditorScreen() {
   return <NoteForm key={note?.id ?? 'new'} decks={decks} note={note} />;
 }
 
-type Status = 'idle' | 'saved' | 'updated' | 'invalid' | 'deckMissing' | 'failed';
+type Status = 'idle' | 'saved' | 'updated' | 'invalid' | 'deckMissing' | 'topicMissing' | 'failed';
 
 function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly note: Note | null }) {
   const { t } = useTranslation();
@@ -36,6 +44,11 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
   const [back, setBack] = useState(note?.content.back ?? '');
   const [explanation, setExplanation] = useState(note?.content.explanation ?? '');
   const [reverse, setReverse] = useState(note?.content.reverse ?? false);
+  // LD5, P4: el tema es opcional y pertenece al mazo.
+  const [topicId, setTopicId] = useState(note?.topicId ?? NO_TOPIC);
+  const [topicName, setTopicName] = useState('');
+  const [topicExplanation, setTopicExplanation] = useState('');
+  const topics = useTopics(note?.deckId ?? (deckId === NEW_DECK ? null : deckId));
   const [status, setStatus] = useState<Status>('idle');
   const [busy, setBusy] = useState(false);
 
@@ -51,15 +64,29 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
       setStatus('deckMissing');
       return;
     }
+    const topic: TopicChoice =
+      topicId === NO_TOPIC
+        ? null
+        : topicId === NEW_TOPIC
+          ? { name: topicName.trim(), explanation: topicExplanation }
+          : { id: topicId };
+    if (topic && 'name' in topic && topic.name === '') {
+      setStatus('topicMissing');
+      return;
+    }
     setBusy(true);
     try {
       if (note) {
-        await updateNote(note.id, content.data);
+        const updated = await updateNote(note.id, { content: content.data, topic });
+        setTopicId(updated.topicId ?? NO_TOPIC);
         setStatus('updated');
       } else {
-        const created = await createNote({ deck, content: content.data });
-        // La siguiente nota va al mismo mazo; el texto se limpia para escribirla.
+        const created = await createNote({ deck, content: content.data, topic });
+        // La siguiente nota va al mismo mazo y tema; el texto se limpia para escribirla.
         setDeckId(created.deckId);
+        setTopicId(created.topicId ?? NO_TOPIC);
+        setTopicName('');
+        setTopicExplanation('');
         setFront('');
         setBack('');
         setExplanation('');
@@ -79,6 +106,7 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
     updated: t('notes.updated'),
     invalid: t('notes.error.required'),
     deckMissing: t('notes.error.deck'),
+    topicMissing: t('notes.error.topic'),
     failed: t('error.generic'),
   }[status];
 
@@ -102,6 +130,7 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
               value={deckId}
               onChange={(event) => {
                 setDeckId(event.target.value);
+                setTopicId(NO_TOPIC); // los temas son de cada mazo
               }}
             >
               {decks.map((deck) => (
@@ -125,6 +154,65 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
               }}
             />
           </label>
+        ) : null}
+        <div className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1">
+            <span>{t('notes.topic')}</span>
+            <select
+              className={field + ' min-h-11'}
+              value={topicId}
+              onChange={(event) => {
+                setTopicId(event.target.value);
+              }}
+            >
+              <option value={NO_TOPIC}>{t('notes.noTopic')}</option>
+              {(topics ?? []).map((topic) => (
+                <option key={topic.id} value={topic.id}>
+                  {topic.name}
+                </option>
+              ))}
+              <option value={NEW_TOPIC}>{t('notes.newTopicOption')}</option>
+            </select>
+          </label>
+          {topicId !== NO_TOPIC && topicId !== NEW_TOPIC ? (
+            <Link
+              className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`}
+              to={`/topics/${topicId}`}
+            >
+              {t('notes.editTopic')}
+            </Link>
+          ) : null}
+        </div>
+        {topicId === NEW_TOPIC ? (
+          <>
+            <label className="flex flex-col gap-1">
+              <span>{t('notes.topicName')}</span>
+              <input
+                className={field + ' min-h-11'}
+                value={topicName}
+                maxLength={120}
+                onChange={(event) => {
+                  setTopicName(event.target.value);
+                }}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span>{t('notes.topicExplanation')}</span>
+              <textarea
+                className={field}
+                rows={3}
+                maxLength={TOPIC_EXPLANATION_MAX_LENGTH}
+                aria-describedby={`${ids}-topic-hint`}
+                value={topicExplanation}
+                onChange={(event) => {
+                  setTopicExplanation(event.target.value);
+                }}
+              />
+              <span id={`${ids}-topic-hint`} className="text-caption text-muted">
+                {t('notes.topicExplanationHint')}
+              </span>
+            </label>
+          </>
         ) : null}
         <label className="flex flex-col gap-1">
           <span>{t('notes.front')}</span>

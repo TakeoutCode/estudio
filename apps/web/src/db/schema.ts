@@ -4,9 +4,11 @@ import type {
   Mutation,
   Note,
   ReviewLog,
+  SelfExplanation,
   SyncedEntity,
   TimerBlockLog,
   TimerSession,
+  Topic,
   UserSettings,
 } from '@estudio/shared';
 import type { CardState } from '@estudio/srs';
@@ -32,9 +34,11 @@ export const SERVER_OFFSET_KEY = 'serverOffsetMs';
 /** Tabla de Dexie de cada entidad que se sincroniza. */
 export const TABLE_FOR = {
   deck: 'decks',
+  topic: 'topics',
   note: 'notes',
   card: 'cards',
   userSettings: 'userSettings',
+  selfExplanation: 'selfExplanations',
   timerSession: 'timerSessions',
   reviewLog: 'reviewLogs',
   timerBlockLog: 'timerBlockLogs',
@@ -43,9 +47,11 @@ export const TABLE_FOR = {
 /** IndexedDB es la fuente local de la UI (ARCHITECTURE ARC3). */
 export class EstudioDb extends Dexie {
   decks!: EntityTable<Deck, 'id'>;
+  topics!: EntityTable<Topic, 'id'>;
   notes!: EntityTable<Note, 'id'>;
   cards!: EntityTable<Card, 'id'>;
   userSettings!: EntityTable<UserSettings, 'id'>;
+  selfExplanations!: EntityTable<SelfExplanation, 'id'>;
   reviewLogs!: EntityTable<ReviewLog, 'id'>;
   timerSessions!: EntityTable<TimerSession, 'id'>;
   timerBlockLogs!: EntityTable<TimerBlockLog, 'id'>;
@@ -84,6 +90,11 @@ export class EstudioDb extends Dexie {
             block.extended ??= false;
           }),
       );
+    // LD5: temas y autoexplicaciones. Como en v3 y v4, el cursor vuelve a 0 por si otro
+    // dispositivo ya los subió y esta versión los saltó.
+    this.version(6)
+      .stores({ topics: 'id, deckId', selfExplanations: 'id, topicId' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -92,9 +103,11 @@ export const db = new EstudioDb();
 /** Tablas que toca un pull: datos sincronizados, su proyección y meta (cursor y reloj). */
 export const syncedTables = (database: EstudioDb) => [
   database.decks,
+  database.topics,
   database.notes,
   database.cards,
   database.userSettings,
+  database.selfExplanations,
   database.reviewLogs,
   database.timerSessions,
   database.timerBlockLogs,

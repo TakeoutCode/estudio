@@ -1,4 +1,4 @@
-import type { TimerBlockLog, TimerSession } from '@estudio/shared';
+import type { SelfExplanation, TimerBlockLog, TimerSession } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
@@ -31,6 +31,20 @@ export class StudyRepository {
         { name: 'last_seen_at', value: s.lastSeenAt, cast: 'bigint' },
         { name: 'ended_reason', value: s.endedReason },
         ...syncMetaColumns(s),
+      ]),
+    );
+    return rows.length > 0 ? 'applied' : 'stale';
+  }
+
+  async upsertSelfExplanationLww(userId: string, e: SelfExplanation): Promise<ApplyStatus> {
+    const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>(
+      upsertLwwSql('self_explanation', [
+        { name: 'id', value: e.id, cast: 'uuid' },
+        { name: 'user_id', value: userId, cast: 'uuid' },
+        { name: 'topic_id', value: e.topicId, cast: 'uuid' },
+        { name: 'text', value: e.text },
+        { name: 'written_at', value: e.writtenAt, cast: 'bigint' },
+        ...syncMetaColumns(e),
       ]),
     );
     return rows.length > 0 ? 'applied' : 'stale';

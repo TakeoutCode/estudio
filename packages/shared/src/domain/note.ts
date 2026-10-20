@@ -27,7 +27,7 @@ export type NoteContent = z.infer<typeof NoteContentSchema>;
 
 export const NoteSchema = SyncMetaSchema.extend({
   deckId: z.uuid(),
-  /** Tema (P4, LD5); null hasta que exista la entidad Topic. */
+  /** Tema del mismo mazo (P4, LD5); null si no tiene. */
   topicId: z.uuid().nullable(),
   content: NoteContentSchema,
   /** LD16: `ai` solo al aceptar un borrador revisado por ella. */

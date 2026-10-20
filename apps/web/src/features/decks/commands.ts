@@ -1,8 +1,8 @@
-import { type Deck, DeckSchema, newId } from '@estudio/shared';
+import { type Deck, DeckSchema, newId, type Topic, TopicSchema } from '@estudio/shared';
 import { hlcWall, nextHlc } from '@/db/clock';
 import { db as defaultDb, type EstudioDb } from '@/db/schema';
 import { writeAndQueue } from '@/db/write';
-import { noteTables, softDeleteNotesOfDeck } from '@/features/notes';
+import { clearTopicOfNotes, noteTables, softDeleteNotesOfDeck } from '@/features/notes';
 import { syncScheduler } from '@/sync';
 
 interface CommandOptions {
@@ -64,8 +64,74 @@ export function deleteDeck(
     database,
     now,
     async (stamp) => ({ ...(await existing(database, id)), ...stamp, deletedAt: stamp.updatedAt }),
-    (deck) => softDeleteNotesOfDeck(database, deck.id, now),
+    async (deck) => {
+      await softDeleteTopicsOfDeck(database, deck.id, now);
+      await softDeleteNotesOfDeck(database, deck.id, now);
+    },
   );
+}
+
+/** LD5: nombre y explicación del tema. */
+export function updateTopic(
+  id: string,
+  input: { readonly name: string; readonly explanation: string },
+  { database = defaultDb, now = Date.now() }: CommandOptions = {},
+): Promise<Topic> {
+  return saveTopic(database, now, async (stamp) => ({
+    ...(await existingTopic(database, id)),
+    name: input.name,
+    explanation: input.explanation,
+    ...stamp,
+  }));
+}
+
+/**
+ * Borrado lógico del tema (SYNC §6). Sus notas quedan sin tema, cada una como su propia
+ * escritura; sus autoexplicaciones se conservan, porque son de ella.
+ */
+export function deleteTopic(
+  id: string,
+  { database = defaultDb, now = Date.now() }: CommandOptions = {},
+): Promise<Topic> {
+  return saveTopic(
+    database,
+    now,
+    async (stamp) => ({ ...(await existingTopic(database, id)), ...stamp, deletedAt: stamp.updatedAt }),
+    (topic) => clearTopicOfNotes(database, topic.id, now),
+  );
+}
+
+async function saveTopic(
+  database: EstudioDb,
+  now: number,
+  build: (stamp: { hlc: string; updatedAt: number }) => Promise<Topic>,
+  cascade?: (topic: Topic) => Promise<void>,
+): Promise<Topic> {
+  const topic = await database.transaction('rw', noteTables(database), async () => {
+    const hlc = await nextHlc(database, now);
+    const row = TopicSchema.parse(await build({ hlc, updatedAt: hlcWall(hlc) }));
+    await writeAndQueue(database, 'topic', row, now);
+    await cascade?.(row);
+    return row;
+  });
+  syncScheduler.poke();
+  return topic;
+}
+
+/** SY5: los temas caen con su mazo, cada uno como su propia escritura. */
+async function softDeleteTopicsOfDeck(database: EstudioDb, deckId: string, now: number): Promise<void> {
+  for (const topic of await database.topics.where('deckId').equals(deckId).toArray()) {
+    if (topic.deletedAt !== null) continue;
+    const hlc = await nextHlc(database, now);
+    const row = TopicSchema.parse({ ...topic, hlc, updatedAt: hlcWall(hlc), deletedAt: hlcWall(hlc) });
+    await writeAndQueue(database, 'topic', row, now);
+  }
+}
+
+async function existingTopic(database: EstudioDb, id: string): Promise<Topic> {
+  const topic = await database.topics.get(id);
+  if (topic?.deletedAt !== null) throw new Error('topic_not_found');
+  return topic;
 }
 
 async function existing(database: EstudioDb, id: string): Promise<Deck> {

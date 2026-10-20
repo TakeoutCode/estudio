@@ -25,9 +25,11 @@ model User {
   refreshTokens    RefreshToken[]
   appliedMutations AppliedMutation[]
   decks            Deck[]
+  topics           Topic[]
   notes            Note[]
   cards            Card[]
   userSettings     UserSettings[]
+  selfExplanations SelfExplanation[]
   reviewLogs       ReviewLog[]
   timerSessions    TimerSession[]
   timerBlockLogs   TimerBlockLog[]
@@ -76,6 +78,42 @@ model Deck {
 
   @@index([userId, serverSeq])
   @@map("deck")
+}
+
+/// LEARNING-DESIGN LD5, STUDY-METHODS R5: tema de un mazo con la explicación del concepto.
+model Topic {
+  id          String  @id @db.Uuid
+  userId      String  @map("user_id") @db.Uuid
+  deckId      String  @map("deck_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  name        String
+  explanation String
+  hlc         String
+  updatedAt   BigInt  @map("updated_at")
+  deletedAt   BigInt? @map("deleted_at")
+  serverSeq   BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@index([userId, deckId])
+  @@map("topic")
+}
+
+/// LD5: "Explícalo con tus palabras" antes de la primera tarjeta nueva de un tema. No es un repaso.
+model SelfExplanation {
+  id        String  @id @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  topicId   String  @map("topic_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  text      String
+  writtenAt BigInt  @map("written_at")
+  hlc       String
+  updatedAt BigInt  @map("updated_at")
+  deletedAt BigInt? @map("deleted_at")
+  serverSeq BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@index([userId, topicId])
+  @@map("self_explanation")
 }
 
 /// LEARNING-DESIGN §1: el contenido que ella crea. `kind` repite `content.kind` para filtrar.
@@ -165,21 +203,21 @@ model TimerSession {
 
 /// §3, P6: cada bloque o descanso cerrado. Solo inserción (trigger timer_block_log_append_only).
 model TimerBlockLog {
-  id             String @id @db.Uuid
-  userId         String @map("user_id") @db.Uuid
-  timerSessionId String @map("timer_session_id") @db.Uuid // sin FK: lo valida el handler (BE2)
-  deviceId       String @map("device_id") @db.Uuid
+  id             String  @id @db.Uuid
+  userId         String  @map("user_id") @db.Uuid
+  timerSessionId String  @map("timer_session_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  deviceId       String  @map("device_id") @db.Uuid
   kind           String
-  blockIndex     Int    @map("block_index")
+  blockIndex     Int     @map("block_index")
   mode           String
-  startedAt      BigInt @map("started_at")
-  endedAt        BigInt @map("ended_at")
-  plannedMs      BigInt @map("planned_ms")
-  activeMs       BigInt @map("active_ms")
+  startedAt      BigInt  @map("started_at")
+  endedAt        BigInt  @map("ended_at")
+  plannedMs      BigInt  @map("planned_ms")
+  activeMs       BigInt  @map("active_ms")
   outcome        String
   extended       Boolean @default(false) // §5: el bloque usó "+N min"
-  serverSeq      BigInt @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
-  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serverSeq      BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, serverSeq])
   @@index([userId, timerSessionId])

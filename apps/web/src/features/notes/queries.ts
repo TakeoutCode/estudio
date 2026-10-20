@@ -1,4 +1,4 @@
-import type { Deck, Note } from '@estudio/shared';
+import type { Deck, Note, Topic } from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { alive, db } from '@/db/schema';
 
@@ -13,3 +13,11 @@ export const useNote = (id: string | undefined): Note | null | undefined =>
     const note = await db.notes.get(id);
     return note?.deletedAt === null ? note : null;
   }, [id]);
+
+/** Temas vivos de un mazo, por nombre; `undefined` mientras carga (LD5, P4). */
+export const useTopics = (deckId: string | null): Topic[] | undefined =>
+  useLiveQuery(async () => {
+    if (!deckId) return [];
+    const topics = await alive(db.topics.where('deckId').equals(deckId)).toArray();
+    return topics.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }, [deckId]);

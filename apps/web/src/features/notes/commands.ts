@@ -8,6 +8,7 @@ import {
   type Note,
   type NoteContent,
   NoteSchema,
+  TopicSchema,
 } from '@estudio/shared';
 import { isLeech } from '@estudio/srs';
 import { hlcWall, nextHlc } from '@/db/clock';
@@ -25,6 +26,7 @@ interface CommandOptions {
 /** Tablas de una escritura de notas: nota, sus Cards, su proyección, outbox y reloj (FE3). */
 export const noteTables = (database: EstudioDb) => [
   database.decks,
+  database.topics,
   database.notes,
   database.cards,
   database.cardStates,
@@ -48,8 +50,15 @@ async function stamp(database: EstudioDb, now: number) {
 /** Mazo existente, o uno nuevo que se crea en la misma transacción que la nota. */
 export type DeckChoice = { readonly id: string } | { readonly name: string };
 
+/**
+ * Tema del mazo (LD5, P4): uno existente, uno nuevo que se crea con la nota, o ninguno.
+ * Al editar, `undefined` deja el que tenía.
+ */
+export type TopicChoice =
+  { readonly id: string } | { readonly name: string; readonly explanation: string } | null;
+
 export function createNote(
-  input: { readonly deck: DeckChoice; readonly content: NoteContent },
+  input: { readonly deck: DeckChoice; readonly content: NoteContent; readonly topic?: TopicChoice },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
 ): Promise<Note> {
   return write(database, async () => {
@@ -57,7 +66,7 @@ export function createNote(
     const note = NoteSchema.parse({
       id: newId(),
       deckId,
-      topicId: null,
+      topicId: await resolveTopic(database, input.topic ?? null, deckId, now),
       content: input.content,
       origin: 'manual',
       deletedAt: null,
@@ -75,13 +84,19 @@ export function createNote(
  */
 export function updateNote(
   id: string,
-  content: NoteContent,
+  input: { readonly content: NoteContent; readonly topic?: TopicChoice },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
 ): Promise<Note> {
   return write(database, async () => {
+    const current = await existing(database, id);
+    const topicId =
+      input.topic === undefined
+        ? current.topicId
+        : await resolveTopic(database, input.topic, current.deckId, now);
     const note = NoteSchema.parse({
-      ...(await existing(database, id)),
-      content,
+      ...current,
+      topicId,
+      content: input.content,
       ...(await stamp(database, now)),
     });
     await writeAndQueue(database, 'note', note, now);
@@ -103,6 +118,22 @@ export async function softDeleteNotesOfDeck(database: EstudioDb, deckId: string,
   const notes = await database.notes.where('deckId').equals(deckId).toArray();
   for (const note of notes) {
     if (note.deletedAt === null) await softDeleteNote(database, note, now);
+  }
+}
+
+/**
+ * Al borrar un tema, sus notas quedan sin tema: cada una es su propia escritura LWW (SY5).
+ * Llamar dentro de una transacción que incluya `noteTables`.
+ */
+export async function clearTopicOfNotes(database: EstudioDb, topicId: string, now: number): Promise<void> {
+  const notes = await database.notes.filter((n) => n.topicId === topicId && n.deletedAt === null).toArray();
+  for (const note of notes) {
+    await writeAndQueue(
+      database,
+      'note',
+      NoteSchema.parse({ ...note, topicId: null, ...(await stamp(database, now)) }),
+      now,
+    );
   }
 }
 
@@ -176,6 +207,31 @@ async function resolveDeck(database: EstudioDb, choice: DeckChoice, now: number)
   });
   await writeAndQueue(database, 'deck', deck, now);
   return deck.id;
+}
+
+/** El tema tiene que ser del mismo mazo que la nota. */
+async function resolveTopic(
+  database: EstudioDb,
+  choice: TopicChoice,
+  deckId: string,
+  now: number,
+): Promise<string | null> {
+  if (choice === null) return null;
+  if ('id' in choice) {
+    const topic = await database.topics.get(choice.id);
+    if (topic?.deletedAt !== null || topic.deckId !== deckId) throw new Error('topic_not_found');
+    return topic.id;
+  }
+  const topic = TopicSchema.parse({
+    id: newId(),
+    deckId,
+    name: choice.name,
+    explanation: choice.explanation,
+    deletedAt: null,
+    ...(await stamp(database, now)),
+  });
+  await writeAndQueue(database, 'topic', topic, now);
+  return topic.id;
 }
 
 async function existing(database: EstudioDb, id: string): Promise<Note> {

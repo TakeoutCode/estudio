@@ -152,9 +152,11 @@ async function resetForFullResync(database: EstudioDb): Promise<void> {
     await Promise.all(
       [
         database.decks,
+        database.topics,
         database.notes,
         database.cards,
         database.userSettings,
+        database.selfExplanations,
         database.reviewLogs,
         database.timerSessions,
         database.timerBlockLogs,

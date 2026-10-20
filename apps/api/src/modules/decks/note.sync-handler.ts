@@ -17,7 +17,8 @@ export class NoteSyncHandler implements EntitySyncHandler<'note'> {
   }
 
   async refs(userId: string, row: Note): Promise<ApiErrorCode | null> {
-    return (await this.repo.owns('deck', userId, row.deckId)) ? null : 'not_found';
+    if (!(await this.repo.owns('deck', userId, row.deckId))) return 'not_found';
+    return row.topicId === null || (await this.repo.owns('topic', userId, row.topicId)) ? null : 'not_found';
   }
 
   apply(userId: string, row: Note): Promise<ApplyStatus> {

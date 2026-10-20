@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import { DeckSchema } from '../domain/deck.js';
 import { CardSchema, NoteSchema } from '../domain/note.js';
 import { ReviewLogSchema } from '../domain/review.js';
+import { SelfExplanationSchema, TopicSchema } from '../domain/topic.js';
 import { TimerBlockLogSchema, TimerSessionSchema } from '../domain/timer.js';
 import { UserSettingsSchema } from '../domain/user-settings.js';
 import type { EntityName } from './entities.js';
@@ -13,9 +14,11 @@ import type { EntityName } from './entities.js';
  */
 export const SYNC_ROW_SCHEMAS = {
   deck: DeckSchema,
+  topic: TopicSchema,
   note: NoteSchema,
   card: CardSchema,
   userSettings: UserSettingsSchema,
+  selfExplanation: SelfExplanationSchema,
   timerSession: TimerSessionSchema,
   reviewLog: ReviewLogSchema,
   timerBlockLog: TimerBlockLogSchema,

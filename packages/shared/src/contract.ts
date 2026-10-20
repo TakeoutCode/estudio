@@ -3,7 +3,7 @@
  * forma de lo que viaja por HTTP o sync; la API responde 426 a clientes por debajo de
  * su mínimo soportado.
  */
-export const CONTRACT_VERSION = 4; // 4: TimerBlockLog.extended (§5, uso de descansos)
+export const CONTRACT_VERSION = 5; // 4: TimerBlockLog.extended (§5) · 5: Topic y SelfExplanation (LD5)
 
 /** Cabecera que el cliente envía en cada request (en minúsculas, como la normaliza Node). */
 export const CONTRACT_HEADER = 'x-estudio-contract';

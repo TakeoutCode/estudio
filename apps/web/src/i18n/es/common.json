@@ -76,6 +76,13 @@
     "deck": "Mazo",
     "newDeckOption": "Mazo nuevo…",
     "deckName": "Nombre del mazo nuevo",
+    "topic": "Tema (opcional)",
+    "noTopic": "Sin tema",
+    "newTopicOption": "Tema nuevo…",
+    "editTopic": "Editar tema",
+    "topicName": "Nombre del tema nuevo",
+    "topicExplanation": "Explicación del tema",
+    "topicExplanationHint": "Se muestra antes de la primera tarjeta nueva del tema, para entenderlo antes de memorizarlo.",
     "front": "Pregunta",
     "back": "Respuesta",
     "explanation": "Explicación breve (se muestra después de cada intento)",
@@ -88,7 +95,20 @@
     "backToToday": "Volver a Hoy",
     "error": {
       "required": "Escribe la pregunta y la respuesta.",
-      "deck": "Escribe el nombre del mazo nuevo."
+      "deck": "Escribe el nombre del mazo nuevo.",
+      "topic": "Escribe el nombre del tema nuevo."
+    }
+  },
+  "topics": {
+    "title": "Tema",
+    "name": "Nombre",
+    "save": "Guardar",
+    "saved": "Cambios guardados.",
+    "delete": "Borrar tema",
+    "deleteHint": "Sus tarjetas se quedan, sin tema.",
+    "missing": "Este tema ya no existe.",
+    "error": {
+      "name": "Escribe el nombre del tema."
     }
   },
   "auth": {

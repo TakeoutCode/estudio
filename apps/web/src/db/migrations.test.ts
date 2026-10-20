@@ -44,7 +44,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(5);
+    expect(current.verno).toBe(6);
     expect(await current.decks.toArray()).toEqual([deck]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
@@ -73,7 +73,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(5);
+    expect(current.verno).toBe(6);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
     expect(await current.reviewLogs.toArray()).toEqual([log]);
@@ -94,13 +94,13 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(5);
+    expect(current.verno).toBe(6);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([note]);
     current.close();
   });
 
-  it('v4 → v5: los bloques del temporizador quedan con extended: false (§5); el outbox intacto', async () => {
+  it('v4 → última: los bloques del temporizador quedan con extended: false (§5); el outbox intacto', async () => {
     const name = `migracion-${newId()}`;
     names.push(name);
     const v4 = openVersion1(name);
@@ -116,10 +116,35 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(5);
+    expect(current.verno).toBe(6);
     expect(await current.timerBlockLogs.toArray()).toEqual([{ ...block, extended: false }]);
     expect(await current.outbox.toArray()).toEqual([pending]);
-    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '9' });
+    current.close();
+  });
+
+  it('v5 → v6: aparecen temas y autoexplicaciones (LD5); el cursor vuelve a 0; el outbox intacto', async () => {
+    const name = `migracion-${newId()}`;
+    names.push(name);
+    const v5 = openVersion1(name);
+    v5.version(2).stores({ userSettings: 'id, section' });
+    v5.version(3).stores({ notes: 'id, deckId', cards: 'id, noteId' });
+    v5.version(4).stores({ timerSessions: 'id, state', timerBlockLogs: 'id, timerSessionId, endedAt' });
+    v5.version(5).stores({});
+    const note = { id: newId(), deckId: newId(), topicId: null, deletedAt: null };
+    const pending = { mutationId: newId(), op: 'upsert', entity: 'note', row: note, createdAt: 3 };
+    await v5.table('notes').add(note);
+    await v5.table('outbox').add(pending);
+    await v5.table('meta').put({ key: 'syncCursor', value: '120' });
+    v5.close();
+
+    const current = new EstudioDb(name);
+    await current.open();
+    expect(current.verno).toBe(6);
+    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
+    expect(await current.notes.toArray()).toEqual([note]);
+    expect(await current.outbox.toArray()).toEqual([pending]);
+    expect(await current.topics.count()).toBe(0);
+    expect(await current.selfExplanations.count()).toBe(0);
     current.close();
   });
 });
