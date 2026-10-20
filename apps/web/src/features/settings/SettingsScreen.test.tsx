@@ -1,9 +1,10 @@
 import { cardIdFor, newId, Rating } from '@estudio/shared';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
+import { useStoredTheme } from '@/app/use-stored-theme';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
-import { readStudyConfig } from '@/db/settings';
+import { readStudyConfig, readUiSettings } from '@/db/settings';
 import { createNote } from '@/features/notes';
 import { answerCard } from '@/features/study';
 import { projectionApi } from '@/workers/projection-api';
@@ -198,5 +199,25 @@ describe('Ajustes · uso de descansos (§5)', () => {
     expect(value('Descansos completos')).toBe('1');
     expect(value('Descansos terminados antes de tiempo')).toBe('1');
     expect(value('Bloques en los que sumaste minutos')).toBe('1');
+  });
+});
+
+describe('Ajustes · apariencia (UX5)', () => {
+  it('UX5: elegir Oscuro lo guarda en UserSettings.ui y se aplica a la app', async () => {
+    renderSettings();
+    fireEvent.click(await screen.findByRole('button', { name: 'Oscuro' }));
+    await waitFor(async () => {
+      expect((await readUiSettings(db)).theme).toBe('dark');
+    });
+    expect(screen.getByRole('button', { name: 'Oscuro' }).getAttribute('aria-pressed')).toBe('true');
+
+    const Layout = () => {
+      useStoredTheme();
+      return null;
+    };
+    render(<Layout />);
+    await waitFor(() => {
+      expect(document.documentElement.dataset.theme).toBe('dark');
+    });
   });
 });

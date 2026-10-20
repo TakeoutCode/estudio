@@ -1,7 +1,7 @@
-import { DAY_MS, type StudyConfig } from '@estudio/shared';
+import { DAY_MS, type StudyConfig, type UiSettings } from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { alive, db, type EstudioDb } from '@/db/schema';
-import { readProfile, readStudyConfig } from '@/db/settings';
+import { readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
 import type { BreakUsageInput, LoadProjectionInput } from '@/workers/projection-api';
 
 /** §5: bloques y descansos del temporizador para "Tus descansos"; srs elige las semanas. */
@@ -33,3 +33,6 @@ export async function loadProjectionInput(
     .map((card) => ({ cardId: card.id, createdAt: card.createdAt, lapseBaseline: card.lapseBaseline }));
   return { cards, logs: await database.reviewLogs.toArray(), config, now, timeZone: profile.timeZone };
 }
+
+/** UI-UX UX5: el tema elegido (Sistema por defecto). */
+export const useUiSettings = (): UiSettings | undefined => useLiveQuery(() => readUiSettings(db), []);

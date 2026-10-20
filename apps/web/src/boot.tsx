@@ -8,7 +8,7 @@ import { applyTheme } from './lib/theme';
 import { startSync } from './sync';
 
 export function boot(root: HTMLElement): void {
-  // UI-UX UX5: la preferencia viene de UserSettings.ui cuando exista; por ahora, Sistema.
+  // UI-UX UX5: Sistema hasta leer UserSettings.ui; RootLayout aplica lo guardado.
   applyTheme('system');
   // Si este dispositivo ya tiene cuenta y la cookie sigue vigente, la sesión vuelve sin
   // pedir la contraseña. Sin cuenta, la pantalla de login lo resuelve.

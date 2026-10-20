@@ -6,6 +6,8 @@ import {
   type SettingsSection,
   type StudyConfig,
   StudyConfigSchema,
+  type UiSettings,
+  UiSettingsSchema,
 } from '@estudio/shared';
 import type { EstudioDb } from './schema';
 
@@ -27,4 +29,8 @@ export async function readProfile(database: EstudioDb): Promise<ProfileSettings>
 
 export async function readNotificationPrefs(database: EstudioDb): Promise<NotificationPrefs> {
   return NotificationPrefsSchema.parse(await sectionData(database, 'notifications'));
+}
+
+export async function readUiSettings(database: EstudioDb): Promise<UiSettings> {
+  return UiSettingsSchema.parse(await sectionData(database, 'ui'));
 }

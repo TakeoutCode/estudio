@@ -332,6 +332,12 @@
       "calibration": "Tu intuición frente a lo que pasó",
       "load": "Pendientes",
       "improveList": "Para mejorar"
+    },
+    "theme": {
+      "title": "Apariencia",
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Oscuro"
     }
   },
   "ui": {

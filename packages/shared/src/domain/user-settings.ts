@@ -29,6 +29,7 @@ export type ProfileSettings = z.output<typeof ProfileSettingsSchema>;
 export const UiSettingsSchema = z.object({
   theme: z.enum(['system', 'light', 'dark']).default('system'), // UI-UX UX5
 });
+export type UiSettings = z.output<typeof UiSettingsSchema>;
 
 const section = <S extends string, D extends z.ZodType>(name: S, data: D) =>
   SyncMetaSchema.extend({ section: z.literal(name), data }).strict();
