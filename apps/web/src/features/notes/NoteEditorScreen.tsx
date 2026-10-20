@@ -8,7 +8,7 @@ import {
 } from '@estudio/shared';
 import { type RefObject, type SubmitEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { createNote, type DeckChoice, deleteNote, type TopicChoice, updateNote } from './commands';
 import { useDecks, useNote, useTopics } from './queries';
 
@@ -30,26 +30,40 @@ const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-me
 const choiceButton = `min-h-12 rounded-(--radius-card) border px-3 text-text ${focus}`;
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
 
-/** Crear o editar una nota (LEARNING-DESIGN §1). La ruta de estudio no carga esto (FE9). */
+/**
+ * Crear o editar una nota (LEARNING-DESIGN §1). La ruta de estudio no carga esto (FE9).
+ * `?mazo=<id>`: viene de ese mazo; lo preselecciona y "Volver" regresa a él.
+ */
 export function NoteEditorScreen() {
   const { noteId } = useParams();
+  const [params] = useSearchParams();
   const decks = useDecks();
   const note = useNote(noteId);
   if (decks === undefined || note === undefined) return null;
+  const fromDeck = decks.find((deck) => deck.id === params.get('mazo'))?.id ?? null;
   // `key`: al pasar de una nota a otra, el formulario arranca de cero.
-  return <NoteForm key={note?.id ?? 'new'} decks={decks} note={note} />;
+  return <NoteForm key={note?.id ?? 'new'} decks={decks} note={note} fromDeck={fromDeck} />;
 }
 
 type Status = 'idle' | 'saved' | 'updated' | 'invalid' | 'deckMissing' | 'topicMissing' | 'failed';
 
-function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly note: Note | null }) {
+function NoteForm({
+  decks,
+  note,
+  fromDeck,
+}: {
+  readonly decks: readonly Deck[];
+  readonly note: Note | null;
+  readonly fromDeck: string | null;
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const ids = useId();
   const firstRef = useRef<HTMLTextAreaElement>(null);
   const initial = note?.content;
+  const returnTo = fromDeck ? { to: `/decks/${fromDeck}`, label: t('notes.backToDeck') } : null;
   const [kind, setKind] = useState<Kind>(initial?.kind ?? 'basic');
-  const [deckId, setDeckId] = useState(note?.deckId ?? decks[0]?.id ?? NEW_DECK);
+  const [deckId, setDeckId] = useState(note?.deckId ?? fromDeck ?? decks[0]?.id ?? NEW_DECK);
   const [deckName, setDeckName] = useState('');
   const [front, setFront] = useState(initial && 'front' in initial ? initial.front : '');
   const [back, setBack] = useState(initial && 'back' in initial ? initial.back : '');
@@ -170,8 +184,8 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
   return (
     <>
       <header className="flex flex-col">
-        <Link className={textLink} to="/">
-          {t('notes.backToToday')}
+        <Link className={textLink} to={returnTo?.to ?? '/'}>
+          {returnTo?.label ?? t('notes.backToToday')}
         </Link>
         <h1 className="m-0 text-title font-semibold">{t(note ? 'notes.edit' : 'notes.new')}</h1>
       </header>
@@ -405,7 +419,7 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
           type="button"
           className={`min-h-11 w-full rounded-(--radius-card) px-4 text-danger ${focus}`}
           onClick={() => {
-            void deleteNote(note.id).then(() => navigate('/'));
+            void deleteNote(note.id).then(() => navigate(returnTo?.to ?? '/'));
           }}
         >
           {t('notes.delete')}

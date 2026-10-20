@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/schema';
+import { createDeck } from '@/features/decks';
 import { NoteEditorScreen } from './NoteEditorScreen';
 
 const renderEditor = () =>
@@ -13,6 +14,40 @@ const renderEditor = () =>
 
 beforeEach(async () => {
   await db.delete({ disableAutoOpen: false });
+});
+
+describe('editor de notas · desde un mazo (?mazo=)', () => {
+  it('preselecciona ese mazo, guarda ahí y "Volver al mazo" regresa a él', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    const [first, second] = [await createDeck({ name: 'Carpo' }), await createDeck({ name: 'Tarso' })];
+    render(
+      <MemoryRouter initialEntries={[`/notes/new?mazo=${first.id}`]}>
+        <Routes>
+          <Route path="/notes/new" element={<NoteEditorScreen />} />
+          <Route path="/decks/:deckId" element={<p>Pantalla del mazo</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect((await screen.findByLabelText<HTMLSelectElement>('Mazo')).value).toBe(first.id);
+    expect(second.id).not.toBe(first.id);
+    fireEvent.change(screen.getByLabelText('Pregunta'), { target: { value: '¿Hueso en forma de barco?' } });
+    fireEvent.change(screen.getByLabelText('Respuesta'), { target: { value: 'El escafoides' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect((await db.notes.toArray()).map((n) => n.deckId)).toEqual([first.id]);
+    });
+    fireEvent.click(screen.getByRole('link', { name: 'Volver al mazo' }));
+    expect(await screen.findByText('Pantalla del mazo')).toBeTruthy();
+  });
+
+  it('un ?mazo= que no existe se ignora: vuelve a Hoy', async () => {
+    render(
+      <MemoryRouter initialEntries={['/notes/new?mazo=0192f1a0-0000-7000-8000-0000000dead0']}>
+        <NoteEditorScreen />
+      </MemoryRouter>,
+    );
+    expect((await screen.findByRole('link', { name: 'Volver a Hoy' })).getAttribute('href')).toBe('/');
+  });
 });
 
 describe('editor de notas · tipos de LD §1', () => {

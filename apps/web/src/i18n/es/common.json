@@ -127,6 +127,7 @@
     "updated": "Cambios guardados.",
     "delete": "Borrar tarjeta",
     "backToToday": "Volver a Hoy",
+    "backToDeck": "Volver al mazo",
     "error": {
       "required": "Escribe la pregunta y la respuesta.",
       "deck": "Escribe el nombre del mazo nuevo.",
