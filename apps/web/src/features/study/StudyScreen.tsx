@@ -1,6 +1,6 @@
 import { type Confidence, newId, Rating } from '@estudio/shared';
 import { type CardState, nextCard, type SessionPlan, type TimerBlockRecord } from '@estudio/srs';
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import {
@@ -19,6 +19,8 @@ import { RatingButton } from '@/ui/RatingButton';
 import { answerCard } from './commands';
 import { planSessionNow, type StudyCardView, useQueueStates, useStudyCard } from './queries';
 import { useStudy } from './store';
+import { SuggestionPanel } from './SuggestionPanel';
+import { useSessionSuggestion } from './use-session-suggestion';
 import { useStudyShortcuts } from './use-study-shortcuts';
 
 const RATINGS = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy] as const;
@@ -157,6 +159,36 @@ function Session({
   const now = useTimerTicker(timer, step?.kind === 'card' && currentCardId !== null, onTimerResult);
   const serverNow = now + (timer?.offsetMs ?? 0);
 
+  // P5 y P6: sugerencias suaves entre tarjetas; nunca bloquean.
+  const navigate = useNavigate();
+  const end = useStudy((s) => s.end);
+  const { suggestion, bedtime, planner, dismiss } = useSessionSuggestion({
+    sessionId,
+    startedAt,
+    onBreak,
+    queueDone: step?.kind === 'done',
+    now: Math.max(clock, now),
+  });
+  const inBlock =
+    timer?.isOwner === true && (timer.session?.state === 'focus' || timer.session?.state === 'paused');
+  const aside =
+    suggestion && planner ? (
+      <SuggestionPanel
+        suggestion={suggestion}
+        planner={planner}
+        canBreak={inBlock}
+        onTakeBreak={() => {
+          dismiss();
+          void dispatchTimer({ type: 'takeBreak' });
+        }}
+        onFinish={() => {
+          end();
+          void navigate('/');
+        }}
+        onDismiss={dismiss}
+      />
+    ) : null;
+
   if (!step) return null;
   return (
     <>
@@ -174,13 +206,16 @@ function Session({
       ) : null}
       <PlanNotices plan={plan} />
       {onBreak ? <BreakPanel session={timer.session} at={serverNow} /> : null}
-      {!onBreak && step.kind === 'done' ? <SessionDone /> : null}
+      {!onBreak && step.kind === 'done' ? <SessionDone bedtime={bedtime} /> : null}
       {!onBreak && step.kind === 'wait' ? <Waiting until={step.until} now={clock} /> : null}
       {!onBreak && step.kind === 'card' && currentCardId ? (
         <CurrentCard
           cardId={currentCardId}
           sessionId={sessionId}
+          aside={aside}
           onAnswered={(state) => {
+            // Responder es seguir: el aviso en pantalla no se repite.
+            if (suggestion) dismiss();
             setAnswered((prev) => new Map(prev).set(state.cardId, state));
             setClock(Date.now());
             // R13: en estructurado, el bloque que ya llegó a 0 cierra al terminar la tarjeta.
@@ -222,10 +257,13 @@ function PlanNotices({ plan }: { readonly plan: SessionPlan }) {
 function CurrentCard({
   cardId,
   sessionId,
+  aside,
   onAnswered,
 }: {
   readonly cardId: string;
   readonly sessionId: string;
+  /** Sugerencia de P5 o P6, sobre las acciones. */
+  readonly aside: ReactNode;
   readonly onAnswered: (state: CardState) => void;
 }) {
   const { t } = useTranslation();
@@ -308,6 +346,7 @@ function CurrentCard({
         ) : null}
       </div>
       <ActionBar>
+        {aside}
         {saveFailed ? (
           <p role="alert" className="m-0 text-caption">
             {t('study.saveFailed')}
@@ -423,8 +462,8 @@ function Waiting({ until, now }: { readonly until: number; readonly now: number 
   );
 }
 
-/** §3: resumen final opcional y neutral. */
-function SessionDone() {
+/** §3: resumen final opcional y neutral. P6: si ya es su hora de dormir, lo dice sin presión. */
+function SessionDone({ bedtime }: { readonly bedtime: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const answered = useStudy((s) => s.answered);
@@ -434,6 +473,7 @@ function SessionDone() {
       <section className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-5">
         <h2 className="m-0 text-title font-semibold">{t('study.done.title')}</h2>
         <p className="m-0">{t('study.done.summary', { count: answered })}</p>
+        {bedtime ? <p className="m-0 text-muted">{t('study.done.bedtime')}</p> : null}
       </section>
       <ActionBar>
         <button

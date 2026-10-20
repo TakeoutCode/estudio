@@ -1,4 +1,13 @@
-import { cardFaces, type ProfileSettings, type StudyConfig } from '@estudio/shared';
+import {
+  cardFaces,
+  DAY_MS,
+  type MinuteRange,
+  type PlannerConfig,
+  type ProfileSettings,
+  type ReviewLog,
+  type StudyConfig,
+  type TimerBlockLog,
+} from '@estudio/shared';
 import {
   buildSessionQueue,
   type CardState,
@@ -9,7 +18,7 @@ import {
 } from '@estudio/srs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { alive, db, type EstudioDb } from '@/db/schema';
-import { readProfile, readStudyConfig } from '@/db/settings';
+import { readNotificationPrefs, readProfile, readStudyConfig } from '@/db/settings';
 
 export interface PlanSnapshot {
   readonly plan: SessionPlan;
@@ -67,6 +76,37 @@ export function useQueueStates(cardIds: readonly string[]): ReadonlyMap<string, 
     return new Map(states.flatMap((s) => (s ? [[s.cardId, s] as const] : [])));
   }, [key]);
 }
+
+export interface SessionSignals {
+  /** Respuestas de esta sesión (P5). */
+  readonly logs: readonly ReviewLog[];
+  /** Bloques del temporizador desde un día antes de empezar; `srs` elige los de su día (P6). */
+  readonly blocks: readonly TimerBlockLog[];
+  readonly profile: ProfileSettings;
+  /** Si no declaró hora de dormir, P6 usa el inicio de las horas silenciosas. */
+  readonly quietHours: MinuteRange;
+  readonly planner: PlannerConfig;
+}
+
+/** Lo que P5 y P6 leen durante la sesión; se actualiza con cada respuesta. */
+export const useSessionSignals = (sessionId: string, startedAt: number): SessionSignals | undefined =>
+  useLiveQuery(async () => {
+    const [logs, blocks, profile, prefs, config] = await Promise.all([
+      db.reviewLogs
+        .where('reviewedAt')
+        .aboveOrEqual(startedAt)
+        .filter((log) => log.sessionId === sessionId)
+        .toArray(),
+      db.timerBlockLogs
+        .where('endedAt')
+        .aboveOrEqual(startedAt - DAY_MS)
+        .toArray(),
+      readProfile(db),
+      readNotificationPrefs(db),
+      readStudyConfig(db),
+    ]);
+    return { logs, blocks, profile, quietHours: prefs.quietHours, planner: config.planner };
+  }, [sessionId, startedAt]);
 
 export interface StudyCardView {
   readonly cardId: string;

@@ -13,7 +13,7 @@ import {
   TZ,
 } from '../test/planner-fixtures.js';
 import { nextCard } from './queue.js';
-import { fatigueDetected, mocksDue, type StopInput, stopSuggestions } from './signals.js';
+import { fatigueDetected, fatigueWarningDue, mocksDue, type StopInput, stopSuggestions } from './signals.js';
 
 const planner = defaultStudyConfig().planner;
 
@@ -42,6 +42,25 @@ describe('P5: sugerir descanso', () => {
 
   it('P5: el orden de llegada de los logs no importa', () => {
     expect(fatigueDetected(session(8, 7_500).reverse(), planner)).toBe(true);
+  });
+
+  it('P5: tras un aviso o un descanso, el siguiente espera otra ventana de respuestas', () => {
+    const tired = session(8, 7_500); // 20 respuestas
+    const more = (n: number) =>
+      range(0, n).map((i) => log(NOW + 2 * HOUR + i * 10_000, Rating.Again, { durationMs: 9_000 }));
+    expect(fatigueWarningDue(tired, null, planner)).toBe(true); // primer aviso
+    expect(fatigueWarningDue(tired, 20, planner)).toBe(false); // recién avisado
+    expect(fatigueWarningDue([...tired, ...more(9)], 20, planner)).toBe(false);
+    expect(fatigueWarningDue([...tired, ...more(10)], 20, planner)).toBe(true);
+    // AG4: la ventana sale de la config.
+    expect(fatigueWarningDue([...tired, ...more(5)], 20, { ...planner, fatigueWindowCards: 5 })).toBe(true);
+  });
+
+  it('P5: tras descansar, con respuestas nuevas que ya no muestran fatiga, no avisa', () => {
+    const rested = range(0, 10).map((i) =>
+      log(NOW + 2 * HOUR + i * 10_000, Rating.Good, { durationMs: 5_000 }),
+    );
+    expect(fatigueWarningDue([...session(8, 7_500), ...rested], 20, planner)).toBe(false);
   });
 });
 

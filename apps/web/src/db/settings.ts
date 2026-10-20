@@ -1,4 +1,6 @@
 import {
+  type NotificationPrefs,
+  NotificationPrefsSchema,
   type ProfileSettings,
   ProfileSettingsSchema,
   type SettingsSection,
@@ -21,4 +23,8 @@ export async function readStudyConfig(database: EstudioDb): Promise<StudyConfig>
 
 export async function readProfile(database: EstudioDb): Promise<ProfileSettings> {
   return ProfileSettingsSchema.parse(await sectionData(database, 'profile'));
+}
+
+export async function readNotificationPrefs(database: EstudioDb): Promise<NotificationPrefs> {
+  return NotificationPrefsSchema.parse(await sectionData(database, 'notifications'));
 }

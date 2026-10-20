@@ -44,7 +44,19 @@
       "title": "Completaste esta sesión",
       "summary_one": "Respondiste {{count}} tarjeta.",
       "summary_other": "Respondiste {{count}} tarjetas.",
+      "bedtime": "Dormir también ayuda a consolidar lo estudiado.",
       "back": "Volver a Hoy"
+    },
+    "suggest": {
+      "break": "Tus últimas respuestas van más lentas y con menos aciertos que al empezar. Un descanso corto puede ayudar.",
+      "takeBreak": "Tomar un descanso",
+      "later": "Ahora no",
+      "continue": "Seguir",
+      "bedtime": "Ya es tu hora de dormir. Dormir también ayuda a consolidar lo estudiado; lo respondido ya está guardado.",
+      "fatigue_one": "Apareció un aviso de cansancio. Puede ser buen momento para parar por hoy.",
+      "fatigue_other": "Van {{count}} avisos de cansancio seguidos. Puede ser buen momento para parar por hoy.",
+      "blocks_one": "Hoy completaste {{count}} bloque de enfoque. Puedes parar aquí; lo respondido ya está guardado.",
+      "blocks_other": "Hoy completaste {{count}} bloques de enfoque. Puedes parar aquí; lo respondido ya está guardado."
     },
     "notice": {
       "overdue": "Hoy toca repasar lo pendiente; las nuevas esperan a otro día.",

@@ -36,6 +36,21 @@ export function fatigueDetected(sessionLogs: readonly ReviewLog[], cfg: PlannerC
   );
 }
 
+/**
+ * P5 en la sesión: ¿toca un aviso de fatiga ahora? `since` es cuántas respuestas llevaba la
+ * sesión en el último aviso o descanso. Después de uno hace falta otra ventana completa
+ * (`fatigueWindowCards` respuestas): así no se repite en cada tarjeta y, tras descansar, se
+ * juzga solo con respuestas nuevas. Los avisos seguidos alimentan P6 (`fatigueWarningsInRow`).
+ */
+export function fatigueWarningDue(
+  sessionLogs: readonly ReviewLog[],
+  since: number | null,
+  cfg: PlannerConfig,
+): boolean {
+  if (since !== null && sessionLogs.length - since < cfg.fatigueWindowCards) return false;
+  return fatigueDetected(sessionLogs, cfg);
+}
+
 export type StopReason = 'queue_done' | 'blocks_done' | 'bedtime' | 'fatigue';
 
 export interface StopInput {

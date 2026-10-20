@@ -1,12 +1,13 @@
-import { encodeHlc, newId, Rating } from '@estudio/shared';
+import { encodeHlc, newId, Rating, type ReviewLog } from '@estudio/shared';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deviceId } from '@/db/clock';
 import { db } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { createNote } from '@/features/notes';
 import { updateStudyConfig } from '@/features/settings';
+import { planSessionNow } from './queries';
 import { useStudy } from './store';
 import { StudyScreen } from './StudyScreen';
 
@@ -242,3 +243,93 @@ async function focusBlock() {
     endedReason: null,
   });
 }
+
+describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
+  const SESSION = '0192f1a0-0000-7000-8000-00000000a0a0';
+  const NIGHT = Date.UTC(2026, 9, 21, 5); // 23:00 del martes 20 en CDMX: pasó el inicio de las horas silenciosas
+  let seq = 0;
+  const sessionLog = (at: number, rating: Rating, durationMs: number): ReviewLog => {
+    seq += 1;
+    return {
+      id: `0192f1a0-0000-7000-8222-${String(seq).padStart(12, '0')}`,
+      cardId: '0192f1a0-0000-7000-8333-000000000001',
+      cardKind: 'basic',
+      reviewedAt: at,
+      rating,
+      durationMs,
+      type: 'review',
+      confidence: null,
+      sessionId: SESSION,
+      deviceId: '0192f1a0-0000-7000-8000-00000000d001',
+    };
+  };
+  /** 10 respuestas bien y rápidas, luego `count` más lentas y con la mitad de "Otra vez". */
+  const tired = (from: number, count: number) =>
+    Array.from({ length: count }, (_, i) =>
+      sessionLog(from + i * 10_000, i % 2 === 0 ? Rating.Good : Rating.Again, 9_000),
+    );
+
+  /** Sesión ya empezada con 20 respuestas que muestran fatiga (P5). */
+  async function fatiguedSession() {
+    const { plan } = await planSessionNow();
+    useStudy.getState().start({ id: SESSION, startedAt: T0, plan, askConfidence: false });
+    const fresh = Array.from({ length: 10 }, (_, i) => sessionLog(T0 + i * 10_000, Rating.Good, 5_000));
+    await db.reviewLogs.bulkAdd([...fresh, ...tired(T0 + 200_000, 10)]);
+  }
+
+  it('P6: pasada su hora de dormir sugiere parar; la tarjeta sigue y responder es seguir', async () => {
+    vi.setSystemTime(NIGHT);
+    renderStudy();
+    expect(await screen.findByText(/Ya es tu hora de dormir/)).toBeTruthy();
+    expect(screen.getByText(humerus.front)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Seguir' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await screen.findByText(femur.front);
+    expect(screen.queryByText(/Ya es tu hora de dormir/)).toBeNull();
+  });
+
+  it('P6: "Terminar por ahora" cierra la sesión y vuelve a Hoy', async () => {
+    vi.setSystemTime(NIGHT);
+    render(
+      <MemoryRouter initialEntries={['/study']}>
+        <Routes>
+          <Route path="/study" element={<StudyScreen />} />
+          <Route path="/" element={<p>Hoy</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Ya es tu hora de dormir/);
+    fireEvent.click(screen.getByRole('button', { name: 'Terminar por ahora' }));
+    expect(await screen.findByText('Hoy')).toBeTruthy();
+    expect(useStudy.getState().session).toBeNull();
+    expect(await db.reviewLogs.count()).toBe(0); // no responde nada por ella
+  });
+
+  it('P5: con fatiga y un bloque en curso, "Tomar un descanso" abre el descanso y corta la serie', async () => {
+    await focusBlock();
+    await fatiguedSession();
+    renderStudy();
+    expect(await screen.findByText(/Tus últimas respuestas van más lentas/)).toBeTruthy();
+    expect(screen.getByText(humerus.front)).toBeTruthy(); // nunca bloquea
+    fireEvent.click(screen.getByRole('button', { name: 'Tomar un descanso' }));
+    expect(await screen.findByRole('heading', { name: 'Descanso' })).toBeTruthy();
+    await waitFor(() => {
+      expect(useStudy.getState().fatigue).toEqual({ inRow: 0, since: 20, showing: false });
+    });
+  });
+
+  it('P5: sin temporizador solo informa; P6: el segundo aviso seguido sugiere parar', async () => {
+    await fatiguedSession();
+    renderStudy();
+    expect(await screen.findByText(/Tus últimas respuestas van más lentas/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Tomar un descanso' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir' }));
+    expect(screen.queryByText(/Tus últimas respuestas/)).toBeNull();
+
+    // Otra ventana de `fatigueWindowCards` respuestas con fatiga, sin descanso entre medio.
+    await db.reviewLogs.bulkAdd(tired(T0 + 400_000, 10));
+    expect(await screen.findByText(/Van 2 avisos de cansancio seguidos/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Mostrar respuesta' })).toBeTruthy();
+  });
+});
