@@ -1,4 +1,10 @@
-import { DAY_MS, type NotificationPrefs, type StudyConfig, type UiSettings } from '@estudio/shared';
+import {
+  DAY_MS,
+  type NotificationPrefs,
+  type ProfileSettings,
+  type StudyConfig,
+  type UiSettings,
+} from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { alive, db, type EstudioDb } from '@/db/schema';
 import { readNotificationPrefs, readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
@@ -36,6 +42,9 @@ export async function loadProjectionInput(
 
 /** UI-UX UX5: el tema elegido (Sistema por defecto). */
 export const useUiSettings = (): UiSettings | undefined => useLiveQuery(() => readUiSettings(db), []);
+
+/** Zona horaria (AG6) y hora de dormir (P6). */
+export const useProfile = (): ProfileSettings | undefined => useLiveQuery(() => readProfile(db), []);
 
 /** NOTIFICATIONS §1: preferencias de avisos (apagados por defecto, NT8). */
 export const useNotificationPrefs = (): NotificationPrefs | undefined =>

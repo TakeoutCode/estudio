@@ -4,10 +4,11 @@ import { MemoryRouter } from 'react-router';
 import { useStoredTheme } from '@/app/use-stored-theme';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
-import { readStudyConfig, readUiSettings } from '@/db/settings';
+import { readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
 import { createNote } from '@/features/notes';
 import { answerCard } from '@/features/study';
 import { projectionApi } from '@/workers/projection-api';
+import { ensureProfileTimeZone } from './commands';
 import { loadProjectionInput } from './queries';
 import { SettingsScreen } from './SettingsScreen';
 
@@ -70,6 +71,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('Ajustes · retención objetivo (R2, LD8)', () => {
@@ -223,5 +225,58 @@ describe('Ajustes · apariencia (UX5)', () => {
     await waitFor(() => {
       expect(document.documentElement.dataset.theme).toBe('dark');
     });
+  });
+});
+
+describe('Ajustes · hora de dormir (P6)', () => {
+  /** La zona de este dispositivo, distinta de la que trae el perfil por defecto. */
+  function deviceIn(timeZone: string) {
+    const real = new Intl.DateTimeFormat().resolvedOptions();
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ ...real, timeZone });
+  }
+
+  it('P6: sin hora elegida dice que se usa el inicio de las horas silenciosas', async () => {
+    renderSettings();
+    expect(await screen.findByText(/^Sin una hora elegida .* de 22:00 a 07:00/)).toBeTruthy();
+    expect(screen.getByLabelText<HTMLInputElement>('¿A qué hora sueles dormir?').value).toBe('');
+    expect(screen.queryByRole('button', { name: 'Quitar esta hora' })).toBeNull();
+  });
+
+  it('P6: elegirla la guarda al momento, con la zona del dispositivo, y dice la franja; se puede quitar', async () => {
+    deviceIn('Europe/Madrid');
+    renderSettings();
+    fireEvent.change(await screen.findByLabelText('¿A qué hora sueles dormir?'), {
+      target: { value: '23:30' },
+    });
+    expect(screen.getByText(/^De 23:30 a 07:00, la sesión te sugiere parar/)).toBeTruthy();
+    await waitFor(async () => {
+      expect(await readProfile(db)).toEqual({ timeZone: 'Europe/Madrid', bedtime: '23:30' });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar esta hora' }));
+    expect(screen.getByText(/^Sin una hora elegida/)).toBeTruthy();
+    await waitFor(async () => {
+      expect((await readProfile(db)).bedtime).toBeNull();
+    });
+  });
+
+  it('AG6: con un perfil ya guardado no cambia su zona', async () => {
+    await ensureProfileTimeZone('America/Bogota');
+    deviceIn('Europe/Madrid');
+    renderSettings();
+    fireEvent.change(await screen.findByLabelText('¿A qué hora sueles dormir?'), {
+      target: { value: '21:00' },
+    });
+    await waitFor(async () => {
+      expect(await readProfile(db)).toEqual({ timeZone: 'America/Bogota', bedtime: '21:00' });
+    });
+  });
+
+  it('P6: a la misma hora en que terminan las horas silenciosas, avisa que no habrá sugerencia', async () => {
+    renderSettings();
+    fireEvent.change(await screen.findByLabelText('¿A qué hora sueles dormir?'), {
+      target: { value: '07:00' },
+    });
+    expect(screen.getByText(/así que la sesión no te sugerirá parar por la hora/)).toBeTruthy();
   });
 });

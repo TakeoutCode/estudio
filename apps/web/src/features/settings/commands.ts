@@ -1,6 +1,7 @@
 import {
   type NotificationPrefs,
   NotificationPrefsSchema,
+  type ProfileSettings,
   ProfileSettingsSchema,
   type SettingsSection,
   settingsRowId,
@@ -97,17 +98,41 @@ export function updateNotificationPrefs(
   );
 }
 
+const hasStoredProfile = async (database: EstudioDb): Promise<boolean> =>
+  (await database.userSettings.where('section').equals('profile').first())?.deletedAt === null;
+
 /**
  * AGENTS AG6: el cron decide "hoy" y las horas silenciosas con su zona. Si nunca la guardó,
  * se guarda la de este dispositivo; si ya existe, no se toca.
  */
 export async function ensureProfileTimeZone(timeZone: string, options: CommandOptions = {}): Promise<void> {
   const database = options.database ?? defaultDb;
-  const stored = await database.userSettings.where('section').equals('profile').first();
-  if (stored?.deletedAt === null) return;
+  if (await hasStoredProfile(database)) return;
   await writeSection(
     'profile',
     async () => ProfileSettingsSchema.parse({ ...(await readProfile(database)), timeZone }),
+    options,
+  );
+}
+
+/**
+ * La sección `profile` (P6: hora de dormir). Si nunca se guardó, parte de `timeZone`, la de
+ * este dispositivo: si no, la zona por defecto quedaría guardada como suya y
+ * `ensureProfileTimeZone` ya no la corregiría (AG6).
+ */
+export function updateProfile(
+  update: (current: ProfileSettings) => ProfileSettings,
+  timeZone: string,
+  options: CommandOptions = {},
+): Promise<ProfileSettings> {
+  const database = options.database ?? defaultDb;
+  return writeSection(
+    'profile',
+    async () => {
+      const current = await readProfile(database);
+      const base = (await hasStoredProfile(database)) ? current : { ...current, timeZone };
+      return ProfileSettingsSchema.parse(update(base));
+    },
     options,
   );
 }

@@ -7,7 +7,7 @@ import { db } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { createExam } from '@/features/exams';
 import { createNote } from '@/features/notes';
-import { updateStudyConfig } from '@/features/settings';
+import { updateProfile, updateStudyConfig } from '@/features/settings';
 import { saveSelfExplanation } from './commands';
 import { planSessionNow } from './queries';
 import { useStudy } from './store';
@@ -335,6 +335,15 @@ describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
     await screen.findByText(femur.front);
     expect(screen.queryByText(/Ya es tu hora de dormir/)).toBeNull();
+  });
+
+  it('P6: con su hora de dormir elegida en Ajustes, sugiere parar desde esa hora', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    await updateProfile((p) => ({ ...p, bedtime: '21:00' }), 'America/Mexico_City');
+    vi.setSystemTime(Date.UTC(2026, 9, 21, 3, 30)); // 21:30 en CDMX: antes de las horas silenciosas
+    renderStudy();
+    expect(await screen.findByText(/Ya es tu hora de dormir/)).toBeTruthy();
+    expect(screen.getByText(humerus.front)).toBeTruthy(); // nunca bloquea
   });
 
   it('P6: "Terminar por ahora" cierra la sesión y vuelve a Hoy', async () => {

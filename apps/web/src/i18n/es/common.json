@@ -319,6 +319,14 @@
       "extended": "Bloques en los que sumaste minutos",
       "none": "Cuando uses el temporizador, aquí verás cómo usas los descansos."
     },
+    "bedtime": {
+      "title": "Hora de dormir",
+      "label": "¿A qué hora sueles dormir?",
+      "window": "De {{start}} a {{end}}, la sesión te sugiere parar, sin cortar nada. Dormir también ayuda a consolidar lo estudiado.",
+      "default": "Sin una hora elegida se usa el inicio de tus horas silenciosas: de {{start}} a {{end}}, la sesión te sugiere parar, sin cortar nada.",
+      "empty": "Es la hora en que terminan tus horas silenciosas ({{end}}), así que la sesión no te sugerirá parar por la hora.",
+      "clear": "Quitar esta hora"
+    },
     "review": {
       "title": "Repaso",
       "askConfidence": "Pedir tu confianza antes de mostrar la respuesta",
