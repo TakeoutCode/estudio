@@ -26,6 +26,10 @@ export const router = createBrowserRouter([
             lazy: async () => ({ Component: (await import('@/features/study')).StudyScreen }),
           },
           {
+            path: 'settings',
+            lazy: async () => ({ Component: (await import('@/features/settings')).SettingsScreen }),
+          },
+          {
             path: 'notes/new',
             lazy: async () => ({ Component: (await import('@/features/notes')).NoteEditorScreen }),
           },

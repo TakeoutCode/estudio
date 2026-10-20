@@ -18,7 +18,12 @@ export function TodayScreen() {
   const snapshot = useTodayPlan();
   return (
     <>
-      <h1 className="m-0 text-title font-semibold">{t('today.title')}</h1>
+      <header className="flex items-center justify-between gap-3">
+        <h1 className="m-0 text-title font-semibold">{t('today.title')}</h1>
+        <Link className={`-mr-2 inline-flex min-h-11 items-center px-2 text-primary ${focus}`} to="/settings">
+          {t('settings.title')}
+        </Link>
+      </header>
       {snapshot ? <Summary snapshot={snapshot} /> : null}
     </>
   );

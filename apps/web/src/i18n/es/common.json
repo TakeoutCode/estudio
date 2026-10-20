@@ -102,6 +102,44 @@
       "generic": "No se pudo entrar. Intenta de nuevo en un momento."
     }
   },
+  "settings": {
+    "title": "Ajustes",
+    "back": "Volver",
+    "save": "Guardar cambios",
+    "saved": "Cambios guardados.",
+    "saveFailed": "No se pudieron guardar los cambios. Lo que tenías sigue igual; intenta de nuevo.",
+    "retention": {
+      "title": "Retención objetivo",
+      "hint": "Es la probabilidad de recordar una tarjeta el día que te toca repasarla. Más retención significa más repasos al día.",
+      "decrease": "Bajar la retención objetivo",
+      "increase": "Subir la retención objetivo",
+      "expected": "Con {{value}}, olvidar unas {{forget}} de cada 100 al repasarlas es lo esperado.",
+      "load_one": "Con {{value}}: ≈ {{count}} repaso al día",
+      "load_other": "Con {{value}}: ≈ {{count}} repasos al día",
+      "loadNow_one": "Ahora, con {{value}}: ≈ {{count}} repaso al día",
+      "loadNow_other": "Ahora, con {{value}}: ≈ {{count}} repasos al día",
+      "loading": "Calculando la carga…",
+      "loadHint": "Estimación con tus tarjetas y {{days}} días simulados.",
+      "applies": "Al guardar, las fechas de tus repasos se recalculan con este valor.",
+      "loadEmpty": "Cuando tengas tarjetas, aquí verás cuántos repasos al día implica cada valor.",
+      "loadFailed": "No se pudo calcular la carga. Puedes guardar igual."
+    },
+    "timer": {
+      "title": "Temporizador",
+      "focusMin": "Enfoque (min)",
+      "shortBreakMin": "Descanso corto (min)",
+      "longBreakMin": "Descanso largo (min)",
+      "cyclesBeforeLong": "Bloques antes del largo"
+    }
+  },
+  "ui": {
+    "number": {
+      "decrease": "Restar uno: {{label}}",
+      "increase": "Sumar uno: {{label}}",
+      "range": "De {{min}} a {{max}}",
+      "invalid": "Escribe un número de {{min}} a {{max}}."
+    }
+  },
   "offline": {
     "banner": "Sin conexión · tus repasos se guardan en este dispositivo"
   },

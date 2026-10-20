@@ -1,0 +1,143 @@
+import { cardIdFor, Rating } from '@estudio/shared';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { db } from '@/db/schema';
+import { readStudyConfig } from '@/db/settings';
+import { createNote } from '@/features/notes';
+import { answerCard } from '@/features/study';
+import { projectionApi } from '@/workers/projection-api';
+import { loadProjectionInput } from './queries';
+import { SettingsScreen } from './SettingsScreen';
+
+// jsdom no tiene Worker: el worker corre en el mismo hilo.
+vi.mock('@/workers/projection', async () => {
+  const api = (await import('@/workers/projection-api')).projectionApi;
+  return {
+    projectionWorker: () => ({
+      projectLoads: (...args: Parameters<typeof api.projectLoads>) =>
+        Promise.resolve(api.projectLoads(...args)),
+      replayCards: (...args: Parameters<typeof api.replayCards>) => Promise.resolve(api.replayCards(...args)),
+    }),
+  };
+});
+
+const T0 = Date.UTC(2026, 9, 20, 15);
+const DAY = 86_400_000;
+const SESSION = '0192f1a0-0000-7000-8000-00000000a001';
+
+const renderSettings = () =>
+  render(
+    <MemoryRouter initialEntries={['/settings']}>
+      <SettingsScreen />
+    </MemoryRouter>,
+  );
+
+async function studied(count: number) {
+  for (let i = 0; i < count; i += 1) {
+    const start = T0 - (12 + (i % 20)) * DAY;
+    const content = { kind: 'basic', front: `¿${i}?`, back: 'R', explanation: '', reverse: false } as const;
+    const note = await createNote({ deck: { name: 'Anatomía' }, content }, { now: start - 1 });
+    const cardId = cardIdFor(note.id, 0);
+    for (const at of [start, start + 600_000, start + (2 + (i % 3)) * DAY]) {
+      await answerCard(
+        { cardId, rating: Rating.Good, durationMs: 4_000, sessionId: SESSION, confidence: null },
+        { now: at },
+      );
+    }
+  }
+}
+
+/** Lo que debería mostrar: la misma proyección, redondeada. */
+async function expectedPerDay(retention: number) {
+  const [load] = projectionApi.projectLoads(await loadProjectionInput(db, T0), [retention]);
+  return Math.round(load?.reviewsPerDay ?? -1);
+}
+
+const reviews = (n: number) => `${String(n)} ${n === 1 ? 'repaso' : 'repasos'} al día`;
+
+beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(T0);
+  await db.delete({ disableAutoOpen: false });
+  await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('Ajustes · retención objetivo (R2, LD8)', () => {
+  it('R2: al moverla muestra la carga nueva frente a la actual, y no se guarda sola (LD9)', async () => {
+    await studied(30);
+    renderSettings();
+    const now90 = await expectedPerDay(0.9);
+    expect(await screen.findByText(`Con 90 %: ≈ ${reviews(now90)}`)).toBeTruthy();
+
+    const up = screen.getByRole('button', { name: 'Subir la retención objetivo' });
+    for (let i = 0; i < 5; i += 1) fireEvent.click(up);
+    expect(screen.getByText('95 %', { selector: 'output' })).toBeTruthy();
+    expect(up.hasAttribute('disabled')).toBe(true); // tope del rango de R2
+
+    const at95 = await expectedPerDay(0.95);
+    expect(at95).toBeGreaterThan(now90);
+    expect(await screen.findByText(`Con 95 %: ≈ ${reviews(at95)}`)).toBeTruthy();
+    expect(screen.getByText(`Ahora, con 90 %: ≈ ${reviews(now90)}`)).toBeTruthy();
+    expect(screen.getByText(/se recalculan con este valor/)).toBeTruthy();
+    expect((await readStudyConfig(db)).fsrs.requestRetention).toBe(0.9);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    expect(await screen.findByText('Cambios guardados.')).toBeTruthy();
+    expect((await readStudyConfig(db)).fsrs.requestRetention).toBe(0.95);
+    expect(await screen.findByText(`Con 95 %: ≈ ${reviews(at95)}`)).toBeTruthy();
+  });
+
+  it('§5: dice cuánto olvido es lo esperado con el valor elegido; el control respeta 80-95', async () => {
+    renderSettings();
+    expect(
+      await screen.findByText('Con 90 %, olvidar unas 10 de cada 100 al repasarlas es lo esperado.'),
+    ).toBeTruthy();
+    const slider = screen.getByRole('slider', { name: 'Retención objetivo' });
+    expect(slider.getAttribute('min')).toBe('80');
+    expect(slider.getAttribute('max')).toBe('95');
+    fireEvent.change(slider, { target: { value: '85' } });
+    expect(
+      screen.getByText('Con 85 %, olvidar unas 15 de cada 100 al repasarlas es lo esperado.'),
+    ).toBeTruthy();
+  });
+
+  it('UX3: sin tarjetas explica para qué sirve la carga en lugar de mostrar 0', async () => {
+    renderSettings();
+    expect(await screen.findByText(/Cuando tengas tarjetas/)).toBeTruthy();
+    expect(screen.queryByText(/≈/)).toBeNull();
+  });
+});
+
+describe('Ajustes · temporizador (R7)', () => {
+  it('R7: acepta minutos fuera de los presets dentro de sus rangos y avisa fuera de ellos', async () => {
+    renderSettings();
+    const save = await screen.findByRole('button', { name: 'Guardar cambios' });
+    expect(save.hasAttribute('disabled')).toBe(true); // sin cambios
+
+    fireEvent.change(screen.getByLabelText('Enfoque (min)'), { target: { value: '40' } });
+    fireEvent.change(screen.getByLabelText('Descanso largo (min)'), { target: { value: '61' } });
+    expect(screen.getByText('Escribe un número de 5 a 60.')).toBeTruthy();
+    expect(save.hasAttribute('disabled')).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restar uno: Descanso largo (min)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sumar uno: Bloques antes del largo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Restar uno: Descanso corto (min)' }));
+    expect(save.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(save);
+
+    expect(await screen.findByText('Cambios guardados.')).toBeTruthy();
+    await waitFor(async () => {
+      expect((await readStudyConfig(db)).timer).toMatchObject({
+        focusMin: 40,
+        shortBreakMin: 4,
+        longBreakMin: 60,
+        cyclesBeforeLong: 5,
+      });
+    });
+  });
+});
