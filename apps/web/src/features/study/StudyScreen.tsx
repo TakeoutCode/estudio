@@ -1,8 +1,17 @@
 import { type Confidence, newId, Rating } from '@estudio/shared';
-import { type CardState, nextCard, type SessionPlan } from '@estudio/srs';
+import { type CardState, nextCard, type SessionPlan, type TimerBlockRecord } from '@estudio/srs';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
+import {
+  AwayPrompt,
+  BreakPanel,
+  dispatchTimer,
+  type TimerResult,
+  TimerStrip,
+  useTimerTicker,
+  useTimerView,
+} from '@/features/timer';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
@@ -125,20 +134,48 @@ function Session({
     };
   }, [waitUntil]);
 
+  // Temporizador (§3): opcional; si corre en este dispositivo, el descanso reemplaza la tarjeta.
+  const timer = useTimerView();
+  const [away, setAway] = useState<{ sessionId: string; interrupted: TimerBlockRecord } | null>(null);
+  const onTimerResult = (result: TimerResult) => {
+    if (result.notice === 'interrupted_while_away' && result.closed) {
+      setAway({ sessionId: result.sessionId, interrupted: result.closed });
+    }
+  };
+  const now = useTimerTicker(timer, step?.kind === 'card' && currentCardId !== null, onTimerResult);
+  const serverNow = now + (timer?.offsetMs ?? 0);
+  const onBreak =
+    timer?.isOwner === true &&
+    (timer.session?.state === 'break_short' || timer.session?.state === 'break_long');
+
   if (!step) return null;
   return (
     <>
       <StudyHeader done={done} total={plan.queue.length} />
+      {timer ? <TimerStrip view={timer} now={now} onResult={onTimerResult} /> : null}
+      {away ? (
+        <AwayPrompt
+          sessionId={away.sessionId}
+          interrupted={away.interrupted}
+          now={serverNow}
+          onDone={() => {
+            setAway(null);
+          }}
+        />
+      ) : null}
       <PlanNotices plan={plan} />
-      {step.kind === 'done' ? <SessionDone /> : null}
-      {step.kind === 'wait' ? <Waiting until={step.until} now={clock} /> : null}
-      {step.kind === 'card' && currentCardId ? (
+      {onBreak ? <BreakPanel session={timer.session} at={serverNow} /> : null}
+      {!onBreak && step.kind === 'done' ? <SessionDone /> : null}
+      {!onBreak && step.kind === 'wait' ? <Waiting until={step.until} now={clock} /> : null}
+      {!onBreak && step.kind === 'card' && currentCardId ? (
         <CurrentCard
           cardId={currentCardId}
           sessionId={sessionId}
           onAnswered={(state) => {
             setAnswered((prev) => new Map(prev).set(state.cardId, state));
             setClock(Date.now());
+            // R13: en estructurado, el bloque que ya llegó a 0 cierra al terminar la tarjeta.
+            void dispatchTimer({ type: 'cardDone' });
           }}
         />
       ) : null}

@@ -115,5 +115,50 @@
     "boot": "No se pudo abrir la app. Recarga la página; lo que respondiste sigue guardado en este dispositivo.",
     "generic": "Algo no salió bien. Lo que respondiste sigue guardado en este dispositivo.",
     "retry": "Reintentar"
+  },
+  "timer": {
+    "start": "Temporizador",
+    "focus": "Enfoque",
+    "paused": "En pausa",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "takeBreak": "Descansar",
+    "extend": "+{{minutes}} min",
+    "newBlock": "Bloque nuevo",
+    "stop": "Terminar temporizador",
+    "blockDone": "Se cumplió el tiempo del bloque. Puedes seguir o descansar.",
+    "pauseExpired": "La pausa pasó de {{minutes}} min, así que el bloque quedó guardado hasta ahí.",
+    "elsewhere": "En curso en otro dispositivo",
+    "takeover": "Continuar aquí",
+    "modeLabel": "Modo",
+    "mode": {
+      "structured": "Estructurado",
+      "flexible": "Flexible",
+      "free": "Libre"
+    },
+    "modeHint": {
+      "structured": "El descanso empieza solo al terminar el bloque, después de la tarjeta en curso.",
+      "flexible": "Avisa al terminar el bloque, sin cortar; puedes sumar {{minutes}} min una vez.",
+      "free": "Solo registra el tiempo; descansas cuando quieras."
+    },
+    "rhythmLabel": "Ritmo (enfoque/descanso)",
+    "rhythm": "{{focus}}/{{rest}}",
+    "rhythmHint": "25/5 es el ritmo más estudiado con estudiantes; puedes cambiarlo.",
+    "startBlock": "Empezar bloque de {{minutes}} min",
+    "cancel": "Ahora no",
+    "break": "Descanso",
+    "breakLong": "Descanso largo",
+    "breakHint": "Puedes seguir antes si quieres.",
+    "breakOver": "El descanso terminó. Sigue cuando quieras.",
+    "continue": "Seguir estudiando",
+    "away": {
+      "title": "Tu bloque se interrumpió.",
+      "question": "¿Seguiste estudiando fuera de la app?",
+      "no": "No",
+      "yes": "Sí",
+      "minutes": "Minutos que estudiaste fuera",
+      "invalid": "Escribe un número de minutos entre 1 y {{max}}.",
+      "save": "Guardar minutos"
+    }
   }
 }

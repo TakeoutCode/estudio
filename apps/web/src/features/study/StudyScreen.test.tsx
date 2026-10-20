@@ -1,7 +1,8 @@
-import { Rating } from '@estudio/shared';
+import { encodeHlc, newId, Rating } from '@estudio/shared';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { deviceId } from '@/db/clock';
 import { db } from '@/db/schema';
 import { createNote } from '@/features/notes';
 import { useStudy } from './store';
@@ -116,5 +117,52 @@ describe('StudyScreen (LEARNING-DESIGN §4)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
     await screen.findByText(femur.front);
     expect((await db.reviewLogs.toArray())[0]?.confidence).toBe(2);
+  });
+});
+
+describe('StudyScreen · temporizador (§3)', () => {
+  it('R7, R8: se elige el modo y el ritmo y el bloque empieza sin dejar la tarjeta', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    renderStudy();
+    await screen.findByText(humerus.front);
+    fireEvent.click(screen.getByRole('button', { name: 'Temporizador' }));
+    expect(
+      screen.getByText('25/5 es el ritmo más estudiado con estudiantes; puedes cambiarlo.'),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: /Estructurado/ }));
+    fireEvent.click(screen.getByRole('button', { name: '50/10' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Empezar bloque de 50 min' }));
+    expect(await screen.findByText('Enfoque')).toBeTruthy();
+    expect(screen.getByText('50:00')).toBeTruthy();
+    expect(screen.getByText(humerus.front)).toBeTruthy();
+  });
+
+  it('R13: el descanso reemplaza la tarjeta hasta "Seguir estudiando"', async () => {
+    const device = await db.transaction('rw', db.meta, () => deviceId(db));
+    await db.timerSessions.put({
+      id: newId(),
+      hlc: encodeHlc({ wall: T0, counter: 0, node: device }),
+      updatedAt: T0,
+      deletedAt: null,
+      state: 'break_short',
+      mode: 'structured',
+      startedAt: T0 - 60_000,
+      pausedAt: null,
+      pausedMs: 0,
+      blockIndex: 1,
+      completedBlocks: 1,
+      plannedMs: 5 * 60_000,
+      extendedThisBlock: false,
+      ownerDeviceId: device,
+      lastSeenAt: T0,
+      endedReason: null,
+    });
+    renderStudy();
+    expect(await screen.findByRole('heading', { name: 'Descanso' })).toBeTruthy();
+    expect(screen.getByText('4:00')).toBeTruthy();
+    expect(screen.queryByText(humerus.front)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir estudiando' }));
+    expect(await screen.findByText(humerus.front)).toBeTruthy();
+    expect(await db.timerBlockLogs.count()).toBe(1); // el descanso omitido queda registrado (§5)
   });
 });
