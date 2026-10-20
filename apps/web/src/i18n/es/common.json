@@ -12,6 +12,7 @@
     "newCards_other": "Y {{count}} nuevas para aprender",
     "start": "Empezar",
     "addCard": "Nueva tarjeta",
+    "decks": "Tus mazos",
     "improve": {
       "title": "Para mejorar",
       "hint": "Estas tarjetas quedan aparte: cambiarles la explicación o escribirlas con tus palabras suele ayudar más que repetirlas.",
@@ -201,6 +202,22 @@
     "finalReview_one": "Repaso previo: {{count}} tarjeta que FSRS programó para después del examen.",
     "finalReview_other": "Repaso previo: {{count}} tarjetas que FSRS programó para después del examen.",
     "finalReviewStart": "Hacer el repaso previo"
+  },
+  "decks": {
+    "title": "Mazos",
+    "hint": "Toca un mazo para editarlo o ver sus tarjetas. «Estudiar» repasa solo ese mazo; desde Hoy se mezclan todos.",
+    "empty": "Todavía no tienes mazos. Crea uno aquí o al escribir tu primera tarjeta.",
+    "noCards": "Sin tarjetas todavía",
+    "cards_one": "{{count}} tarjeta",
+    "cards_other": "{{count}} tarjetas",
+    "due_one": "{{count}} pendiente",
+    "due_other": "{{count}} pendientes",
+    "fresh_one": "{{count}} nueva",
+    "fresh_other": "{{count}} nuevas",
+    "study": "Estudiar",
+    "studyNamed": "Estudiar {{name}}",
+    "new": "Nuevo mazo",
+    "create": "Crear"
   },
   "topics": {
     "title": "Tema",

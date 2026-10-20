@@ -55,6 +55,13 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
           {news > 0 ? <p className="m-0 text-muted">{t('today.newCards', { count: news })}</p> : null}
         </section>
       )}
+      {/* Elegir un solo mazo para estudiar, o editarlos; Empezar sigue mezclándolos (R9). */}
+      <Link
+        className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`}
+        to="/decks"
+      >
+        {t('today.decks')}
+      </Link>
       {plan.backlogSpreadDays ? (
         <Banner>{t('study.notice.spread', { days: plan.backlogSpreadDays })}</Banner>
       ) : null}
