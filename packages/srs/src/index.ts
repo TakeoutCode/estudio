@@ -12,4 +12,5 @@ export * from './planner/queue.js';
 export * from './planner/review-load.js';
 export * from './planner/signals.js';
 export * from './rating/to-rating.js';
+export * from './timer/card-clock.js';
 export * from './timer/machine.js';
