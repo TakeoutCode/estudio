@@ -60,6 +60,7 @@ export class StudyRepository {
         { name: 'planned_ms', value: b.plannedMs, cast: 'bigint' },
         { name: 'active_ms', value: b.activeMs, cast: 'bigint' },
         { name: 'outcome', value: b.outcome },
+        { name: 'extended', value: b.extended },
       ]),
     );
     return rows.length > 0 ? 'applied' : 'duplicate';

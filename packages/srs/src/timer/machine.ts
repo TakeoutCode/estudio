@@ -257,6 +257,7 @@ function closeBlock(
     plannedMs: t.plannedMs,
     activeMs: active,
     outcome: completed ? 'completed' : 'interrupted',
+    extended: t.extendedThisBlock,
   };
   const base: TimerState = {
     ...t,
@@ -280,6 +281,7 @@ function closeBreak(t: TimerState, end: number): { base: TimerState; record: Tim
     plannedMs: t.plannedMs,
     activeMs: end - startedAt,
     outcome: end - startedAt >= t.plannedMs ? 'completed' : 'interrupted',
+    extended: false,
   };
   return { base: t, record };
 }
@@ -338,5 +340,6 @@ export function manualBlock(interrupted: TimerBlockRecord, minutes: number, now:
     plannedMs: 0,
     activeMs: ms,
     outcome: 'manual',
+    extended: false,
   };
 }

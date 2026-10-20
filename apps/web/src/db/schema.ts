@@ -73,6 +73,17 @@ export class EstudioDb extends Dexie {
     this.version(4)
       .stores({ timerSessions: 'id, state', timerBlockLogs: 'id, timerSessionId, endedAt' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // §5 (uso de descansos): los bloques guardados antes no registraban si se extendieron.
+    this.version(5)
+      .stores({})
+      .upgrade((tx) =>
+        tx
+          .table<{ extended?: boolean }, string>('timerBlockLogs')
+          .toCollection()
+          .modify((block) => {
+            block.extended ??= false;
+          }),
+      );
   }
 }
 

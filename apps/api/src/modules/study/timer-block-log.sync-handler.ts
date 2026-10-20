@@ -38,6 +38,7 @@ export class TimerBlockLogSyncHandler implements EntitySyncHandler<'timerBlockLo
       plannedMs: dbNumber(d.planned_ms),
       activeMs: dbNumber(d.active_ms),
       outcome: d.outcome,
+      extended: d.extended,
     };
   }
 }

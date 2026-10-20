@@ -63,6 +63,8 @@ export const TimerBlockLogSchema = z
     plannedMs: epochMs(),
     activeMs: epochMs(),
     outcome: TimerBlockOutcomeSchema,
+    /** §3, §5: el bloque usó "+N min" (modo flexible). Un cliente anterior no lo envía. */
+    extended: z.boolean().default(false),
   })
   .strict()
   .refine((b) => b.endedAt >= b.startedAt, { path: ['endedAt'], message: 'ended_before_started' });

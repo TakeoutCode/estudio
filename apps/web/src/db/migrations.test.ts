@@ -44,7 +44,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(4);
+    expect(current.verno).toBe(5);
     expect(await current.decks.toArray()).toEqual([deck]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
@@ -73,7 +73,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(4);
+    expect(current.verno).toBe(5);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
     expect(await current.reviewLogs.toArray()).toEqual([log]);
@@ -94,9 +94,32 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(4);
+    expect(current.verno).toBe(5);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([note]);
+    current.close();
+  });
+
+  it('v4 → v5: los bloques del temporizador quedan con extended: false (§5); el outbox intacto', async () => {
+    const name = `migracion-${newId()}`;
+    names.push(name);
+    const v4 = openVersion1(name);
+    v4.version(2).stores({ userSettings: 'id, section' });
+    v4.version(3).stores({ notes: 'id, deckId', cards: 'id, noteId' });
+    v4.version(4).stores({ timerSessions: 'id, state', timerBlockLogs: 'id, timerSessionId, endedAt' });
+    const block = { id: newId(), timerSessionId: newId(), kind: 'focus', outcome: 'completed', endedAt: 5 };
+    const pending = { mutationId: newId(), op: 'append', entity: 'timerBlockLog', row: block, createdAt: 5 };
+    await v4.table('timerBlockLogs').add(block);
+    await v4.table('outbox').add(pending);
+    await v4.table('meta').put({ key: 'syncCursor', value: '9' });
+    v4.close();
+
+    const current = new EstudioDb(name);
+    await current.open();
+    expect(current.verno).toBe(5);
+    expect(await current.timerBlockLogs.toArray()).toEqual([{ ...block, extended: false }]);
+    expect(await current.outbox.toArray()).toEqual([pending]);
+    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '9' });
     current.close();
   });
 });

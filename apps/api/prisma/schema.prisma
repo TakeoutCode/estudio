@@ -177,6 +177,7 @@ model TimerBlockLog {
   plannedMs      BigInt @map("planned_ms")
   activeMs       BigInt @map("active_ms")
   outcome        String
+  extended       Boolean @default(false) // §5: el bloque usó "+N min"
   serverSeq      BigInt @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
   user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 

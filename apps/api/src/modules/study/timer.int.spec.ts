@@ -123,10 +123,22 @@ describe('temporizador por sync (SYNC SY7, ADR-006)', () => {
     ]);
     // Reenviado (p. ej. tras perder la respuesta): no se duplica (SY-T3).
     expect((await push([mine])).results[0]?.status).toBe('duplicate');
-    expect((await rows('timerBlockLog')).find((b) => b.id === mine.row.id)).toEqual(mine.row);
+    // Un cliente anterior no envía `extended` (contrato 3): queda en false.
+    expect((await rows('timerBlockLog')).find((b) => b.id === mine.row.id)).toEqual({
+      ...mine.row,
+      extended: false,
+    });
     await expect(
       server.prisma
         .$executeRaw`UPDATE "timer_block_log" SET "outcome" = 'manual' WHERE "id" = ${mine.row.id}::uuid`,
     ).rejects.toThrow(/append_only_table/);
+  });
+
+  it('§5: un bloque extendido llega y vuelve con `extended: true`', async () => {
+    const own = session(now + 40_000, PHONE);
+    await push([upsert(own)]);
+    const extended = block(own.id, { plannedMs: 30 * 60_000, activeMs: 30 * 60_000, extended: true });
+    expect((await push([extended])).results[0]?.status).toBe('applied');
+    expect((await rows('timerBlockLog')).find((b) => b.id === extended.row.id)).toEqual(extended.row);
   });
 });

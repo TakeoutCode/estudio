@@ -283,6 +283,16 @@ describe('temporizador · fin de bloque por modo (§3, R8, R13)', () => {
     expect(next.timer.extendedThisBlock).toBe(true);
   });
 
+  it('§5: el bloque cerrado registra si se extendió (uso de descansos); los descansos no', () => {
+    const cfg = cfgWith({ mode: 'flexible' });
+    const extended = run(cfg, [start(0), extend(1), takeBreak(31)]);
+    expect(extended.lastBlock).toMatchObject({ kind: 'focus', extended: true });
+    const plain = run(cfg, [start(0), takeBreak(25)]);
+    expect(plain.lastBlock).toMatchObject({ kind: 'focus', extended: false });
+    const breakLog = run(cfg, [start(0), extend(1), takeBreak(31), skipBreak(33)]);
+    expect(breakLog.lastBlock).toMatchObject({ kind: 'break_short', extended: false });
+  });
+
   it('AG4: la extensión flexible sale de la config', () => {
     const s = run(cfgWith({ mode: 'flexible', flexExtendMin: 10 }), [start(0), extend(1)]);
     expect(s.timer.plannedMs).toBe((base.focusMin + 10) * MIN);
