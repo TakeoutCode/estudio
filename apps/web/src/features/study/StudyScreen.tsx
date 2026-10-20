@@ -156,13 +156,18 @@ function Session({
     (timer.session?.state === 'break_short' || timer.session?.state === 'break_long');
 
   // R3: la duración de una tarjeta no incluye el descanso. Durante el descanso no se presenta
-  // la siguiente, y la que ya estaba en pantalla descuenta el tiempo de descanso.
+  // la siguiente, y la que ya estaba en pantalla descuenta el tiempo de descanso. Se mide con
+  // las marcas del temporizador (hora del servidor → del dispositivo), no con la hora a la que
+  // corre el efecto, que puede llegar tarde.
   const hold = useStudy((s) => s.hold);
   const release = useStudy((s) => s.release);
+  const offsetMs = timer?.offsetMs ?? 0;
+  const breakStartedAt = onBreak ? timer.session.startedAt : null;
+  const focusStartedAt = timer?.session?.state === 'focus' ? timer.session.startedAt : null;
   useEffect(() => {
-    if (onBreak) hold(Date.now());
-    else release(Date.now());
-  }, [onBreak, hold, release]);
+    if (onBreak) hold(breakStartedAt === null ? Date.now() : breakStartedAt - offsetMs);
+    else release(focusStartedAt === null ? Date.now() : Math.min(Date.now(), focusStartedAt - offsetMs));
+  }, [onBreak, breakStartedAt, focusStartedAt, offsetMs, hold, release]);
   // LD5: antes de la primera tarjeta nueva de un tema, su explicación y la autoexplicación.
   // La tarjeta se presenta después, así su duración no incluye la escritura (R3).
   const explained = useExplainedTopics();
