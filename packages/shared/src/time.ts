@@ -92,3 +92,25 @@ export function isMinuteInRange(minute: number, range: MinuteRange): boolean {
   if (start === end) return false;
   return start < end ? minute >= start && minute < end : minute >= start || minute < end;
 }
+
+/** Fecha de calendario `YYYY-MM-DD` (inputs de tipo fecha). */
+export const LocalDateSchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'invalid_local_date');
+export type LocalDate = z.infer<typeof LocalDateSchema>;
+
+/** `YYYY-MM-DD` del día local que contiene `instant` (AG6: solo para mostrar o editar). */
+export function localDateOf(instant: number, timeZone: string): LocalDate {
+  const day = localDayNumber(instant, timeZone);
+  return new Date(day * DAY_MS).toISOString().slice(0, 10);
+}
+
+/** Inicio (epoch ms) del día `YYYY-MM-DD` en su zona, con o sin horario de verano. */
+export function startOfLocalDate(date: LocalDate, timeZone: string): number {
+  const target = Date.parse(`${date}T00:00:00Z`) / DAY_MS;
+  // Mediodía UTC de esa fecha cae en ese día o en uno vecino según la zona; se corrige y se
+  // toma el inicio de ese día local.
+  let guess = target * DAY_MS + DAY_MS / 2;
+  guess += (target - localDayNumber(guess, timeZone)) * DAY_MS;
+  return localDayBounds(guess, timeZone).start;
+}

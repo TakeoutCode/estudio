@@ -155,6 +155,7 @@ async function resetForFullResync(database: EstudioDb): Promise<void> {
         database.topics,
         database.notes,
         database.cards,
+        database.exams,
         database.userSettings,
         database.selfExplanations,
         database.reviewLogs,

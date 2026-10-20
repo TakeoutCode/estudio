@@ -14,6 +14,7 @@ import { AppConfigModule } from './config/config.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js';
 import { DecksModule } from './modules/decks/decks.module.js';
+import { ExamsModule } from './modules/exams/exams.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { StudyModule } from './modules/study/study.module.js';
 import { SyncModule } from './modules/sync/sync.module.js';
@@ -74,6 +75,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     DecksModule,
     UsersModule,
     StudyModule,
+    ExamsModule,
   ],
   providers: [
     // Orden: límite de tasa → versión de contrato (ARC6) → access token (BE11).

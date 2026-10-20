@@ -26,6 +26,7 @@ model User {
   appliedMutations AppliedMutation[]
   decks            Deck[]
   topics           Topic[]
+  exams            Exam[]
   notes            Note[]
   cards            Card[]
   userSettings     UserSettings[]
@@ -96,6 +97,23 @@ model Topic {
   @@index([userId, serverSeq])
   @@index([userId, deckId])
   @@map("topic")
+}
+
+/// STUDY-METHODS R11, LEARNING-DESIGN LD11: examen con su fecha y los temas que entran.
+model Exam {
+  id        String  @id @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  title     String
+  date      BigInt // inicio del día del examen en su zona (AG6)
+  topicIds  Json    @map("topic_ids") // uuid[] como JSON; cada uno lo valida el handler (BE2)
+  hlc       String
+  updatedAt BigInt  @map("updated_at")
+  deletedAt BigInt? @map("deleted_at")
+  serverSeq BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("exam")
 }
 
 /// LD5: "Explícalo con tus palabras" antes de la primera tarjeta nueva de un tema. No es un repaso.

@@ -107,6 +107,38 @@
       "topic": "Escribe el nombre del tema nuevo."
     }
   },
+  "exams": {
+    "title": "Exámenes",
+    "back": "Volver",
+    "new": "Nuevo examen",
+    "newTitle": "Nuevo examen",
+    "editTitle": "Editar examen",
+    "edit": "Editar",
+    "empty": "No tienes exámenes próximos. Agrega uno con su fecha y sus temas para ver cómo repartir lo nuevo.",
+    "past": "Exámenes pasados",
+    "today": "es hoy",
+    "days_one": "{{count}} día para estudiar",
+    "days_other": "{{count}} días para estudiar",
+    "suggested_one": "≈ {{count}} nueva por día alcanza para ver todo antes del examen.",
+    "suggested_other": "≈ {{count}} nuevas por día alcanzan para ver todo antes del examen.",
+    "allStarted": "Ya empezaste todas las tarjetas de estos temas.",
+    "beyondCap_one": "Con el tope de {{cap}} nuevas por sesión, {{count}} tarjeta no alcanza a entrar antes del examen.",
+    "beyondCap_other": "Con el tope de {{cap}} nuevas por sesión, {{count}} tarjetas no alcanzan a entrar antes del examen.",
+    "topicNew_one": "{{count}} nueva",
+    "topicNew_other": "{{count}} nuevas",
+    "topicStarted": "todo empezado",
+    "name": "Nombre del examen",
+    "date": "Fecha",
+    "topics": "Temas que entran",
+    "noTopics": "Todavía no hay temas. Se crean al escribir tus tarjetas.",
+    "save": "Guardar",
+    "delete": "Borrar examen",
+    "error": {
+      "title": "Escribe el nombre del examen.",
+      "date": "Elige la fecha del examen.",
+      "topics": "Elige al menos un tema."
+    }
+  },
   "topics": {
     "title": "Tema",
     "name": "Nombre",
