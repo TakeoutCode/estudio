@@ -7,10 +7,11 @@ import { useDecks, useNote } from './queries';
 
 const NEW_DECK = 'new';
 
-const field =
-  'w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text focus-visible:outline-2 focus-visible:outline-primary';
-const primary =
-  'min-h-11 rounded-(--radius-card) bg-primary px-4 text-primary-contrast focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60';
+const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
+// UX2: el campo de texto queda visible con el teclado abierto, así que guardar va al final del
+// formulario y no en una barra fija (en iOS quedaría bajo el teclado).
+const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
 
 /** Crear o editar una nota básica (LEARNING-DESIGN §1). La ruta de estudio no carga esto (FE9). */
 export function NoteEditorScreen() {
@@ -83,7 +84,15 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
 
   return (
     <>
-      <h1 className="m-0 text-title font-semibold">{t(note ? 'notes.edit' : 'notes.new')}</h1>
+      <header className="flex flex-col">
+        <Link
+          className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`}
+          to="/"
+        >
+          {t('notes.backToToday')}
+        </Link>
+        <h1 className="m-0 text-title font-semibold">{t(note ? 'notes.edit' : 'notes.new')}</h1>
+      </header>
       <form className="flex flex-col gap-4" onSubmit={(event) => void submit(event)} noValidate>
         {note ? null : (
           <label className="flex flex-col gap-1">
@@ -176,22 +185,17 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
           {t('notes.save')}
         </button>
       </form>
-      <div className="flex flex-wrap gap-2">
-        <Link className="inline-flex min-h-11 items-center px-4 text-primary" to="/">
-          {t('notes.backToToday')}
-        </Link>
-        {note ? (
-          <button
-            type="button"
-            className="min-h-11 px-4 text-danger"
-            onClick={() => {
-              void deleteNote(note.id).then(() => navigate('/'));
-            }}
-          >
-            {t('notes.delete')}
-          </button>
-        ) : null}
-      </div>
+      {note ? (
+        <button
+          type="button"
+          className={`min-h-11 w-full rounded-(--radius-card) px-4 text-danger ${focus}`}
+          onClick={() => {
+            void deleteNote(note.id).then(() => navigate('/'));
+          }}
+        >
+          {t('notes.delete')}
+        </button>
+      ) : null}
     </>
   );
 }

@@ -21,6 +21,8 @@
   "study": {
     "title": "Repaso",
     "reveal": "Mostrar respuesta",
+    "exit": "Salir",
+    "progress": "{{done}} de {{total}}",
     "answer": "Respuesta",
     "rate": {
       "label": "¿Cómo te fue al recordarla?",

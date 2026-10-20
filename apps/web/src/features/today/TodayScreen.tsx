@@ -1,37 +1,30 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { type PlanSnapshot, useTodayPlan } from '@/features/study';
+import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
 
-const primary =
-  'inline-flex min-h-11 items-center justify-center rounded-(--radius-card) bg-primary px-4 text-primary-contrast focus-visible:outline-2 focus-visible:outline-primary';
-const secondary = 'inline-flex min-h-11 items-center px-4 text-primary';
+const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast ${focus}`;
+const secondary = `inline-flex min-h-11 w-full items-center justify-center rounded-(--radius-card) px-4 text-primary ${focus}`;
 
-/** Pantalla inicial: lo pendiente de hoy, sin metas ni lenguaje de atraso (§5, UX7). */
+/**
+ * Pantalla inicial: lo pendiente de hoy, sin metas ni lenguaje de atraso (§5, UX7). Mobile
+ * first (UX2): la acción principal abajo, al alcance del pulgar.
+ */
 export function TodayScreen() {
   const { t } = useTranslation();
   const snapshot = useTodayPlan();
-  const addCard = (
-    <Link className={secondary} to="/notes/new">
-      {t('today.addCard')}
-    </Link>
-  );
   return (
     <>
       <h1 className="m-0 text-title font-semibold">{t('today.title')}</h1>
-      {snapshot ? <Summary snapshot={snapshot} addCard={addCard} /> : null}
+      {snapshot ? <Summary snapshot={snapshot} /> : null}
     </>
   );
 }
 
-function Summary({
-  snapshot,
-  addCard,
-}: {
-  readonly snapshot: PlanSnapshot;
-  readonly addCard: React.ReactNode;
-}) {
+function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
   const { t } = useTranslation();
   const { plan, toImprove } = snapshot;
   const news = plan.queue.filter((q) => q.kind === 'new').length;
@@ -39,17 +32,11 @@ function Summary({
   return (
     <>
       {nothing ? (
-        <EmptyState message={t('today.empty')} action={addCard} />
+        <EmptyState message={t('today.empty')} />
       ) : (
-        <section className="flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5">
+        <section className="flex flex-col gap-1 rounded-(--radius-card) bg-surface p-5">
           <p className="m-0 text-card">{t('today.pending', { count: plan.due })}</p>
           {news > 0 ? <p className="m-0 text-muted">{t('today.newCards', { count: news })}</p> : null}
-          <div className="flex flex-wrap gap-2">
-            <Link className={primary} to="/study">
-              {t('today.start')}
-            </Link>
-            {addCard}
-          </div>
         </section>
       )}
       {plan.backlogSpreadDays ? (
@@ -65,10 +52,13 @@ function Summary({
             {toImprove.map((item) => (
               <li
                 key={item.noteId}
-                className="flex items-center justify-between gap-3 rounded-(--radius-card) bg-surface px-4 py-2"
+                className="flex items-center justify-between gap-3 rounded-(--radius-card) bg-surface py-1 pr-1 pl-4"
               >
                 <span className="line-clamp-2">{item.prompt}</span>
-                <Link className={secondary} to={`/notes/${item.noteId}`}>
+                <Link
+                  className={`inline-flex min-h-11 shrink-0 items-center px-3 text-primary ${focus}`}
+                  to={`/notes/${item.noteId}`}
+                >
                   {t('today.improve.edit')}
                 </Link>
               </li>
@@ -76,6 +66,16 @@ function Summary({
           </ul>
         </section>
       ) : null}
+      <ActionBar>
+        {nothing ? null : (
+          <Link className={primary} to="/study">
+            {t('today.start')}
+          </Link>
+        )}
+        <Link className={nothing ? primary : secondary} to="/notes/new">
+          {t('today.addCard')}
+        </Link>
+      </ActionBar>
     </>
   );
 }

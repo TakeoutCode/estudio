@@ -3,6 +3,7 @@ import { type CardState, nextCard, type SessionPlan } from '@estudio/srs';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
+import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
 import { RatingButton } from '@/ui/RatingButton';
@@ -15,12 +16,14 @@ const RATINGS = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy] as const;
 const CONFIDENCES = [1, 2, 3] as const;
 const MINUTE_MS = 60_000;
 
-const primary =
-  'min-h-11 rounded-(--radius-card) bg-primary px-4 text-primary-contrast focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60';
-const secondary =
-  'min-h-11 rounded-(--radius-card) px-4 text-primary focus-visible:outline-2 focus-visible:outline-primary';
+const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
+const secondary = `inline-flex min-h-11 w-full items-center justify-center rounded-(--radius-card) border border-muted/40 px-4 text-primary ${focus}`;
 
-/** Sesión de repaso: intento → respuesta y explicación → calificación (LD §4; R1, R3, R4). */
+/**
+ * Sesión de repaso: intento → respuesta y explicación → calificación (LD §4; R1, R3, R4).
+ * Mobile first (UX2): la tarjeta arriba y las acciones en la zona del pulgar.
+ */
 export function StudyScreen() {
   const { t } = useTranslation();
   const session = useStudy((s) => s.session);
@@ -49,19 +52,33 @@ export function StudyScreen() {
   if (session.plan.queue.length === 0) {
     return (
       <>
-        <h1 className="m-0 text-title font-semibold">{t('study.title')}</h1>
-        <EmptyState
-          message={t('today.empty')}
-          action={
-            <Link className={primary + ' inline-flex items-center'} to="/notes/new">
-              {t('today.addCard')}
-            </Link>
-          }
-        />
+        <StudyHeader />
+        <EmptyState message={t('today.empty')} />
+        <ActionBar>
+          <Link className={primary} to="/notes/new">
+            {t('today.addCard')}
+          </Link>
+        </ActionBar>
       </>
     );
   }
   return <Session plan={session.plan} sessionId={session.id} startedAt={session.startedAt} />;
+}
+
+/** "Salir" no corta nada: lo respondido ya está guardado (R3) y la sesión sigue al volver. */
+function StudyHeader({ done, total }: { readonly done?: number; readonly total?: number }) {
+  const { t } = useTranslation();
+  return (
+    <header className="flex min-h-11 items-center justify-between gap-3">
+      <Link className={`-ml-2 inline-flex min-h-11 min-w-11 items-center px-2 text-primary ${focus}`} to="/">
+        {t('study.exit')}
+      </Link>
+      <h1 className="m-0 text-body font-semibold">{t('study.title')}</h1>
+      <span className="min-w-11 text-right text-caption text-muted">
+        {done !== undefined && total !== undefined ? t('study.progress', { done, total }) : null}
+      </span>
+    </header>
+  );
 }
 
 function Session({
@@ -73,7 +90,6 @@ function Session({
   readonly sessionId: string;
   readonly startedAt: number;
 }) {
-  const { t } = useTranslation();
   const ids = useMemo(() => plan.queue.map((q) => q.cardId), [plan]);
   const live = useQueueStates(ids);
   // La consulta en vivo llega un render tarde: sin esto, la tarjeta recién calificada
@@ -86,6 +102,9 @@ function Session({
 
   const step = states ? nextCard(plan.queue, states, startedAt, clock) : null;
   const nextId = step?.kind === 'card' ? step.item.cardId : null;
+  const done = states
+    ? plan.queue.filter((q) => (states.get(q.cardId)?.lastReview ?? -1) >= startedAt).length
+    : 0;
 
   useEffect(() => {
     if (nextId && currentCardId === null) present(nextId, Date.now());
@@ -109,7 +128,7 @@ function Session({
   if (!step) return null;
   return (
     <>
-      <h1 className="m-0 text-title font-semibold">{t('study.title')}</h1>
+      <StudyHeader done={done} total={plan.queue.length} />
       <PlanNotices plan={plan} />
       {step.kind === 'done' ? <SessionDone /> : null}
       {step.kind === 'wait' ? <Waiting until={step.until} now={clock} /> : null}
@@ -217,40 +236,52 @@ function CurrentCard({
     return <SkipDeleted onSkip={markAnswered} />;
   }
   return (
-    <article className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5">
-      <p className="m-0 text-card whitespace-pre-wrap">{content.prompt}</p>
-      {phase === 'prompt' ? <Attempt askConfidence={askConfidence} onReveal={reveal} /> : null}
-      <div aria-live="polite">{phase === 'revealed' ? <Answer content={content} /> : null}</div>
-      {phase === 'revealed' ? (
-        <div role="group" aria-label={t('study.rate.label')} className="grid grid-cols-4 gap-2">
-          {RATINGS.map((rating) => (
-            <RatingButton key={rating} rating={rating} onRate={rate} disabled={busy} />
-          ))}
-        </div>
-      ) : null}
-      {saveFailed ? (
-        <p role="alert" className="m-0 text-caption">
-          {t('study.saveFailed')}
-        </p>
-      ) : null}
-      <button
-        type="button"
-        className="self-start text-caption text-muted"
-        aria-expanded={help}
-        onClick={() => {
-          setHelp(!help);
-        }}
-      >
-        {t('study.shortcuts.toggle')}
-      </button>
-      {help ? (
-        <ul className="m-0 flex flex-col gap-1 pl-5 text-caption text-muted">
-          <li>{t('study.shortcuts.reveal')}</li>
-          <li>{t('study.shortcuts.rate')}</li>
-          <li>{t('study.shortcuts.help')}</li>
-        </ul>
-      ) : null}
-    </article>
+    <>
+      <article className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5">
+        <p className="m-0 text-card whitespace-pre-wrap">{content.prompt}</p>
+        <div aria-live="polite">{phase === 'revealed' ? <Answer content={content} /> : null}</div>
+      </article>
+      {/* Los atajos solo sirven con teclado y puntero fino (FE12); en el teléfono no estorban. */}
+      <div className="hidden pointer-fine:block">
+        <button
+          type="button"
+          className={`min-h-11 text-caption text-muted ${focus}`}
+          aria-expanded={help}
+          onClick={() => {
+            setHelp(!help);
+          }}
+        >
+          {t('study.shortcuts.toggle')}
+        </button>
+        {help ? (
+          <ul className="m-0 flex flex-col gap-1 pl-5 text-caption text-muted">
+            <li>{t('study.shortcuts.reveal')}</li>
+            <li>{t('study.shortcuts.rate')}</li>
+            <li>{t('study.shortcuts.help')}</li>
+          </ul>
+        ) : null}
+      </div>
+      <ActionBar>
+        {saveFailed ? (
+          <p role="alert" className="m-0 text-caption">
+            {t('study.saveFailed')}
+          </p>
+        ) : null}
+        {phase === 'prompt' ? <Attempt askConfidence={askConfidence} onReveal={reveal} /> : null}
+        {phase === 'revealed' ? (
+          <div role="group" aria-labelledby={`rate-${cardId}`} className="flex flex-col gap-2">
+            <p id={`rate-${cardId}`} className="m-0 text-center text-caption text-muted">
+              {t('study.rate.label')}
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {RATINGS.map((rating) => (
+                <RatingButton key={rating} rating={rating} onRate={rate} disabled={busy} />
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </ActionBar>
+    </>
   );
 }
 
@@ -277,19 +308,24 @@ function Attempt({
     );
   }
   return (
-    <div role="group" aria-label={t('study.confidence.question')} className="grid grid-cols-3 gap-2">
-      {CONFIDENCES.map((level) => (
-        <button
-          key={level}
-          type="button"
-          className="min-h-11 rounded-(--radius-card) bg-primary/20 px-2 text-text"
-          onClick={() => {
-            onReveal(level);
-          }}
-        >
-          {t(`study.confidence.level${level}`)}
-        </button>
-      ))}
+    <div role="group" aria-labelledby="confidence-question" className="flex flex-col gap-2">
+      <p id="confidence-question" className="m-0 text-center text-caption text-muted">
+        {t('study.confidence.question')}
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {CONFIDENCES.map((level) => (
+          <button
+            key={level}
+            type="button"
+            className={`min-h-14 rounded-(--radius-card) bg-primary/20 px-2 font-medium text-text ${focus}`}
+            onClick={() => {
+              onReveal(level);
+            }}
+          >
+            {t(`study.confidence.level${level}`)}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -321,19 +357,23 @@ function Waiting({ until, now }: { readonly until: number; readonly now: number 
   const end = useStudy((s) => s.end);
   const minutes = Math.max(1, Math.ceil((until - now) / MINUTE_MS));
   return (
-    <section className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5">
-      <p className="m-0">{t('study.waiting', { minutes })}</p>
-      <button
-        type="button"
-        className={secondary + ' self-start'}
-        onClick={() => {
-          end();
-          void navigate('/');
-        }}
-      >
-        {t('study.finish')}
-      </button>
-    </section>
+    <>
+      <section className="rounded-(--radius-card) bg-surface p-5">
+        <p className="m-0">{t('study.waiting', { minutes })}</p>
+      </section>
+      <ActionBar>
+        <button
+          type="button"
+          className={secondary}
+          onClick={() => {
+            end();
+            void navigate('/');
+          }}
+        >
+          {t('study.finish')}
+        </button>
+      </ActionBar>
+    </>
   );
 }
 
@@ -344,19 +384,23 @@ function SessionDone() {
   const answered = useStudy((s) => s.answered);
   const end = useStudy((s) => s.end);
   return (
-    <section className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5">
-      <h2 className="m-0 text-title font-semibold">{t('study.done.title')}</h2>
-      <p className="m-0">{t('study.done.summary', { count: answered })}</p>
-      <button
-        type="button"
-        className={primary + ' self-start'}
-        onClick={() => {
-          end();
-          void navigate('/');
-        }}
-      >
-        {t('study.done.back')}
-      </button>
-    </section>
+    <>
+      <section className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-5">
+        <h2 className="m-0 text-title font-semibold">{t('study.done.title')}</h2>
+        <p className="m-0">{t('study.done.summary', { count: answered })}</p>
+      </section>
+      <ActionBar>
+        <button
+          type="button"
+          className={primary}
+          onClick={() => {
+            end();
+            void navigate('/');
+          }}
+        >
+          {t('study.done.back')}
+        </button>
+      </ActionBar>
+    </>
   );
 }

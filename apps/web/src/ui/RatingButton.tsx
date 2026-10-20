@@ -31,7 +31,7 @@ export function RatingButton({
   return (
     <button
       type="button"
-      className={`min-h-14 rounded-(--radius-card) px-2 font-medium focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60 ${STYLE[rating]}`}
+      className={`min-h-14 rounded-(--radius-card) px-1 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 ${STYLE[rating]}`}
       aria-keyshortcuts={String(rating)}
       disabled={disabled}
       onClick={() => {
