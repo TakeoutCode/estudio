@@ -17,7 +17,14 @@ import {
   TODAY_START,
   TZ,
 } from '../test/planner-fixtures.js';
-import { buildSessionQueue, limitTopicRuns, needsTopicIntro, nextCard, type QueueItem } from './queue.js';
+import {
+  buildSessionQueue,
+  limitTopicRuns,
+  loadSummary,
+  needsTopicIntro,
+  nextCard,
+  type QueueItem,
+} from './queue.js';
 
 const news = (plan: { queue: readonly QueueItem[] }) => plan.queue.filter((q) => q.kind === 'new');
 const reviews = (plan: { queue: readonly QueueItem[] }) => plan.queue.filter((q) => q.kind === 'review');
@@ -304,6 +311,33 @@ describe('qué cuenta como vencida', () => {
     // A las 23:00 en UTC "hoy" termina antes que en CDMX: la de esta noche ya no entra.
     expect(buildSessionQueue(input({ cards: [tomorrow], timeZone: 'UTC' })).due).toBe(0);
     expect(buildSessionQueue(input({ cards: [tonight], now: TODAY_START - HOUR })).due).toBe(0);
+  });
+});
+
+describe('§5: carga de un grupo de tarjetas (un mazo)', () => {
+  const cfg = cfgWith().planner;
+
+  it('cuenta pendientes y nuevas con la misma regla que la cola', () => {
+    const tonight = reviewCard(1, { due: TODAY_START + DAY - 1 });
+    const tomorrow = reviewCard(2, { due: TODAY_START + DAY });
+    const soon: CardState = { ...tonight.state, cardId: id(3), phase: 'learning', due: NOW + 60_000 };
+    const learningSoon = { ...tonight, state: soon };
+    const backlog = reviewCard(4, { due: NOW - 3 * DAY });
+    const cards = [tonight, tomorrow, learningSoon, backlog, newCard(5), newCard(6)];
+    expect(loadSummary(cards, NOW, TZ, cfg)).toEqual({ cards: 6, due: 2, fresh: 2 });
+    expect(loadSummary(cards, NOW, TZ, cfg).due).toBe(buildSessionQueue(input({ cards })).due);
+  });
+
+  it('P3: las de "reformular" no cuentan como pendientes, con el borde de leechLapses', () => {
+    const at = (lapses: number) => reviewCard(lapses, { lapses });
+    const leech = PlannerConfigSchema.shape.leechLapses.unwrap();
+    const [min, max] = [leech.minValue ?? 0, leech.maxValue ?? 0];
+    expect(loadSummary([at(min - 1), at(min)], NOW, TZ, { leechLapses: min }).due).toBe(1);
+    expect(loadSummary([at(max - 1), at(max)], NOW, TZ, { leechLapses: max }).due).toBe(1);
+  });
+
+  it('sin tarjetas, todo en cero', () => {
+    expect(loadSummary([], NOW, TZ, cfg)).toEqual({ cards: 0, due: 0, fresh: 0 });
   });
 });
 

@@ -78,7 +78,7 @@ export function buildSessionQueue(input: SessionPlanInput): SessionPlan {
     const s = card.state;
     if (isLeech(card, p)) reformulate.push(s.cardId);
     else if (s.phase === 'new') fresh.push(card);
-    else if (s.phase === 'review' ? s.due < today.end : s.due <= now) {
+    else if (isDueToday(s, now, today)) {
       due.push({ card, retrievability: scheduler.retrievability(s, now) });
     }
   }
@@ -135,6 +135,43 @@ export function buildSessionQueue(input: SessionPlanInput): SessionPlan {
         ? Math.floor(p.newPerSessionMax * p.persistNewFactor)
         : null,
   };
+}
+
+/**
+ * §3: entra hoy como vencida. Un repaso, si vence antes de que termine su día local; una en
+ * (re)aprendizaje, si ya venció (vuelve en minutos, no en días).
+ */
+export const isDueToday = (state: CardState, now: number, today: { readonly end: number }): boolean =>
+  state.phase !== 'new' && (state.phase === 'review' ? state.due < today.end : state.due <= now);
+
+export interface LoadSummary {
+  /** Tarjetas vivas del grupo. */
+  readonly cards: number;
+  /** Vencidas hoy, incluido el atraso: "pendientes" (§5, sin "atrasadas"). */
+  readonly due: number;
+  /** Nuevas sin empezar; cuántas entran en una sesión lo decide P1. */
+  readonly fresh: number;
+}
+
+/**
+ * §5 "Carga" de un grupo de tarjetas (p. ej. un mazo), con la misma regla que la cola. Las
+ * de "reformular" (P3) no cuentan: la cola no las repite.
+ */
+export function loadSummary(
+  cards: readonly PlannerCard[],
+  now: number,
+  timeZone: string,
+  cfg: Pick<PlannerConfig, 'leechLapses'>,
+): LoadSummary {
+  const today = localDayBounds(now, timeZone);
+  let due = 0;
+  let fresh = 0;
+  for (const card of cards) {
+    if (isLeech(card, cfg)) continue;
+    if (card.state.phase === 'new') fresh += 1;
+    else if (isDueToday(card.state, now, today)) due += 1;
+  }
+  return { cards: cards.length, due, fresh };
 }
 
 const item = (card: PlannerCard, kind: QueueItem['kind']): QueueItem => ({
