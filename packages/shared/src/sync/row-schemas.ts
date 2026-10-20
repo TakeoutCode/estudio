@@ -3,6 +3,7 @@ import { DeckSchema } from '../domain/deck.js';
 import { ExamSchema } from '../domain/exam.js';
 import { CardSchema, NoteSchema } from '../domain/note.js';
 import { ReviewLogSchema } from '../domain/review.js';
+import { StudySessionSchema } from '../domain/study-session.js';
 import { SelfExplanationSchema, TopicSchema } from '../domain/topic.js';
 import { TimerBlockLogSchema, TimerSessionSchema } from '../domain/timer.js';
 import { UserSettingsSchema } from '../domain/user-settings.js';
@@ -21,6 +22,7 @@ export const SYNC_ROW_SCHEMAS = {
   exam: ExamSchema,
   userSettings: UserSettingsSchema,
   selfExplanation: SelfExplanationSchema,
+  studySession: StudySessionSchema,
   timerSession: TimerSessionSchema,
   reviewLog: ReviewLogSchema,
   timerBlockLog: TimerBlockLogSchema,

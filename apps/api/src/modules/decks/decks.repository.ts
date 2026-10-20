@@ -71,6 +71,16 @@ export class DecksRepository {
    * BE2: la fila existe y es de ella. Las borradas cuentan: sus repasos se conservan
    * (SYNC §5) y una edición puede revivirlas.
    */
+  /** BE2: todas las filas existen y son de ella (una sola consulta). */
+  async ownsAll(table: OwnedTable, userId: string, ids: readonly string[]): Promise<boolean> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) return true;
+    const rows = await this.tx.$queryRaw<{ n: bigint }[]>`
+      SELECT count(*) AS n FROM ${ident(table)}
+      WHERE "user_id" = ${userId}::uuid AND "id" = ANY(${unique}::uuid[])`;
+    return Number(rows[0]?.n ?? 0) === unique.length;
+  }
+
   async owns(table: OwnedTable, userId: string, id: string): Promise<boolean> {
     const rows = await this.tx.$queryRaw<unknown[]>`
       SELECT 1 FROM ${ident(table)} WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;

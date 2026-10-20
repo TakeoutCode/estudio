@@ -6,6 +6,7 @@ import type {
   Note,
   ReviewLog,
   SelfExplanation,
+  StudySession,
   SyncedEntity,
   TimerBlockLog,
   TimerSession,
@@ -41,6 +42,7 @@ export const TABLE_FOR = {
   exam: 'exams',
   userSettings: 'userSettings',
   selfExplanation: 'selfExplanations',
+  studySession: 'studySessions',
   timerSession: 'timerSessions',
   reviewLog: 'reviewLogs',
   timerBlockLog: 'timerBlockLogs',
@@ -55,6 +57,7 @@ export class EstudioDb extends Dexie {
   exams!: EntityTable<Exam, 'id'>;
   userSettings!: EntityTable<UserSettings, 'id'>;
   selfExplanations!: EntityTable<SelfExplanation, 'id'>;
+  studySessions!: EntityTable<StudySession, 'id'>;
   reviewLogs!: EntityTable<ReviewLog, 'id'>;
   timerSessions!: EntityTable<TimerSession, 'id'>;
   timerBlockLogs!: EntityTable<TimerBlockLog, 'id'>;
@@ -102,6 +105,10 @@ export class EstudioDb extends Dexie {
     this.version(7)
       .stores({ exams: 'id, date' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // P7: simulacros (StudySession); igual que en v6 y v7, el cursor vuelve a 0.
+    this.version(8)
+      .stores({ studySessions: 'id, examId' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -116,6 +123,7 @@ export const syncedTables = (database: EstudioDb) => [
   database.exams,
   database.userSettings,
   database.selfExplanations,
+  database.studySessions,
   database.reviewLogs,
   database.timerSessions,
   database.timerBlockLogs,

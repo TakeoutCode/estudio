@@ -31,6 +31,7 @@ model User {
   cards            Card[]
   userSettings     UserSettings[]
   selfExplanations SelfExplanation[]
+  studySessions    StudySession[]
   reviewLogs       ReviewLog[]
   timerSessions    TimerSession[]
   timerBlockLogs   TimerBlockLog[]
@@ -114,6 +115,27 @@ model Exam {
 
   @@index([userId, serverSeq])
   @@map("exam")
+}
+
+/// STUDY-METHODS P7, LEARNING-DESIGN LD13: simulacro (mode 'exam') con sus preguntas y respuestas.
+model StudySession {
+  id             String  @id @db.Uuid
+  userId         String  @map("user_id") @db.Uuid
+  mode           String
+  examId         String  @map("exam_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  feedbackTiming String  @map("feedback_timing")
+  items          Json // preguntas con confianza, respuesta y calificación; cada cardId lo valida el handler
+  startedAt      BigInt  @map("started_at")
+  finishedAt     BigInt? @map("finished_at")
+  hlc            String
+  updatedAt      BigInt  @map("updated_at")
+  deletedAt      BigInt? @map("deleted_at")
+  serverSeq      BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@index([userId, examId])
+  @@map("study_session")
 }
 
 /// LD5: "Explícalo con tus palabras" antes de la primera tarjeta nueva de un tema. No es un repaso.

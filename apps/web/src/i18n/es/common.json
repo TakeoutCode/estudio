@@ -137,7 +137,12 @@
       "title": "Escribe el nombre del examen.",
       "date": "Elige la fecha del examen.",
       "topics": "Elige al menos un tema."
-    }
+    },
+    "mockDue": "Esta semana corresponde un simulacro.",
+    "mockLast_one": "Último simulacro: {{correct}} de {{count}} pregunta.",
+    "mockLast_other": "Último simulacro: {{correct}} de {{count}} preguntas.",
+    "mockStart": "Hacer simulacro",
+    "mockContinue": "Seguir simulacro"
   },
   "topics": {
     "title": "Tema",
@@ -344,6 +349,41 @@
       "minutes": "Minutos que estudiaste fuera",
       "invalid": "Escribe un número de minutos entre 1 y {{max}}.",
       "save": "Guardar minutos"
+    }
+  },
+  "mock": {
+    "title": "Simulacro: {{exam}}",
+    "titlePlain": "Simulacro",
+    "missing": "Este examen ya no existe.",
+    "intro_one": "Hasta {{count}} pregunta de tarjetas que ya empezaste, de los temas del examen y de exámenes anteriores.",
+    "intro_other": "Hasta {{count}} preguntas de tarjetas que ya empezaste, de los temas del examen y de exámenes anteriores.",
+    "feedbackEnd": "Antes de ver cada respuesta eliges tu confianza. Al terminar revisas todas y marcas cuáles acertaste.",
+    "feedbackImmediate": "Antes de ver cada respuesta eliges tu confianza; después la ves y marcas si acertaste.",
+    "noCards": "Todavía no hay tarjetas empezadas de estos temas. Cuando repases algunas, el simulacro tendrá preguntas.",
+    "start": "Empezar simulacro",
+    "again": "Hacer otro simulacro",
+    "progress": "Pregunta {{done}} de {{total}}",
+    "reviewProgress": "Revisión {{done}} de {{total}}",
+    "answer": "Tu respuesta (opcional)",
+    "next": "Siguiente",
+    "saveFailed": "No se pudo guardar. Tu respuesta sigue aquí; intenta de nuevo.",
+    "yourAnswer": "Lo que respondiste",
+    "noAnswer": "(sin escribir)",
+    "gradeQuestion": "¿Acertaste?",
+    "got": "Acerté",
+    "missed": "No acerté",
+    "results": "Resultado por tema",
+    "total_one": "Acertaste {{correct}} de {{count}} pregunta.",
+    "total_other": "Acertaste {{correct}} de {{count}} preguntas.",
+    "topicScore_one": "{{correct}} de {{count}}",
+    "topicScore_other": "{{correct}} de {{count}}",
+    "fewData": "pocos datos",
+    "before_one": "antes: {{correct}} de {{count}}",
+    "before_other": "antes: {{correct}} de {{count}}",
+    "calibration": {
+      "over": "En este simulacro tu confianza fue más alta que tus aciertos.",
+      "under": "En este simulacro acertaste más de lo que esperabas.",
+      "aligned": "En este simulacro tu confianza y tus aciertos coincidieron bastante."
     }
   }
 }

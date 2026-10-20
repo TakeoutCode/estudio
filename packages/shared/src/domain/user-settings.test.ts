@@ -39,7 +39,7 @@ describe('UserSettings por sección (SYNC §1)', () => {
 });
 
 describe('esquemas de fila sincronizables', () => {
-  it('viajan mazos, temas, notas, tarjetas, exámenes, ajustes, autoexplicaciones, temporizador y logs por ahora', () => {
+  it('viajan mazos, temas, notas, tarjetas, exámenes, ajustes, autoexplicaciones, simulacros, temporizador y logs por ahora', () => {
     expect(Object.keys(SYNC_ROW_SCHEMAS).sort()).toEqual([
       'card',
       'deck',
@@ -47,6 +47,7 @@ describe('esquemas de fila sincronizables', () => {
       'note',
       'reviewLog',
       'selfExplanation',
+      'studySession',
       'timerBlockLog',
       'timerSession',
       'topic',
@@ -55,7 +56,8 @@ describe('esquemas de fila sincronizables', () => {
     expect(isSyncedEntity('card')).toBe(true);
     expect(isSyncedEntity('topic')).toBe(true);
     expect(isSyncedEntity('exam')).toBe(true);
-    expect(isSyncedEntity('studySession')).toBe(false);
+    expect(isSyncedEntity('studySession')).toBe(true);
+    expect(isSyncedEntity('exercise')).toBe(false);
   });
 });
 

@@ -8,6 +8,7 @@ import {
   reviewTypeFor,
   type Scheduler,
 } from '../fsrs/scheduler.js';
+import { unitHash } from '../util/hash.js';
 import { isLeech, type PlannerCard } from './queue.js';
 
 // Carga proyectada (STUDY-METHODS R2, LEARNING-DESIGN LD8): "más retención = más repasos al
@@ -123,26 +124,6 @@ function reviewsUntil(scheduler: Scheduler, initial: CardState, from: number, ho
     state = scheduler.apply(state, { reviewedAt: at, rating: recalled ? Rating.Good : Rating.Again });
   }
   return count;
-}
-
-// FNV-1a de 32 bits con el mezclado final de MurmurHash3: un número en [0, 1) que depende
-// solo del texto (no son umbrales de estudio).
-const FNV_OFFSET = 0x811c9dc5;
-const FNV_PRIME = 0x01000193;
-const UINT32 = 0x1_0000_0000;
-
-function unitHash(text: string): number {
-  let h = FNV_OFFSET;
-  for (let i = 0; i < text.length; i += 1) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, FNV_PRIME);
-  }
-  h ^= h >>> 16;
-  h = Math.imul(h, 0x85ebca6b);
-  h ^= h >>> 13;
-  h = Math.imul(h, 0xc2b2ae35);
-  h ^= h >>> 16;
-  return (h >>> 0) / UINT32;
 }
 
 const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);

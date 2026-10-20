@@ -124,6 +124,27 @@ function ExamCard({
           </li>
         ))}
       </ul>
+      <MockLine examId={exam.id} overview={overview} />
     </section>
+  );
+}
+
+/** P7: si esta semana corresponde un simulacro, el último resultado y el acceso. */
+function MockLine({ examId, overview }: { readonly examId: string; readonly overview: ExamsOverview }) {
+  const { t } = useTranslation();
+  const mocks = overview.mocks.get(examId);
+  if (!mocks) return null;
+  return (
+    <div className="flex flex-col gap-1 border-t border-muted/30 pt-2">
+      {mocks.due > 0 ? <p className="m-0">{t('exams.mockDue')}</p> : null}
+      {mocks.last ? (
+        <p className="m-0 text-caption text-muted">
+          {t('exams.mockLast', { correct: mocks.last.correct, count: mocks.last.graded })}
+        </p>
+      ) : null}
+      <Link className={`-ml-2 self-start ${link}`} to={`/exams/${examId}/mock`}>
+        {t(mocks.inProgress ? 'exams.mockContinue' : 'exams.mockStart')}
+      </Link>
+    </div>
   );
 }

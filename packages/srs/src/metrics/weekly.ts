@@ -1,4 +1,5 @@
 import {
+  type Confidence,
   localDayBounds,
   type MetricsConfig,
   type PlannerConfig,
@@ -114,19 +115,41 @@ export interface Calibration {
   readonly resolution: CalibrationResolution | null;
 }
 
+type CalibrationConfig = Pick<
+  MetricsConfig,
+  'calibrationMinSamples' | 'calibrationBiasMargin' | 'calibrationResolutionMin'
+>;
+
+/** Una respuesta con la confianza que dio antes de ver la respuesta (R6). */
+export interface ConfidencePair {
+  readonly confidence: Confidence;
+  readonly correct: boolean;
+}
+
 /**
  * §5, R6: sesgo y resolución de las respuestas con confianza. En simulacros, acertar es todo
  * lo que no fue `Again` (P7 da Hard al acierto con poca confianza); en repasos, recordar según
  * §5 (Good o Easy). Con menos de `calibrationMinSamples` respuestas devuelve null.
  */
-export function calibration(
-  logs: readonly ReviewLog[],
-  cfg: Pick<MetricsConfig, 'calibrationMinSamples' | 'calibrationBiasMargin' | 'calibrationResolutionMin'>,
-): Calibration | null {
-  const rated = logs.flatMap((log) => (log.confidence === null ? [] : [{ log, confidence: log.confidence }]));
+export function calibration(logs: readonly ReviewLog[], cfg: CalibrationConfig): Calibration | null {
+  return calibrationOf(
+    logs.flatMap((log) =>
+      log.confidence === null
+        ? []
+        : [
+            {
+              confidence: log.confidence,
+              correct: log.type === 'exam' ? log.rating !== Rating.Again : isRecalled(log.rating),
+            },
+          ],
+    ),
+    cfg,
+  );
+}
+
+/** §5: lo mismo a partir de pares confianza-acierto (p. ej. las preguntas de un simulacro). */
+export function calibrationOf(rated: readonly ConfidencePair[], cfg: CalibrationConfig): Calibration | null {
   if (rated.length < cfg.calibrationMinSamples) return null;
-  const correct = (log: ReviewLog) =>
-    log.type === 'exam' ? log.rating !== Rating.Again : isRecalled(log.rating);
 
   // Tabla confianza (1-3) × acierto (0/1).
   const table = [
@@ -136,8 +159,8 @@ export function calibration(
   ];
   let confidenceSum = 0;
   let hits = 0;
-  for (const { log, confidence } of rated) {
-    const hit = correct(log) ? 1 : 0;
+  for (const { confidence, correct } of rated) {
+    const hit = correct ? 1 : 0;
     const row = table[confidence - 1];
     if (row) row[hit] = (row[hit] ?? 0) + 1;
     confidenceSum += (confidence - 1) / 2;

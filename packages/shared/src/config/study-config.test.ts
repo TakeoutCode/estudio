@@ -70,7 +70,14 @@ describe('StudyConfig: valores iniciales = STUDY-METHODS', () => {
 
   it('R6, P7: confianza opcional en repasos; simulacros afectan FSRS y solo 3 es confianza alta', () => {
     expect(cfg.review.askConfidence).toBe(false);
-    expect(cfg.exam).toMatchObject({ affectsScheduling: true, highConfidenceMin: 3, feedbackTiming: 'end' });
+    expect(cfg.exam).toMatchObject({
+      affectsScheduling: true,
+      highConfidenceMin: 3,
+      feedbackTiming: 'end',
+      mockSize: 30,
+      previousTopicsShare: 0.3,
+      topicMinItems: 5,
+    });
   });
 });
 

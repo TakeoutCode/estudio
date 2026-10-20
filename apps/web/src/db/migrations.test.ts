@@ -44,7 +44,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(7);
+    expect(current.verno).toBe(8);
     expect(await current.decks.toArray()).toEqual([deck]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
@@ -73,7 +73,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(7);
+    expect(current.verno).toBe(8);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
     expect(await current.reviewLogs.toArray()).toEqual([log]);
@@ -94,7 +94,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(7);
+    expect(current.verno).toBe(8);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([note]);
     current.close();
@@ -116,13 +116,13 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(7);
+    expect(current.verno).toBe(8);
     expect(await current.timerBlockLogs.toArray()).toEqual([{ ...block, extended: false }]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     current.close();
   });
 
-  it('v5 → última: aparecen temas, autoexplicaciones (LD5) y exámenes (R11); el cursor vuelve a 0', async () => {
+  it('v5 → última: aparecen temas, autoexplicaciones (LD5), exámenes (R11) y simulacros (P7); el cursor vuelve a 0', async () => {
     const name = `migracion-${newId()}`;
     names.push(name);
     const v5 = openVersion1(name);
@@ -139,13 +139,14 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(7);
+    expect(current.verno).toBe(8);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([note]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.topics.count()).toBe(0);
     expect(await current.selfExplanations.count()).toBe(0);
     expect(await current.exams.count()).toBe(0);
+    expect(await current.studySessions.count()).toBe(0);
     current.close();
   });
 });

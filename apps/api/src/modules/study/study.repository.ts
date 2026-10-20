@@ -1,4 +1,4 @@
-import type { SelfExplanation, TimerBlockLog, TimerSession } from '@estudio/shared';
+import type { SelfExplanation, StudySession, TimerBlockLog, TimerSession } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
@@ -50,6 +50,23 @@ export class StudyRepository {
     return rows.length > 0 ? 'applied' : 'stale';
   }
 
+  async upsertStudySessionLww(userId: string, s: StudySession): Promise<ApplyStatus> {
+    const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>(
+      upsertLwwSql('study_session', [
+        { name: 'id', value: s.id, cast: 'uuid' },
+        { name: 'user_id', value: userId, cast: 'uuid' },
+        { name: 'mode', value: s.mode },
+        { name: 'exam_id', value: s.examId, cast: 'uuid' },
+        { name: 'feedback_timing', value: s.feedbackTiming },
+        { name: 'items', value: JSON.stringify(s.items), cast: 'jsonb' },
+        { name: 'started_at', value: s.startedAt, cast: 'bigint' },
+        { name: 'finished_at', value: s.finishedAt, cast: 'bigint' },
+        ...syncMetaColumns(s),
+      ]),
+    );
+    return rows.length > 0 ? 'applied' : 'stale';
+  }
+
   /** SY7: sesiones vivas que cuentan como activas, de HLC mayor a menor (byte a byte). */
   activeTimerSessions(userId: string): Promise<Record<string, unknown>[]> {
     return this.tx.$queryRaw<Record<string, unknown>[]>`
@@ -78,6 +95,13 @@ export class StudyRepository {
       ]),
     );
     return rows.length > 0 ? 'applied' : 'duplicate';
+  }
+
+  /** BE2: el examen existe y es de ella (aunque esté borrado). */
+  async ownsExam(userId: string, id: string): Promise<boolean> {
+    const rows = await this.tx.$queryRaw<unknown[]>`
+      SELECT 1 FROM "exam" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;
+    return rows.length > 0;
   }
 
   /** BE2: la sesión existe y es de ella (aunque esté terminada o borrada). */

@@ -114,6 +114,7 @@ export const ExamConfigSchema = z.object({
   mockSize: int(5, 200).default(30), // diseño · sin evidencia
   previousTopicsShare: share().default(0.3), // diseño · sin evidencia
   finalReviewWindowDays: int(1, 30).default(7), // R11 · diseño · sin evidencia (LD12)
+  topicMinItems: int(1, 50).default(5), // §5, LD13 · diseño · sin evidencia: preguntas por tema para no decir "pocos datos"
 });
 
 export const ExerciseConfigSchema = z
