@@ -1,6 +1,14 @@
-import { type Confidence, newId, type Rating, type ReviewLog, ReviewLogSchema } from '@estudio/shared';
+import {
+  type Confidence,
+  newId,
+  type Rating,
+  type ReviewLog,
+  ReviewLogSchema,
+  type SelfExplanation,
+  SelfExplanationSchema,
+} from '@estudio/shared';
 import { type CardState, createScheduler, newCardState, reviewTypeFor } from '@estudio/srs';
-import { deviceId } from '@/db/clock';
+import { deviceId, hlcWall, nextHlc } from '@/db/clock';
 import { db as defaultDb, type EstudioDb } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { writeAndQueue } from '@/db/write';
@@ -62,4 +70,36 @@ export async function answerCard(
   );
   syncScheduler.poke();
   return result;
+}
+
+/**
+ * LD5: "Explícalo con tus palabras" antes de la primera tarjeta nueva de un tema. No es un
+ * repaso (R15): no escribe ReviewLog ni toca FSRS.
+ */
+export async function saveSelfExplanation(
+  input: { readonly topicId: string; readonly text: string },
+  { database = defaultDb, now = Date.now() }: { readonly database?: EstudioDb; readonly now?: number } = {},
+): Promise<SelfExplanation> {
+  const saved = await database.transaction(
+    'rw',
+    [database.topics, database.selfExplanations, database.outbox, database.meta],
+    async () => {
+      const topic = await database.topics.get(input.topicId);
+      if (topic?.deletedAt !== null) throw new Error('topic_not_found');
+      const hlc = await nextHlc(database, now);
+      const row = SelfExplanationSchema.parse({
+        id: newId(),
+        topicId: topic.id,
+        text: input.text,
+        writtenAt: now,
+        hlc,
+        updatedAt: hlcWall(hlc),
+        deletedAt: null,
+      });
+      await writeAndQueue(database, 'selfExplanation', row, now);
+      return row;
+    },
+  );
+  syncScheduler.poke();
+  return saved;
 }

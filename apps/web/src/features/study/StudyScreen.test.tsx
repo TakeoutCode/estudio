@@ -7,6 +7,7 @@ import { db } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { createNote } from '@/features/notes';
 import { updateStudyConfig } from '@/features/settings';
+import { saveSelfExplanation } from './commands';
 import { planSessionNow } from './queries';
 import { useStudy } from './store';
 import { StudyScreen } from './StudyScreen';
@@ -331,5 +332,81 @@ describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
     await db.reviewLogs.bulkAdd(tired(T0 + 400_000, 10));
     expect(await screen.findByText(/Van 2 avisos de cansancio seguidos/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Mostrar respuesta' })).toBeTruthy();
+  });
+});
+
+describe('StudyScreen · LD5 (entender antes de recordar)', () => {
+  const deltoid = {
+    kind: 'basic',
+    front: '¿Qué nervio inerva el deltoides?',
+    back: 'El axilar',
+    explanation: '',
+    reverse: false,
+  } as const;
+  const teres = { ...deltoid, front: '¿Y el redondo menor?' } as const;
+  const plexus = { name: 'Plexo braquial', explanation: 'Raíces C5-T1 que forman troncos y nervios.' };
+
+  it('R5: antes de la primera tarjeta nueva del tema, su explicación y la autoexplicación; no es un repaso', async () => {
+    const note = await createNote(
+      { deck: { name: 'Hombro' }, content: deltoid, topic: plexus },
+      { now: T0 - 10 },
+    );
+    renderStudy();
+    expect(await screen.findByRole('heading', { name: 'Plexo braquial' })).toBeTruthy();
+    expect(screen.getByText(plexus.explanation)).toBeTruthy();
+    expect(screen.queryByText(deltoid.front)).toBeNull(); // la tarjeta espera
+    const save = screen.getByRole('button', { name: 'Guardar y seguir' });
+    expect(save.hasAttribute('disabled')).toBe(true);
+
+    vi.setSystemTime(T0 + 60_000);
+    fireEvent.change(screen.getByLabelText('Explícalo con tus palabras'), {
+      target: { value: 'Las raíces se juntan y salen nervios hacia el brazo.' },
+    });
+    fireEvent.click(save);
+    expect(await screen.findByText(deltoid.front)).toBeTruthy();
+    expect(await db.selfExplanations.toArray()).toMatchObject([
+      {
+        topicId: note.topicId,
+        text: 'Las raíces se juntan y salen nervios hacia el brazo.',
+        writtenAt: T0 + 60_000,
+      },
+    ]);
+    expect(await db.reviewLogs.count()).toBe(0); // R15: no cuenta como repaso
+
+    // R3: la duración de la tarjeta empieza al mostrarla, no al abrir el tema.
+    vi.setSystemTime(T0 + 65_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await waitFor(async () => {
+      expect((await db.reviewLogs.toArray())[0]?.durationMs).toBe(5_000);
+    });
+  });
+
+  it('LD5: "Ahora no" sigue con la tarjeta y no lo vuelve a pedir en esta sesión', async () => {
+    await createNote({ deck: { name: 'Hombro' }, content: deltoid, topic: plexus }, { now: T0 - 10 });
+    const [topic] = await db.topics.toArray();
+    await createNote(
+      { deck: { id: topic?.deckId ?? '' }, content: teres, topic: { id: topic?.id ?? '' } },
+      { now: T0 - 9 },
+    );
+    renderStudy();
+    fireEvent.click(await screen.findByRole('button', { name: 'Ahora no' }));
+    expect(await screen.findByText(deltoid.front)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    expect(await screen.findByText(teres.front)).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Plexo braquial' })).toBeNull();
+    expect(await db.selfExplanations.count()).toBe(0);
+  });
+
+  it('LD5: con una autoexplicación del tema ya guardada, va directo a la tarjeta', async () => {
+    const note = await createNote(
+      { deck: { name: 'Hombro' }, content: deltoid, topic: plexus },
+      { now: T0 - 10 },
+    );
+    await saveSelfExplanation({ topicId: note.topicId ?? '', text: 'Ya lo escribí antes.' }, { now: T0 - 5 });
+    renderStudy();
+    expect(await screen.findByText(deltoid.front)).toBeTruthy();
+    expect(screen.queryByLabelText('Explícalo con tus palabras')).toBeNull();
   });
 });

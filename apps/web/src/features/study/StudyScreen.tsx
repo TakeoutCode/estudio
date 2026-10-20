@@ -1,5 +1,11 @@
 import { type Confidence, newId, Rating } from '@estudio/shared';
-import { type CardState, nextCard, type SessionPlan, type TimerBlockRecord } from '@estudio/srs';
+import {
+  type CardState,
+  needsTopicIntro,
+  nextCard,
+  type SessionPlan,
+  type TimerBlockRecord,
+} from '@estudio/srs';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
@@ -17,9 +23,16 @@ import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
 import { RatingButton } from '@/ui/RatingButton';
 import { answerCard } from './commands';
-import { planSessionNow, type StudyCardView, useQueueStates, useStudyCard } from './queries';
+import {
+  planSessionNow,
+  type StudyCardView,
+  useExplainedTopics,
+  useQueueStates,
+  useStudyCard,
+} from './queries';
 import { useStudy } from './store';
 import { SuggestionPanel } from './SuggestionPanel';
+import { TopicIntro } from './TopicIntro';
 import { useSessionSuggestion } from './use-session-suggestion';
 import { useStudyShortcuts } from './use-study-shortcuts';
 
@@ -131,9 +144,22 @@ function Session({
     if (onBreak) hold(Date.now());
     else release(Date.now());
   }, [onBreak, hold, release]);
+  // LD5: antes de la primera tarjeta nueva de un tema, su explicación y la autoexplicación.
+  // La tarjeta se presenta después, así su duración no incluye la escritura (R3).
+  const explained = useExplainedTopics();
+  const postponed = useStudy((s) => s.postponedTopics);
+  const postponeTopic = useStudy((s) => s.postponeTopic);
+  const introTopic =
+    step?.kind === 'card' &&
+    explained &&
+    currentCardId === null &&
+    needsTopicIntro(step.item, new Set([...explained, ...postponed]))
+      ? step.item.topicId
+      : null;
+  const introReady = explained !== undefined && introTopic === null;
   useEffect(() => {
-    if (nextId && currentCardId === null && !onBreak) present(nextId, Date.now());
-  }, [nextId, currentCardId, onBreak, present]);
+    if (nextId && currentCardId === null && !onBreak && introReady) present(nextId, Date.now());
+  }, [nextId, currentCardId, onBreak, introReady, present]);
 
   // Una tarjeta en aprendizaje vuelve en unos minutos: se repinta cuando vence (§3).
   const waitUntil = step?.kind === 'wait' ? step.until : null;
@@ -208,6 +234,18 @@ function Session({
       {onBreak ? <BreakPanel session={timer.session} at={serverNow} /> : null}
       {!onBreak && step.kind === 'done' ? <SessionDone bedtime={bedtime} /> : null}
       {!onBreak && step.kind === 'wait' ? <Waiting until={step.until} now={clock} /> : null}
+      {!onBreak && introTopic ? (
+        <TopicIntro
+          key={introTopic}
+          topicId={introTopic}
+          onDone={() => {
+            setClock(Date.now());
+          }}
+          onPostpone={() => {
+            postponeTopic(introTopic);
+          }}
+        />
+      ) : null}
       {!onBreak && step.kind === 'card' && currentCardId ? (
         <CurrentCard
           cardId={currentCardId}

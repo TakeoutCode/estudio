@@ -222,6 +222,16 @@ export function nextCard(
   return waitUntil === null ? { kind: 'done' } : { kind: 'wait', until: waitUntil };
 }
 
+/**
+ * LD5, R5: antes de la primera tarjeta nueva de un tema se muestra su explicación y se pide
+ * "Explícalo con tus palabras". Basta una autoexplicación del tema para no volver a pedirla.
+ */
+export const needsTopicIntro = (
+  item: Pick<QueueItem, 'kind' | 'topicId'>,
+  explainedTopics: ReadonlySet<string>,
+): item is Pick<QueueItem, 'kind'> & { readonly topicId: string } =>
+  item.kind === 'new' && item.topicId !== null && !explainedTopics.has(item.topicId);
+
 /** P3: con `leechLapses` lapsos o más desde su última reformulación, va a "reformular". */
 export const isLeech = (
   card: Pick<PlannerCard, 'state' | 'lapseBaseline'>,

@@ -17,7 +17,7 @@ import {
   TODAY_START,
   TZ,
 } from '../test/planner-fixtures.js';
-import { buildSessionQueue, limitTopicRuns, nextCard, type QueueItem } from './queue.js';
+import { buildSessionQueue, limitTopicRuns, needsTopicIntro, nextCard, type QueueItem } from './queue.js';
 
 const news = (plan: { queue: readonly QueueItem[] }) => plan.queue.filter((q) => q.kind === 'new');
 const reviews = (plan: { queue: readonly QueueItem[] }) => plan.queue.filter((q) => q.kind === 'review');
@@ -396,5 +396,19 @@ describe('timezone fixture', () => {
     expect(
       new Intl.DateTimeFormat('es', { timeZone: TZ, hour: 'numeric', hourCycle: 'h23' }).format(TODAY_START),
     ).toBe('0');
+  });
+});
+
+describe('LD5: explicación y autoexplicación antes de lo nuevo', () => {
+  const explained = new Set(['huesos']);
+
+  it('R5: la primera tarjeta nueva de un tema sin autoexplicación la pide', () => {
+    expect(needsTopicIntro({ kind: 'new', topicId: 'nervios' }, explained)).toBe(true);
+  });
+
+  it('R5: no la pide para repasos, notas sin tema ni temas ya explicados', () => {
+    expect(needsTopicIntro({ kind: 'review', topicId: 'nervios' }, explained)).toBe(false);
+    expect(needsTopicIntro({ kind: 'new', topicId: null }, explained)).toBe(false);
+    expect(needsTopicIntro({ kind: 'new', topicId: 'huesos' }, explained)).toBe(false);
   });
 });

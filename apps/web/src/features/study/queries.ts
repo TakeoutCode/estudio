@@ -7,6 +7,7 @@ import {
   type ReviewLog,
   type StudyConfig,
   type TimerBlockLog,
+  type Topic,
 } from '@estudio/shared';
 import {
   buildSessionQueue,
@@ -130,3 +131,17 @@ export const useStudyCard = (cardId: string | null): StudyCardView | null | unde
       explanation: note.content.explanation,
     };
   }, [cardId]);
+
+/** LD5: temas que ya tienen una autoexplicación; `undefined` mientras carga. */
+export const useExplainedTopics = (): ReadonlySet<string> | undefined =>
+  useLiveQuery(async () => {
+    const rows = await alive(db.selfExplanations.toCollection()).toArray();
+    return new Set(rows.map((row) => row.topicId));
+  }, []);
+
+/** LD5, R5: el tema que se presenta antes de su primera tarjeta nueva. */
+export const useTopicView = (topicId: string): Topic | null | undefined =>
+  useLiveQuery(async () => {
+    const topic = await db.topics.get(topicId);
+    return topic?.deletedAt === null ? topic : null;
+  }, [topicId]);

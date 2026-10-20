@@ -47,6 +47,14 @@
       "bedtime": "Dormir también ayuda a consolidar lo estudiado.",
       "back": "Volver a Hoy"
     },
+    "topicIntro": {
+      "label": "Tema nuevo",
+      "prompt": "Explícalo con tus palabras",
+      "hint": "Antes de memorizarlo, escribe qué entendiste. No cuenta como repaso.",
+      "save": "Guardar y seguir",
+      "later": "Ahora no",
+      "failed": "No se pudo guardar. Tu texto sigue aquí; intenta de nuevo."
+    },
     "suggest": {
       "break": "Tus últimas respuestas van más lentas y con menos aciertos que al empezar. Un descanso corto puede ayudar.",
       "takeBreak": "Tomar un descanso",

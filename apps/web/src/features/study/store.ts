@@ -39,6 +39,8 @@ interface StudyState {
   readonly fatigue: FatigueState;
   /** P6: motivos para parar que ella ya vio en esta sesión; no se repiten. */
   readonly dismissedStops: readonly StopReason[];
+  /** LD5: temas cuya autoexplicación ella dejó para después en esta sesión. */
+  readonly postponedTopics: readonly string[];
   readonly start: (session: StudySession) => void;
   readonly present: (cardId: string, now: number) => void;
   /** R1: revelar solo desde el intento. */
@@ -54,6 +56,7 @@ interface StudyState {
   /** Tomó un descanso: los avisos ya no van seguidos y se juzga con respuestas nuevas. */
   readonly rested: (answers: number) => void;
   readonly dismissStop: (reason: StopReason) => void;
+  readonly postponeTopic: (topicId: string) => void;
   readonly end: () => void;
 }
 
@@ -67,6 +70,7 @@ const idle = {
   answered: 0,
   fatigue: { inRow: 0, since: null, showing: false },
   dismissedStops: [],
+  postponedTopics: [],
 } as const;
 
 export const useStudy = create<StudyState>()((set) => ({
@@ -106,6 +110,11 @@ export const useStudy = create<StudyState>()((set) => ({
   },
   dismissStop: (reason) => {
     set((s) => (s.dismissedStops.includes(reason) ? s : { dismissedStops: [...s.dismissedStops, reason] }));
+  },
+  postponeTopic: (topicId) => {
+    set((s) =>
+      s.postponedTopics.includes(topicId) ? s : { postponedTopics: [...s.postponedTopics, topicId] },
+    );
   },
   end: () => {
     set(idle);
