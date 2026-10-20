@@ -60,6 +60,12 @@ describe('StudyConfig: valores iniciales = STUDY-METHODS', () => {
   it('R21, §5: corte de inactividad 90 s y métricas ocultas con menos de 100 repasos', () => {
     expect(cfg.metrics.inactivityCutoffSec).toBe(90);
     expect(cfg.metrics.minReviewsToShow).toBe(100);
+    expect(cfg.metrics).toMatchObject({
+      baselineWeeks: 4,
+      calibrationMinSamples: 20,
+      calibrationBiasMargin: 0.1,
+      calibrationResolutionMin: 0.3,
+    });
   });
 
   it('R6, P7: confianza opcional en repasos; simulacros afectan FSRS y solo 3 es confianza alta', () => {

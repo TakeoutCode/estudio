@@ -85,6 +85,9 @@ export const MetricsConfigSchema = z.object({
   inactivityCutoffSec: int(10, 600).default(90), // R21 · diseño sin fuente empírica
   minReviewsToShow: int(0, 1000).default(100), // §5 · diseño
   baselineWeeks: int(1, 12).default(4), // §5 · diseño · sin evidencia
+  calibrationMinSamples: int(5, 500).default(20), // §5 · diseño · sin evidencia: respuestas con confianza para juzgar la semana
+  calibrationBiasMargin: z.number().min(0).max(0.5).default(0.1), // §5 · diseño · sin evidencia: |confianza − acierto| que cuenta como desfase
+  calibrationResolutionMin: z.number().min(0).max(1).default(0.3), // §5 · diseño · sin evidencia: gamma desde la que la confianza distingue aciertos
   visible: z
     .object({
       activeTime: z.boolean().default(true), // §5: cada métrica se puede apagar
@@ -134,6 +137,7 @@ export type StudyConfig = z.output<typeof StudyConfigSchema>;
 export type FsrsConfig = StudyConfig['fsrs'];
 export type PlannerConfig = StudyConfig['planner'];
 export type TimerConfig = StudyConfig['timer'];
+export type MetricsConfig = StudyConfig['metrics'];
 export type ExamConfig = StudyConfig['exam'];
 export type ExerciseConfig = StudyConfig['exercise'];
 

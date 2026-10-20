@@ -1,5 +1,6 @@
 export * from './fsrs/replay-cards.js';
 export * from './fsrs/scheduler.js';
+export * from './metrics/weekly.js';
 export * from './planner/history.js';
 export * from './planner/queue.js';
 export * from './planner/review-load.js';
