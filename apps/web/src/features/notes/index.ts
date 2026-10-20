@@ -6,3 +6,4 @@ export {
   softDeleteNotesOfDeck,
   updateNote,
 } from './commands';
+export { NoteEditorScreen } from './NoteEditorScreen';

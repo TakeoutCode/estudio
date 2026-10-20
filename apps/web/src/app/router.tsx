@@ -21,6 +21,18 @@ export const router = createBrowserRouter([
             index: true,
             lazy: async () => ({ Component: (await import('@/features/today')).TodayScreen }),
           },
+          {
+            path: 'study',
+            lazy: async () => ({ Component: (await import('@/features/study')).StudyScreen }),
+          },
+          {
+            path: 'notes/new',
+            lazy: async () => ({ Component: (await import('@/features/notes')).NoteEditorScreen }),
+          },
+          {
+            path: 'notes/:noteId',
+            lazy: async () => ({ Component: (await import('@/features/notes')).NoteEditorScreen }),
+          },
         ],
       },
     ],

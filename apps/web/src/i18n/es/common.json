@@ -4,7 +4,78 @@
   },
   "today": {
     "title": "Hoy",
-    "empty": "No hay tarjetas pendientes. Puedes añadir nuevas o descansar."
+    "empty": "No hay tarjetas pendientes. Puedes añadir nuevas o descansar.",
+    "pending_zero": "Hoy no hay repasos pendientes",
+    "pending_one": "Tienes {{count}} pendiente",
+    "pending_other": "Tienes {{count}} pendientes",
+    "newCards_one": "Y {{count}} nueva para aprender",
+    "newCards_other": "Y {{count}} nuevas para aprender",
+    "start": "Empezar",
+    "addCard": "Nueva tarjeta",
+    "improve": {
+      "title": "Para mejorar",
+      "hint": "Estas tarjetas quedan aparte: cambiarles la explicación o escribirlas con tus palabras suele ayudar más que repetirlas.",
+      "edit": "Reformular"
+    }
+  },
+  "study": {
+    "title": "Repaso",
+    "reveal": "Mostrar respuesta",
+    "answer": "Respuesta",
+    "rate": {
+      "label": "¿Cómo te fue al recordarla?",
+      "again": "Otra vez",
+      "hard": "Difícil",
+      "good": "Bien",
+      "easy": "Fácil"
+    },
+    "confidence": {
+      "question": "¿Cuánta confianza tienes en tu respuesta?",
+      "level1": "Poca",
+      "level2": "Algo",
+      "level3": "Mucha"
+    },
+    "saveFailed": "No se pudo guardar esta respuesta. Vuelve a calificarla; lo anterior sigue guardado.",
+    "waiting": "Una tarjeta vuelve en {{minutes}} min. Puedes esperarla o terminar por ahora.",
+    "finish": "Terminar por ahora",
+    "done": {
+      "title": "Completaste esta sesión",
+      "summary_one": "Respondiste {{count}} tarjeta.",
+      "summary_other": "Respondiste {{count}} tarjetas.",
+      "back": "Volver a Hoy"
+    },
+    "notice": {
+      "overdue": "Hoy toca repasar lo pendiente; las nuevas esperan a otro día.",
+      "lowRetention": "Esta sesión es solo de repaso, para afianzar lo reciente.",
+      "spread": "Repartimos lo pendiente en los próximos {{days}} días."
+    },
+    "shortcuts": {
+      "toggle": "Atajos de teclado",
+      "reveal": "Espacio o Enter: mostrar la respuesta",
+      "rate": "1 a 4: calificar",
+      "help": "?: mostrar u ocultar esta ayuda"
+    }
+  },
+  "notes": {
+    "new": "Nueva tarjeta",
+    "edit": "Editar tarjeta",
+    "deck": "Mazo",
+    "newDeckOption": "Mazo nuevo…",
+    "deckName": "Nombre del mazo nuevo",
+    "front": "Pregunta",
+    "back": "Respuesta",
+    "explanation": "Explicación breve (se muestra después de cada intento)",
+    "explanationCount": "{{count}} de {{max}} caracteres",
+    "reverse": "Crear también la tarjeta inversa",
+    "save": "Guardar",
+    "saved": "Guardada. Puedes escribir la siguiente.",
+    "updated": "Cambios guardados.",
+    "delete": "Borrar tarjeta",
+    "backToToday": "Volver a Hoy",
+    "error": {
+      "required": "Escribe la pregunta y la respuesta.",
+      "deck": "Escribe el nombre del mazo nuevo."
+    }
   },
   "auth": {
     "email": "Correo",
