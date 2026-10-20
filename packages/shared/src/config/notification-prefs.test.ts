@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { NotificationKindSchema, NotificationPrefsSchema, REMINDER_KINDS } from './notification-prefs.js';
+import {
+  NOTIFICATION_DELIVERY,
+  NotificationDeliverySchema,
+  NotificationKindSchema,
+  NotificationPrefsSchema,
+  REMINDER_KINDS,
+} from './notification-prefs.js';
 
 describe('NotificationPrefs (STUDY-METHODS §3, NOTIFICATIONS §1)', () => {
   const prefs = NotificationPrefsSchema.parse({});
@@ -43,5 +49,15 @@ describe('NotificationPrefs (STUDY-METHODS §3, NOTIFICATIONS §1)', () => {
 
   it('§3g: el fin de descanso no es un recordatorio', () => {
     expect(REMINDER_KINDS).not.toContain('break_end');
+  });
+
+  it('NT3-NT5: entrega cada 5 min y 30 s, con TTL de 4 h y 5 min', () => {
+    expect(NOTIFICATION_DELIVERY).toEqual({
+      reminderTickMinutes: 5,
+      breakEndPollSeconds: 30,
+      reminderTtlSeconds: 14_400,
+      breakEndTtlSeconds: 300,
+    });
+    expect(NotificationDeliverySchema.safeParse({ reminderTickMinutes: 31 }).success).toBe(false);
   });
 });

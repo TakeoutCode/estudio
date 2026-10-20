@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import request from 'supertest';
 import { inject } from 'vitest';
+import type { PushSender } from '../modules/notifications/push-sender.js';
 import type { PrismaService as PrismaServiceType } from '../prisma/prisma.service.js';
 
 /** Reloj controlable: las pruebas mueven el tiempo sin esperar. */
@@ -30,6 +31,8 @@ export interface IntegrationApp {
   readonly api: () => {
     get: (path: string) => request.Test;
     post: (path: string) => request.Test;
+    put: (path: string) => request.Test;
+    delete: (path: string) => request.Test;
   };
   /** Acceso directo a la base para verificar lo que el HTTP no muestra (siempre `$queryRaw` con plantilla). */
   readonly prisma: PrismaServiceType;
@@ -41,20 +44,27 @@ export interface IntegrationApp {
  * importar AppModule porque ConfigModule.forRoot valida al importarse.
  */
 export async function startIntegrationApp(
-  options: { readonly clock?: FakeClock; readonly throttle?: boolean } = {},
+  options: { readonly clock?: FakeClock; readonly throttle?: boolean; readonly pushSender?: PushSender } = {},
 ): Promise<IntegrationApp> {
   process.env.DATABASE_URL = inject('databaseUrl');
-  const [{ AppModule }, { configureApp }, { Clock }, { PrismaService }] = await Promise.all([
-    import('../app.module.js'),
-    import('../bootstrap.js'),
-    import('../common/clock.js'),
-    import('../prisma/prisma.service.js'),
-  ]);
+  const [{ AppModule }, { configureApp }, { Clock }, { PrismaService }, { NotificationsScheduler }, push] =
+    await Promise.all([
+      import('../app.module.js'),
+      import('../bootstrap.js'),
+      import('../common/clock.js'),
+      import('../prisma/prisma.service.js'),
+      import('../modules/notifications/notifications.scheduler.js'),
+      import('../modules/notifications/push-sender.js'),
+    ]);
 
   const clock = options.clock ?? new FakeClock();
+  // Sin cron: las pruebas corren los ticks a mano con el reloj falso.
   let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(Clock)
-    .useValue(clock);
+    .useValue(clock)
+    .overrideProvider(NotificationsScheduler)
+    .useValue({});
+  if (options.pushSender) builder = builder.overrideProvider(push.PushSender).useValue(options.pushSender);
   if (!options.throttle) builder = builder.overrideProvider(ThrottlerStorage).useValue(unlimitedStorage);
   const moduleRef = await builder.compile();
 
@@ -73,6 +83,8 @@ export async function startIntegrationApp(
       return {
         get: (path) => agent.get(path).set(CONTRACT_HEADER, contract),
         post: (path) => agent.post(path).set(CONTRACT_HEADER, contract),
+        put: (path) => agent.put(path).set(CONTRACT_HEADER, contract),
+        delete: (path) => agent.delete(path).set(CONTRACT_HEADER, contract),
       };
     },
     prisma,

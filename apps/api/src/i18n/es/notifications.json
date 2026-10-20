@@ -1,0 +1,16 @@
+{
+  "title": "Estudio",
+  "due_one": "{{count}} tarjeta pendiente",
+  "due_other": "{{count}} tarjetas pendientes",
+  "dueWithTopics_one": "{{count}} tarjeta pendiente · {{topics}}",
+  "dueWithTopics_other": "{{count}} tarjetas pendientes · {{topics}}",
+  "examSoon_one": "{{exam}} en {{count}} día",
+  "examSoon_other": "{{exam}} en {{count}} días",
+  "studyPlan_one": "Plan de hoy: {{count}} nueva de {{topics}}",
+  "studyPlan_other": "Plan de hoy: {{count}} nuevas de {{topics}}",
+  "studyPlanNoTopic_one": "Plan de hoy: {{count}} nueva",
+  "studyPlanNoTopic_other": "Plan de hoy: {{count}} nuevas",
+  "and": "y",
+  "breakEnd": "Terminó el descanso",
+  "breakEndBody": "Sigue cuando quieras."
+}

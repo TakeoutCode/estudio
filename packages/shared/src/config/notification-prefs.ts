@@ -44,3 +44,16 @@ export const NotificationPrefsSchema = z
   );
 
 export type NotificationPrefs = z.output<typeof NotificationPrefsSchema>;
+
+/**
+ * Entrega desde el servidor (NOTIFICATIONS NT3-NT5). No son preferencias de ella, pero son
+ * umbrales de avisos y se declaran aquí (AGENTS AG4).
+ */
+export const NotificationDeliverySchema = z.object({
+  reminderTickMinutes: int(1, 30).default(5), // NT3 · diseño · sin evidencia
+  breakEndPollSeconds: int(5, 120).default(30), // NT4 · diseño · sin evidencia
+  reminderTtlSeconds: int(60, 86_400).default(4 * 3600), // NT5 · diseño · sin evidencia
+  breakEndTtlSeconds: int(30, 3600).default(300), // NT5 · diseño · sin evidencia
+});
+export type NotificationDelivery = z.output<typeof NotificationDeliverySchema>;
+export const NOTIFICATION_DELIVERY: NotificationDelivery = NotificationDeliverySchema.parse({});

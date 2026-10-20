@@ -8,6 +8,9 @@ const base = {
   WEB_ORIGINS: 'https://app.ejemplo.mx',
   JWT_ACCESS_SECRET: 'x'.repeat(48),
   ALLOWED_EMAILS: 'ella@ejemplo.mx',
+  VAPID_PUBLIC_KEY: 'BPublica',
+  VAPID_PRIVATE_KEY: 'privada',
+  VAPID_SUBJECT: 'mailto:avisos@ejemplo.mx',
 };
 
 describe('EnvSchema (BACKEND BE4)', () => {
@@ -44,6 +47,16 @@ describe('EnvSchema (BACKEND BE4)', () => {
       expect(EnvSchema.safeParse({ ...base, WEB_ORIGINS: origin }).success).toBe(false);
     },
   );
+
+  it('NT8: en producción exige las claves VAPID; fuera de ella son opcionales', () => {
+    const without = { ...base, VAPID_PRIVATE_KEY: undefined };
+    expect(EnvSchema.safeParse(without).success).toBe(false);
+    expect(EnvSchema.safeParse({ ...without, NODE_ENV: 'development' }).success).toBe(true);
+    expect(EnvSchema.safeParse({ ...base, NODE_ENV: 'development', VAPID_PUBLIC_KEY: '' }).success).toBe(
+      true,
+    );
+    expect(EnvSchema.safeParse({ ...base, VAPID_SUBJECT: 'avisos@ejemplo.mx' }).success).toBe(false);
+  });
 
   it('rechaza una URL de base que no es Postgres', () => {
     expect(EnvSchema.safeParse({ ...base, DATABASE_URL: 'mysql://u:p@h/db' }).success).toBe(false);

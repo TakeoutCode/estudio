@@ -15,7 +15,7 @@ export default defineConfig({
       WEB_ORIGINS: 'http://localhost:5180',
       JWT_ACCESS_SECRET: 'secreto-de-pruebas-de-al-menos-32-caracteres',
       ALLOWED_EMAILS:
-        'ella@ejemplo.mx,otra@ejemplo.mx,sync-a@ejemplo.mx,sync-b@ejemplo.mx,sync-c@ejemplo.mx,sync-d@ejemplo.mx,sync-e@ejemplo.mx,temporizador@ejemplo.mx,temas-a@ejemplo.mx,temas-b@ejemplo.mx,examenes-a@ejemplo.mx,examenes-b@ejemplo.mx,simulacros-a@ejemplo.mx,simulacros-b@ejemplo.mx',
+        'ella@ejemplo.mx,otra@ejemplo.mx,sync-a@ejemplo.mx,sync-b@ejemplo.mx,sync-c@ejemplo.mx,sync-d@ejemplo.mx,sync-e@ejemplo.mx,temporizador@ejemplo.mx,temas-a@ejemplo.mx,temas-b@ejemplo.mx,examenes-a@ejemplo.mx,examenes-b@ejemplo.mx,simulacros-a@ejemplo.mx,simulacros-b@ejemplo.mx,avisos-a@ejemplo.mx,avisos-b@ejemplo.mx,avisos-c@ejemplo.mx,avisos-d@ejemplo.mx,avisos-e@ejemplo.mx,avisos-f@ejemplo.mx,avisos-g@ejemplo.mx',
     },
     projects: [
       {

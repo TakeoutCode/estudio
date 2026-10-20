@@ -3,6 +3,7 @@ import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
@@ -16,6 +17,7 @@ import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js';
 import { DecksModule } from './modules/decks/decks.module.js';
 import { ExamsModule } from './modules/exams/exams.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { StudyModule } from './modules/study/study.module.js';
 import { SyncModule } from './modules/sync/sync.module.js';
 import { UsersModule } from './modules/users/users.module.js';
@@ -68,6 +70,8 @@ const REQUEST_ID_HEADER = 'x-request-id';
     }),
     // Límite global de BACKEND BE12; auth fija uno más estricto en login y registro.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    // BE14: cron y envíos programados; las pruebas reemplazan el scheduler por uno vacío.
+    ScheduleModule.forRoot(),
     PrismaModule,
     HealthModule,
     AuthModule,
@@ -76,6 +80,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     UsersModule,
     StudyModule,
     ExamsModule,
+    NotificationsModule,
   ],
   providers: [
     // Orden: límite de tasa → versión de contrato (ARC6) → access token (BE11).

@@ -29,9 +29,9 @@
 ## 2. Modelo de datos
 
 - `PushSubscription` (solo servidor): `id`, `userId`, `deviceId`, `endpoint` (único), `p256dh`, `auth`, `userAgent`, `createdAt`, `lastSuccessAt`, `failures`.
-- `NotificationEvent` (solo inserción): `id`, `userId`, `kinds[]` (uno o varios recordatorios agrupados), `localDate`, `scheduledFor`, `sentAt`, `openedAt`, `status` (`sent` | `failed` | `suppressed`), `reason` y `payloadKey` (clave i18n más parámetros).
+- `NotificationEvent` (solo inserción): `id`, `userId`, `kinds[]` (uno o varios recordatorios agrupados), `localDate`, `scheduledFor`, `sentAt`, `openedAt`, `status` (`pending` mientras se entrega, luego `sent` | `failed` | `suppressed`), `reason`, `payloadKey` y `payloadParams` (los parámetros del texto, no el texto), y `examDays` (los `examId:N` avisados en ese evento, para avisar una vez por examen y por cada N).
 - `ScheduledNotification` (fin de descanso): `id`, `userId`, `timerSessionId`, `blockIndex`, `fireAt`, `cancelledAt`, `sentAt`, con unicidad `(timerSessionId, blockIndex)` para enviarlo una sola vez.
-- `NotificationState` por usuario: `ignoredStreak`, `backoffSince`, `backoffQuestionAnsweredAt`, y los `(examId, N)` ya avisados.
+- `NotificationState` por usuario: `backoffResetAt` ("Como antes") y `backoffQuestionAnsweredAt`. La serie de ignorados y el modo reducido no se guardan: se calculan con `backoffState` a partir de los eventos enviados, así no se desincronizan.
 
 `reason` ∈ `disabled`, `quiet_hours`, `daily_cap`, `below_min_due`, `backoff`, `no_subscription`, `foreground`. Registrar cada supresión permite revisar la política con datos (§6).
 
@@ -53,7 +53,7 @@ export function decideNotification(i: DecideInput): Decision {
 
 ## 4. Disparadores
 
-**NT3 · DEBE** evaluar los recordatorios con un tick de cron cada 5 min, bajo advisory lock (ARC7). Toma a los usuarios cuya hora local cruzó `dailyReminderTime` desde el tick anterior y que no tienen recordatorio en su `localDate`, y evalúa los tres tipos de recordatorio. El umbral del diario se compara con las vencidas (tarjetas vivas con `due` antes del fin de su día local, §3b). El número que muestra el texto sale de `todayLoad()` de `srs`, la misma función que usa la app tras repartir el atraso (P8), para que el aviso y la app digan lo mismo. Si `dailyReminderTime` cae en horas silenciosas, Ajustes no lo permite, y el servidor no lo pospone a las 07:00. *Razón:* §3b y R12; un aviso aplazado llega sin que ella lo espere.
+**NT3 · DEBE** evaluar los recordatorios con un tick de cron cada 5 min, bajo advisory lock (ARC7). Toma a los usuarios cuya hora local cruzó `dailyReminderTime` desde el tick anterior (`reminderTimeCrossed` de `srs`; un tick perdido no se recupera tarde) y que no tienen recordatorio en su `localDate`, y evalúa los tres tipos de recordatorio. El umbral del diario se compara con las vencidas (tarjetas vivas con `due` antes del fin de su día local, §3b). El número que muestra el texto es el `due` de `buildSessionQueue` de `srs` (vía `reminderCandidates`), el mismo que muestra Hoy, para que el aviso y la app digan lo mismo. Si `dailyReminderTime` cae en horas silenciosas, Ajustes no lo permite, y el servidor no lo pospone a las 07:00. *Razón:* §3b y R12; un aviso aplazado llega sin que ella lo espere.
 
 **NT4 · DEBE** programar el fin de descanso desde el cliente: `PUT /notifications/break-end {timerSessionId, blockIndex, fireAt}` al pasar a segundo plano durante un descanso y `DELETE` al volver. Un poller de 30 s envía los vencidos. No cuenta para `maxRemindersPerDay` ni como ignorado, pero sí respeta las horas silenciosas. *Razón:* §3a y §3g; iOS no permite notificaciones locales programadas.
 
@@ -72,7 +72,7 @@ export function decideNotification(i: DecideInput): Decision {
 
 ## 6. Ignorados y reducción de frecuencia (§3f)
 
-**NT7 · DEBE** reportar las aperturas desde el SW (`notificationclick` → `POST /notifications/:id/opened` con `keepalive`), y cada apertura reinicia `ignoredStreak`. Un recordatorio sin abrir en `ignoredAfterHours`, o antes del siguiente, cuenta como ignorado; `break_end` no cuenta. Con 3 seguidos se entra en modo reducido (un recordatorio cada 3 días), y la próxima vez que abra la app, no por push, se pregunta una sola vez: "¿Quieres seguir recibiendo recordatorios? [Como antes] [Cada 3 días] [Desactivar]". *Razón:* §3f y §3g; el aviso de descanso depende de su temporizador, no de su interés por los recordatorios.
+**NT7 · DEBE** reportar las aperturas: el SW abre la URL del aviso (`/?aviso=<id>`) en `notificationclick` y la app, al arrancar con ese parámetro, llama a `POST /notifications/:id/opened` (con sesión; si no hay red, lo reintenta al volver). Cada apertura reinicia la serie de ignorados. Un recordatorio sin abrir en `ignoredAfterHours`, o antes del siguiente, cuenta como ignorado; `break_end` no cuenta. Con 3 seguidos se entra en modo reducido (un recordatorio cada 3 días), y la próxima vez que abra la app, no por push, se pregunta una sola vez: "¿Quieres seguir recibiendo recordatorios? [Como antes] [Cada 3 días] [Desactivar]". La app consulta `GET /notifications/state` y responde con `POST /notifications/backoff`; "Desactivar" además guarda `enabled = false` en sus ajustes. Se vuelve a preguntar solo si, después de "Como antes", vuelve a entrar en modo reducido. *Razón:* §3f y §3g; el aviso de descanso depende de su temporizador, no de su interés por los recordatorios.
 
 ## 7. Limitaciones de iOS
 

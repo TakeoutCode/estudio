@@ -15,7 +15,7 @@
 | `exercises` | ejercicios de aplicación | — | `Exercise` |
 | `ai` | borradores y retroalimentación, cuota diaria | `POST /ai/drafts`, `POST /ai/feedback` | `AiDraft`, `AiFeedback` |
 | `media` | firma de subida, limpieza de huérfanos en Cloudinary | `POST /media/signature` | `MediaAsset` |
-| `notifications` | suscripciones, cron, envíos programados | `POST/DELETE /push/subscriptions`, `POST /notifications/:id/opened`, `PUT/DELETE /notifications/break-end` | — |
+| `notifications` | suscripciones, cron, envíos programados | `POST/DELETE /push/subscriptions`, `POST /notifications/:id/opened`, `PUT/DELETE /notifications/break-end`, `GET /notifications/state`, `POST /notifications/backoff` | — |
 | `health` | ping a la base, chequeos para alertas, errores del cliente (ADR-016) | `GET /health`, `GET /health/checks/:token`, `POST /diagnostics/errors` | — |
 
 `users`, `study` y `health` se suman a los 8 módulos pedidos porque sus entidades no pertenecen a ninguno de ellos. Casi todo el CRUD de contenido entra por `/sync/push`, no por REST (local-first).

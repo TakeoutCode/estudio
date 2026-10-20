@@ -22,19 +22,23 @@ model User {
   /// SYNC §6: cursores menores a este valor reciben 410 cursor_expired.
   purgedThroughSeq BigInt   @default(0) @map("purged_through_seq")
 
-  refreshTokens    RefreshToken[]
-  appliedMutations AppliedMutation[]
-  decks            Deck[]
-  topics           Topic[]
-  exams            Exam[]
-  notes            Note[]
-  cards            Card[]
-  userSettings     UserSettings[]
-  selfExplanations SelfExplanation[]
-  studySessions    StudySession[]
-  reviewLogs       ReviewLog[]
-  timerSessions    TimerSession[]
-  timerBlockLogs   TimerBlockLog[]
+  refreshTokens          RefreshToken[]
+  appliedMutations       AppliedMutation[]
+  decks                  Deck[]
+  topics                 Topic[]
+  exams                  Exam[]
+  notes                  Note[]
+  cards                  Card[]
+  userSettings           UserSettings[]
+  selfExplanations       SelfExplanation[]
+  studySessions          StudySession[]
+  reviewLogs             ReviewLog[]
+  timerSessions          TimerSession[]
+  timerBlockLogs         TimerBlockLog[]
+  pushSubscriptions      PushSubscription[]
+  notificationEvents     NotificationEvent[]
+  scheduledNotifications ScheduledNotification[]
+  notificationState      NotificationState?
 
   @@map("user")
 }
@@ -284,4 +288,71 @@ model ReviewLog {
   @@index([userId, serverSeq])
   @@index([userId, cardId])
   @@map("review_log")
+}
+
+/// NOTIFICATIONS §2: suscripción Web Push de un dispositivo (solo servidor, no se sincroniza).
+model PushSubscription {
+  id            String    @id @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  deviceId      String    @map("device_id") @db.Uuid
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String?   @map("user_agent")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSuccessAt DateTime? @map("last_success_at") @db.Timestamptz(3)
+  failures      Int       @default(0)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscription")
+}
+
+/// NOTIFICATIONS §2, NT5: un recordatorio agrupado por usuario y día local, enviado o suprimido
+/// con su motivo (§6: para revisar la política con datos). La unicidad (usuario, día) hace que
+/// dos ticks concurrentes no dupliquen (NT-T6).
+model NotificationEvent {
+  id            String   @id @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  kinds         String[]
+  localDate     String   @map("local_date")
+  scheduledFor  BigInt   @map("scheduled_for")
+  sentAt        BigInt?  @map("sent_at")
+  openedAt      BigInt?  @map("opened_at")
+  status        String // pending | sent | failed | suppressed
+  reason        String?
+  payloadKey    String?  @map("payload_key")
+  payloadParams Json?    @map("payload_params")
+  /// NT-T11: "examId:N" avisados en este evento.
+  examDays      String[] @map("exam_days")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate])
+  @@map("notification_event")
+}
+
+/// NT4: fin de descanso programado por el cliente; se envía una sola vez por bloque.
+model ScheduledNotification {
+  id             String  @id @db.Uuid
+  userId         String  @map("user_id") @db.Uuid
+  timerSessionId String  @map("timer_session_id") @db.Uuid
+  blockIndex     Int     @map("block_index")
+  fireAt         BigInt  @map("fire_at")
+  cancelledAt    BigInt? @map("cancelled_at")
+  sentAt         BigInt? @map("sent_at")
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([timerSessionId, blockIndex])
+  @@index([fireAt])
+  @@map("scheduled_notification")
+}
+
+/// NT7, §3f: "Como antes" reinicia la serie de ignorados; la pregunta se hace una sola vez.
+model NotificationState {
+  userId                    String  @id @map("user_id") @db.Uuid
+  backoffResetAt            BigInt? @map("backoff_reset_at")
+  backoffQuestionAnsweredAt BigInt? @map("backoff_question_answered_at")
+  user                      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_state")
 }
