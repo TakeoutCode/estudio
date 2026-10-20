@@ -128,6 +128,8 @@
     "saved": "Guardada. Puedes escribir la siguiente.",
     "updated": "Cambios guardados.",
     "delete": "Borrar tarjeta",
+    "deleteConfirm": "Se borrará esta tarjeta, también en tus otros dispositivos. No se puede deshacer.",
+    "deleteYes": "Sí, borrar la tarjeta",
     "backToToday": "Volver a Hoy",
     "backToDeck": "Volver al mazo",
     "moveHint": "Al guardar pasa a ese mazo con todo su historial de repasos. Los temas son de cada mazo: elige uno del nuevo o déjala sin tema.",

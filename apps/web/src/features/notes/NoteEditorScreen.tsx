@@ -430,17 +430,67 @@ function NoteForm({
         </button>
       </form>
       {note ? (
-        <button
-          type="button"
-          className={`min-h-11 w-full rounded-(--radius-card) px-4 text-danger ${focus}`}
-          onClick={() => {
-            void deleteNote(note.id).then(() => navigate(returnTo?.to ?? '/'));
-          }}
-        >
-          {t('notes.delete')}
-        </button>
+        <DeleteNote onDelete={() => deleteNote(note.id).then(() => navigate(returnTo?.to ?? '/'))} />
       ) : null}
     </>
+  );
+}
+
+/** Borrar pide confirmación: desde la lista de un mazo es fácil tocarlo sin querer. */
+function DeleteNote({ onDelete }: { readonly onDelete: () => Promise<unknown> }) {
+  const { t } = useTranslation();
+  const id = useId();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        className={`min-h-11 w-full rounded-(--radius-card) px-4 text-danger ${focus}`}
+        onClick={() => {
+          setConfirming(true);
+        }}
+      >
+        {t('notes.delete')}
+      </button>
+    );
+  }
+  return (
+    <div role="alertdialog" aria-labelledby={`${id}-confirm`} className="flex flex-col gap-2">
+      <p id={`${id}-confirm`} className="m-0">
+        {t('notes.deleteConfirm')}
+      </p>
+      {failed ? (
+        <p role="alert" className="m-0 text-caption">
+          {t('error.generic')}
+        </p>
+      ) : null}
+      <button
+        type="button"
+        className={`min-h-11 w-full rounded-(--radius-card) border border-danger px-4 font-medium text-danger disabled:opacity-60 ${focus}`}
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          setFailed(false);
+          onDelete().catch(() => {
+            setFailed(true);
+            setBusy(false);
+          });
+        }}
+      >
+        {t('notes.deleteYes')}
+      </button>
+      <button
+        type="button"
+        className={`min-h-11 w-full rounded-(--radius-card) px-4 text-primary ${focus}`}
+        onClick={() => {
+          setConfirming(false);
+        }}
+      >
+        {t('decks.cancel')}
+      </button>
+    </div>
   );
 }
 

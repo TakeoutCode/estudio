@@ -69,6 +69,30 @@ describe('editor de notas · desde un mazo (?mazo=)', () => {
     expect(screen.queryByText(/pasa a ese mazo con todo su historial/)).toBeNull();
   });
 
+  it('borrar pide confirmación; al confirmar borra y vuelve al mazo de donde vino', async () => {
+    const note = await createNote({
+      deck: { name: 'Carpo' },
+      content: { kind: 'basic', front: '¿Semilunar?', back: 'Carpo', explanation: '', reverse: false },
+    });
+    render(
+      <MemoryRouter initialEntries={[`/notes/${note.id}?mazo=${note.deckId}`]}>
+        <Routes>
+          <Route path="/notes/:noteId" element={<NoteEditorScreen />} />
+          <Route path="/decks/:deckId" element={<p>Pantalla del mazo</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Borrar tarjeta' }));
+    expect(screen.getByRole('alertdialog').textContent).toContain('No se puede deshacer');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect((await db.notes.get(note.id))?.deletedAt).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar tarjeta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, borrar la tarjeta' }));
+    expect(await screen.findByText('Pantalla del mazo')).toBeTruthy();
+    expect((await db.notes.get(note.id))?.deletedAt).not.toBeNull();
+  });
+
   it('un ?mazo= que no existe se ignora: vuelve a Hoy', async () => {
     render(
       <MemoryRouter initialEntries={['/notes/new?mazo=0192f1a0-0000-7000-8000-0000000dead0']}>
