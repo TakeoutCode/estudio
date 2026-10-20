@@ -15,7 +15,7 @@ import {
   TZ,
 } from '../test/planner-fixtures.js';
 import { backoffState, type DecideInput, decideNotification } from './decide.js';
-import { newStartedToday, reminderCandidates } from './reminders.js';
+import { newStartedToday, reminderCandidates, reminderTimeCrossed } from './reminders.js';
 
 const prefs = NotificationPrefsSchema.parse({ enabled: true, dailyReminderTime: '19:00' });
 const at = (h: number, m = 0) => TODAY_START + h * HOUR + m * 60_000; // hora local en CDMX
@@ -127,6 +127,36 @@ describe('NT7, §3f: ignorados y reducción', () => {
       active: false,
       lastReminderAt: at(-24),
     });
+  });
+});
+
+describe('NT3: el tick que cruza su hora', () => {
+  const MIN = 60_000;
+
+  it('avisa en el tick que contiene las 19:00 locales y no en el siguiente', () => {
+    expect(reminderTimeCrossed(at(18, 55), at(19), TZ, '19:00')).toBe(true);
+    expect(reminderTimeCrossed(at(19), at(19, 5), TZ, '19:00')).toBe(false);
+    expect(reminderTimeCrossed(at(18, 50), at(18, 55), TZ, '19:00')).toBe(false);
+    expect(reminderTimeCrossed(at(19), at(19), TZ, '19:00')).toBe(false);
+  });
+
+  it('usa su zona, no la del servidor', () => {
+    // 19:00 en CDMX (UTC-6) son las 01:00 UTC del día siguiente.
+    expect(reminderTimeCrossed(at(18, 58), at(19, 2), 'UTC', '19:00')).toBe(false);
+    expect(reminderTimeCrossed(at(12, 58), at(13, 2), 'UTC', '19:00')).toBe(true);
+  });
+
+  it('cruza la medianoche y no recupera un hueco de un día', () => {
+    expect(reminderTimeCrossed(at(23, 58), at(24, 3), TZ, '00:00')).toBe(true);
+    expect(reminderTimeCrossed(at(23, 58), at(24, 3), TZ, '23:59')).toBe(true);
+    expect(reminderTimeCrossed(at(23, 58), at(24, 3), TZ, '19:00')).toBe(false);
+    expect(reminderTimeCrossed(at(19), at(19) + DAY, TZ, '08:00')).toBe(true);
+  });
+
+  it('con cambio de horario (Nueva York, 8 de marzo de 2026: 02:00 → 03:00)', () => {
+    const before = Date.UTC(2026, 2, 8, 6, 58); // 01:58 EST
+    expect(reminderTimeCrossed(before, before + 5 * MIN, 'America/New_York', '03:00')).toBe(true);
+    expect(reminderTimeCrossed(before + 5 * MIN, before + 10 * MIN, 'America/New_York', '03:00')).toBe(false);
   });
 });
 

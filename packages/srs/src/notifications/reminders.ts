@@ -1,6 +1,10 @@
 import {
+  DAY_MS,
   type Exam,
   localDayNumber,
+  localMinuteOfDay,
+  type LocalTime,
+  minutesOfDay,
   type NotificationPrefs,
   type ReviewLog,
   type StudyConfig,
@@ -34,6 +38,21 @@ export interface ReminderCandidates {
   readonly examSoon: readonly { readonly examId: string; readonly days: number }[];
   /** LD11: el plan sugiere nuevas para hoy y todavía no completó esa cuota (NT-T12). */
   readonly studyPlan: { readonly newToday: number; readonly topicIds: readonly string[] } | null;
+}
+
+/**
+ * NT3: si su hora del recordatorio pasó en el tick `(from, to]`, en su zona. Compara minutos
+ * locales, así que el cambio de horario no adelanta ni repite el aviso; un tick perdido no
+ * se recupera tarde (un aviso aplazado llega sin que ella lo espere).
+ */
+export function reminderTimeCrossed(from: number, to: number, timeZone: string, time: LocalTime): boolean {
+  if (to <= from) return false;
+  if (to - from >= DAY_MS) return true;
+  const target = minutesOfDay(time);
+  const start = localMinuteOfDay(from, timeZone);
+  const end = localMinuteOfDay(to, timeZone);
+  if (localDayNumber(from, timeZone) === localDayNumber(to, timeZone)) return start < target && target <= end;
+  return target > start || target <= end;
 }
 
 /** Tarjetas cuyo primer repaso fue hoy (día local): las nuevas que ya empezó hoy. */
