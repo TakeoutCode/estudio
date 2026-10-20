@@ -200,4 +200,45 @@ describe('StudyScreen · temporizador (§3)', () => {
     expect(await screen.findByText(humerus.front)).toBeTruthy();
     expect(await db.timerBlockLogs.count()).toBe(1); // el descanso omitido queda registrado (§5)
   });
+
+  it('R3: el descanso no cuenta en la duración de la tarjeta que quedó en pantalla', async () => {
+    await focusBlock();
+    renderStudy();
+    await screen.findByText(humerus.front); // en pantalla desde T0
+    vi.setSystemTime(T0 + 10_000);
+    fireEvent.click(await screen.findByRole('button', { name: 'Descansar' }));
+    expect(await screen.findByRole('heading', { name: 'Descanso' })).toBeTruthy();
+
+    vi.setSystemTime(T0 + 190_000); // 3 min de descanso
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir estudiando' }));
+    expect(await screen.findByText(humerus.front)).toBeTruthy();
+    vi.setSystemTime(T0 + 195_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await screen.findByText(femur.front);
+    expect((await db.reviewLogs.toArray())[0]?.durationMs).toBe(15_000);
+  });
 });
+
+/** Un bloque de enfoque flexible en curso, de este dispositivo, desde T0. */
+async function focusBlock() {
+  const device = await db.transaction('rw', db.meta, () => deviceId(db));
+  await db.timerSessions.put({
+    id: newId(),
+    hlc: encodeHlc({ wall: T0, counter: 0, node: device }),
+    updatedAt: T0,
+    deletedAt: null,
+    state: 'focus',
+    mode: 'flexible',
+    startedAt: T0,
+    pausedAt: null,
+    pausedMs: 0,
+    blockIndex: 0,
+    completedBlocks: 0,
+    plannedMs: 25 * 60_000,
+    extendedThisBlock: false,
+    ownerDeviceId: device,
+    lastSeenAt: T0,
+    endedReason: null,
+  });
+}

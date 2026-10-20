@@ -115,9 +115,23 @@ function Session({
     ? plan.queue.filter((q) => (states.get(q.cardId)?.lastReview ?? -1) >= startedAt).length
     : 0;
 
+  // Temporizador (§3): opcional; si corre en este dispositivo, el descanso reemplaza la tarjeta.
+  const timer = useTimerView();
+  const onBreak =
+    timer?.isOwner === true &&
+    (timer.session?.state === 'break_short' || timer.session?.state === 'break_long');
+
+  // R3: la duración de una tarjeta no incluye el descanso. Durante el descanso no se presenta
+  // la siguiente, y la que ya estaba en pantalla descuenta el tiempo de descanso.
+  const hold = useStudy((s) => s.hold);
+  const release = useStudy((s) => s.release);
   useEffect(() => {
-    if (nextId && currentCardId === null) present(nextId, Date.now());
-  }, [nextId, currentCardId, present]);
+    if (onBreak) hold(Date.now());
+    else release(Date.now());
+  }, [onBreak, hold, release]);
+  useEffect(() => {
+    if (nextId && currentCardId === null && !onBreak) present(nextId, Date.now());
+  }, [nextId, currentCardId, onBreak, present]);
 
   // Una tarjeta en aprendizaje vuelve en unos minutos: se repinta cuando vence (§3).
   const waitUntil = step?.kind === 'wait' ? step.until : null;
@@ -134,8 +148,6 @@ function Session({
     };
   }, [waitUntil]);
 
-  // Temporizador (§3): opcional; si corre en este dispositivo, el descanso reemplaza la tarjeta.
-  const timer = useTimerView();
   const [away, setAway] = useState<{ sessionId: string; interrupted: TimerBlockRecord } | null>(null);
   const onTimerResult = (result: TimerResult) => {
     if (result.notice === 'interrupted_while_away' && result.closed) {
@@ -144,9 +156,6 @@ function Session({
   };
   const now = useTimerTicker(timer, step?.kind === 'card' && currentCardId !== null, onTimerResult);
   const serverNow = now + (timer?.offsetMs ?? 0);
-  const onBreak =
-    timer?.isOwner === true &&
-    (timer.session?.state === 'break_short' || timer.session?.state === 'break_long');
 
   if (!step) return null;
   return (

@@ -22,6 +22,8 @@ interface StudyState {
   readonly currentCardId: string | null;
   readonly phase: CardPhase;
   readonly shownAt: number;
+  /** Inicio del descanso con una tarjeta en pantalla; ese tiempo no cuenta en su duración (R3). */
+  readonly heldAt: number | null;
   readonly confidence: Confidence | null;
   readonly answered: number;
   readonly start: (session: StudySession) => void;
@@ -29,6 +31,10 @@ interface StudyState {
   /** R1: revelar solo desde el intento. */
   readonly reveal: (confidence: Confidence | null) => void;
   readonly markAnswered: () => void;
+  /** Empieza un descanso (§3) con la tarjeta en pantalla. */
+  readonly hold: (now: number) => void;
+  /** Termina el descanso: la duración de la tarjeta sigue desde donde quedó. */
+  readonly release: (now: number) => void;
   readonly end: () => void;
 }
 
@@ -37,6 +43,7 @@ const idle = {
   currentCardId: null,
   phase: 'prompt',
   shownAt: 0,
+  heldAt: null,
   confidence: null,
   answered: 0,
 } as const;
@@ -47,13 +54,25 @@ export const useStudy = create<StudyState>()((set) => ({
     set({ ...idle, session });
   },
   present: (cardId, now) => {
-    set({ currentCardId: cardId, phase: 'prompt', shownAt: now, confidence: null });
+    set({ currentCardId: cardId, phase: 'prompt', shownAt: now, heldAt: null, confidence: null });
   },
   reveal: (confidence) => {
     set((s) => (s.currentCardId && s.phase === 'prompt' ? { phase: 'revealed', confidence } : s));
   },
   markAnswered: () => {
-    set((s) => ({ currentCardId: null, phase: 'prompt', confidence: null, answered: s.answered + 1 }));
+    set((s) => ({
+      currentCardId: null,
+      phase: 'prompt',
+      heldAt: null,
+      confidence: null,
+      answered: s.answered + 1,
+    }));
+  },
+  hold: (now) => {
+    set((s) => (s.currentCardId && s.heldAt === null ? { heldAt: now } : s));
+  },
+  release: (now) => {
+    set((s) => (s.heldAt === null ? s : { heldAt: null, shownAt: s.shownAt + Math.max(0, now - s.heldAt) }));
   },
   end: () => {
     set(idle);
