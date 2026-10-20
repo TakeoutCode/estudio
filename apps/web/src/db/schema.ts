@@ -1,4 +1,14 @@
-import type { Card, Deck, Mutation, Note, ReviewLog, SyncedEntity, UserSettings } from '@estudio/shared';
+import type {
+  Card,
+  Deck,
+  Mutation,
+  Note,
+  ReviewLog,
+  SyncedEntity,
+  TimerBlockLog,
+  TimerSession,
+  UserSettings,
+} from '@estudio/shared';
 import type { CardState } from '@estudio/srs';
 import { type Collection, Dexie, type EntityTable } from 'dexie';
 
@@ -16,6 +26,8 @@ export interface MetaEntry {
 
 /** Cursor del pull en `meta` (SYNC SY4). */
 export const SYNC_CURSOR_KEY = 'syncCursor';
+/** Desfase estimado con el reloj del servidor (`serverNow` del pull, SYNC SY7). */
+export const SERVER_OFFSET_KEY = 'serverOffsetMs';
 
 /** Tabla de Dexie de cada entidad que se sincroniza. */
 export const TABLE_FOR = {
@@ -23,7 +35,9 @@ export const TABLE_FOR = {
   note: 'notes',
   card: 'cards',
   userSettings: 'userSettings',
+  timerSession: 'timerSessions',
   reviewLog: 'reviewLogs',
+  timerBlockLog: 'timerBlockLogs',
 } as const satisfies Record<SyncedEntity, string>;
 
 /** IndexedDB es la fuente local de la UI (ARCHITECTURE ARC3). */
@@ -33,6 +47,8 @@ export class EstudioDb extends Dexie {
   cards!: EntityTable<Card, 'id'>;
   userSettings!: EntityTable<UserSettings, 'id'>;
   reviewLogs!: EntityTable<ReviewLog, 'id'>;
+  timerSessions!: EntityTable<TimerSession, 'id'>;
+  timerBlockLogs!: EntityTable<TimerBlockLog, 'id'>;
   cardStates!: EntityTable<CardState, 'cardId'>;
   outbox!: EntityTable<OutboxEntry, 'mutationId'>;
   meta!: EntityTable<MetaEntry, 'key'>;
@@ -53,6 +69,10 @@ export class EstudioDb extends Dexie {
     this.version(3)
       .stores({ notes: 'id, deckId', cards: 'id, noteId' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // Igual con el temporizador: la v3 ignoraba timerSession y timerBlockLog.
+    this.version(4)
+      .stores({ timerSessions: 'id, state', timerBlockLogs: 'id, timerSessionId, endedAt' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -65,6 +85,8 @@ export const syncedTables = (database: EstudioDb) => [
   database.cards,
   database.userSettings,
   database.reviewLogs,
+  database.timerSessions,
+  database.timerBlockLogs,
   database.cardStates,
   database.meta,
 ];

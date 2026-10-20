@@ -39,12 +39,14 @@ describe('UserSettings por sección (SYNC §1)', () => {
 });
 
 describe('esquemas de fila sincronizables', () => {
-  it('viajan deck, note, card, userSettings y reviewLog por ahora', () => {
+  it('viajan mazos, notas, tarjetas, ajustes, temporizador y logs por ahora', () => {
     expect(Object.keys(SYNC_ROW_SCHEMAS).sort()).toEqual([
       'card',
       'deck',
       'note',
       'reviewLog',
+      'timerBlockLog',
+      'timerSession',
       'userSettings',
     ]);
     expect(isSyncedEntity('card')).toBe(true);

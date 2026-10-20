@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import { DeckSchema } from '../domain/deck.js';
 import { CardSchema, NoteSchema } from '../domain/note.js';
 import { ReviewLogSchema } from '../domain/review.js';
+import { TimerBlockLogSchema, TimerSessionSchema } from '../domain/timer.js';
 import { UserSettingsSchema } from '../domain/user-settings.js';
 import type { EntityName } from './entities.js';
 
@@ -15,7 +16,9 @@ export const SYNC_ROW_SCHEMAS = {
   note: NoteSchema,
   card: CardSchema,
   userSettings: UserSettingsSchema,
+  timerSession: TimerSessionSchema,
   reviewLog: ReviewLogSchema,
+  timerBlockLog: TimerBlockLogSchema,
 } as const satisfies Partial<Record<EntityName, z.ZodType>>;
 
 export type SyncedEntity = keyof typeof SYNC_ROW_SCHEMAS;

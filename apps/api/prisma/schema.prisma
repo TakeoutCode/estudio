@@ -29,6 +29,8 @@ model User {
   cards            Card[]
   userSettings     UserSettings[]
   reviewLogs       ReviewLog[]
+  timerSessions    TimerSession[]
+  timerBlockLogs   TimerBlockLog[]
 
   @@map("user")
 }
@@ -131,6 +133,56 @@ model UserSettings {
   @@unique([userId, section])
   @@index([userId, serverSeq])
   @@map("user_settings")
+}
+
+/// STUDY-METHODS §3, SYNC SY7: estado de la máquina de `srs/timer`. Una sola sesión activa por
+/// cuenta (ADR-006): el handler cierra las demás como `superseded`.
+model TimerSession {
+  id                String  @id @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  state             String
+  mode              String
+  startedAt         BigInt? @map("started_at")
+  pausedAt          BigInt? @map("paused_at")
+  pausedMs          BigInt  @map("paused_ms")
+  blockIndex        Int     @map("block_index")
+  completedBlocks   Int     @map("completed_blocks")
+  plannedMs         BigInt  @map("planned_ms")
+  extendedThisBlock Boolean @map("extended_this_block")
+  ownerDeviceId     String  @map("owner_device_id") @db.Uuid
+  lastSeenAt        BigInt? @map("last_seen_at")
+  endedReason       String? @map("ended_reason")
+  hlc               String
+  updatedAt         BigInt  @map("updated_at")
+  deletedAt         BigInt? @map("deleted_at")
+  serverSeq         BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@index([userId, state])
+  @@map("timer_session")
+}
+
+/// §3, P6: cada bloque o descanso cerrado. Solo inserción (trigger timer_block_log_append_only).
+model TimerBlockLog {
+  id             String @id @db.Uuid
+  userId         String @map("user_id") @db.Uuid
+  timerSessionId String @map("timer_session_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  deviceId       String @map("device_id") @db.Uuid
+  kind           String
+  blockIndex     Int    @map("block_index")
+  mode           String
+  startedAt      BigInt @map("started_at")
+  endedAt        BigInt @map("ended_at")
+  plannedMs      BigInt @map("planned_ms")
+  activeMs       BigInt @map("active_ms")
+  outcome        String
+  serverSeq      BigInt @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@index([userId, timerSessionId])
+  @@map("timer_block_log")
 }
 
 /// R3: solo inserción (trigger review_log_append_only en la migración).

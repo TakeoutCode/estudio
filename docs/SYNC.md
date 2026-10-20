@@ -99,8 +99,10 @@ syncScheduler.poke();
 
 **SY7 · DEBE** sincronizar `TimerSession` por LWW con `TimerStateSchema` (shared): `{state, mode, startedAt, pausedAt, pausedMs, blockIndex, completedBlocks, plannedMs, extendedThisBlock, ownerDeviceId, lastSeenAt, endedReason}`. `completedBlocks` decide el descanso largo y `lastSeenAt` es la marca más alta del reloj (no retrocede y detecta la app cerrada a mitad de bloque). Cada transición la valida la máquina de `srs/timer` y se escribe junto con el outbox; un `tick` que solo avanza `lastSeenAt` (`changed: false`) no se sincroniza. Cada bloque o descanso cerrado agrega un `TimerBlockLog` (`TimerBlockLogSchema`) con `outcome: 'completed' | 'interrupted' | 'manual'` (§3), que P6 usa para contar bloques. *Razón:* hay un solo temporizador por cuenta y se puede continuar en otro dispositivo.
 - Solo puede haber una sesión por cuenta con `state ∉ {idle, ended}`; el servidor lo hace cumplir al recibir el push (§5).
-- Tomar el control desde otro dispositivo ("En curso en otro dispositivo · Continuar aquí") reescribe la misma `id` con el nuevo `ownerDeviceId`.
+- Tomar el control desde otro dispositivo ("En curso en otro dispositivo · Continuar aquí") reescribe la misma `id` con el nuevo `ownerDeviceId`. Solo el dispositivo dueño despacha eventos; desde otro, únicamente `start` y `takeover` (que toman el control primero).
+- El servidor cierra la sesión de HLC menor con la transición `stop` de `srs` (`endedReason: 'superseded'`) y un HLC propio (nodo nil) que le gana; el bloque que esa sesión tenía en curso no genera `TimerBlockLog`.
 - Las marcas de tiempo se escriben como `Date.now() + serverOffsetMs`, donde el desfase se estima con el `serverNow` del pull. El tiempo restante sale de esas marcas (§3); al reabrir se aplica `timer.pauseTimeoutMin`.
+- `lastSeenAt` avanza en local con cada `tick` sin pasar por el outbox (un latido por segundo no viaja); se sincroniza con la siguiente transición. Así, al recargar, el hueco desde la última señal real detecta la app cerrada a mitad de bloque.
 
 ## 9. Envío y reintentos
 

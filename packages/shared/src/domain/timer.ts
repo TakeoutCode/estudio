@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TimerModeSchema } from '../config/study-config.js';
+import { SyncMetaSchema } from '../sync/contracts.js';
 
 // Temporizador (STUDY-METHODS §3, SYNC SY7, ADR-006). Aquí solo la forma de lo que se
 // guarda y viaja; las transiciones las valida la máquina de `srs/timer`.
@@ -66,3 +67,14 @@ export const TimerBlockLogSchema = z
   .strict()
   .refine((b) => b.endedAt >= b.startedAt, { path: ['endedAt'], message: 'ended_before_started' });
 export type TimerBlockLog = z.infer<typeof TimerBlockLogSchema>;
+
+/**
+ * Sesión del temporizador tal como viaja (LWW, SYNC SY7). Una sola activa por cuenta:
+ * el servidor cierra las demás como `superseded` (ADR-006, SYNC §5).
+ */
+export const TimerSessionSchema = SyncMetaSchema.extend(TimerStateSchema.shape).strict();
+export type TimerSession = z.infer<typeof TimerSessionSchema>;
+
+/** Activa = cuenta para "una por cuenta" (SY7): ni en reposo ni terminada. */
+export const isTimerActive = (t: Pick<TimerState, 'state'>): boolean =>
+  t.state !== 'idle' && t.state !== 'ended';

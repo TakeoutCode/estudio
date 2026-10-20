@@ -29,6 +29,9 @@ importers:
       '@estudio/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@estudio/srs':
+        specifier: workspace:*
+        version: link:../../packages/srs
       '@nestjs-cls/transactional':
         specifier: 4.0.1
         version: 4.0.1(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.2.0)(nestjs-cls@7.0.1(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.2.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)

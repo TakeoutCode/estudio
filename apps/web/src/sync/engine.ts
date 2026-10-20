@@ -14,7 +14,14 @@ import {
 import { z } from 'zod';
 import { deviceId, observeHlc } from '@/db/clock';
 import type { projectCards as ProjectCardsFn } from '@/db/projection';
-import { type EstudioDb, type OutboxEntry, SYNC_CURSOR_KEY, syncedTables, TABLE_FOR } from '@/db/schema';
+import {
+  type EstudioDb,
+  type OutboxEntry,
+  SERVER_OFFSET_KEY,
+  SYNC_CURSOR_KEY,
+  syncedTables,
+  TABLE_FOR,
+} from '@/db/schema';
 import { ApiError } from '@/lib/api';
 
 // Motor de sync del cliente (SYNC §3-§6). Sin estado propio: la base y el transporte entran
@@ -37,7 +44,7 @@ type ProjectCards = typeof ProjectCardsFn;
 /** FE9: srs (ts-fsrs) fuera del JS inicial; la sync lo carga al bajar el primer cambio. */
 const loadProjection = async (): Promise<ProjectCards> => (await import('@/db/projection')).projectCards;
 
-const OFFSET_KEY = 'serverOffsetMs';
+const OFFSET_KEY = SERVER_OFFSET_KEY;
 
 const toMutation = ({ mutationId, op, entity, row }: OutboxEntry): Mutation => ({
   mutationId,
@@ -149,6 +156,8 @@ async function resetForFullResync(database: EstudioDb): Promise<void> {
         database.cards,
         database.userSettings,
         database.reviewLogs,
+        database.timerSessions,
+        database.timerBlockLogs,
         database.cardStates,
       ].map((table) => table.clear()),
     );

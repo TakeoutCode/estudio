@@ -1,6 +1,6 @@
 import { decodeHlc, encodeHlc, initialHlc, newId, receiveHlc, tickHlc } from '@estudio/shared';
 import { z } from 'zod';
-import type { EstudioDb } from './schema';
+import { type EstudioDb, SERVER_OFFSET_KEY } from './schema';
 
 // Reloj lógico del dispositivo (SYNC SY2). Llamar siempre dentro de una transacción `rw`
 // que incluya `db.meta`, junto con la escritura que fecha.
@@ -37,3 +37,18 @@ export async function observeHlc(database: EstudioDb, remote: string, now: numbe
 
 /** `updatedAt` de una entidad: la parte de reloj de su HLC (SYNC §1). */
 export const hlcWall = (hlc: string): number => decodeHlc(hlc).wall;
+
+/**
+ * SYNC SY7: marcas del temporizador en hora del servidor (`Date.now() + serverOffsetMs`), así
+ * dos dispositivos con relojes desfasados miden el mismo bloque. Sin pull todavía, desfase 0.
+ */
+export async function serverTime(database: EstudioDb, now: number): Promise<number> {
+  const offset = z.number().safeParse((await database.meta.get(SERVER_OFFSET_KEY))?.value);
+  return now + (offset.success ? offset.data : 0);
+}
+
+/** Solo lectura (para consultas en vivo): `null` si esta instalación aún no escribió nada. */
+export async function storedDeviceId(database: EstudioDb): Promise<string | null> {
+  const stored = z.uuid().safeParse((await database.meta.get(DEVICE_KEY))?.value);
+  return stored.success ? stored.data : null;
+}

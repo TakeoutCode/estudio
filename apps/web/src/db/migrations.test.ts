@@ -23,7 +23,7 @@ function openVersion1(name: string): Dexie {
 }
 
 describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
-  it('v1 → última: datos, outbox y reloj intactos; aparecen userSettings, notes y cards', async () => {
+  it('v1 → última: datos, outbox y reloj intactos; aparecen las tablas nuevas', async () => {
     const name = `migracion-${newId()}`;
     names.push(name);
     const deck = { id: newId(), name: 'Carpo', description: null, hlc: 'h', updatedAt: 1, deletedAt: null };
@@ -44,17 +44,19 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(3);
+    expect(current.verno).toBe(4);
     expect(await current.decks.toArray()).toEqual([deck]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
     expect(await current.userSettings.count()).toBe(0);
     expect(await current.notes.count()).toBe(0);
     expect(await current.cards.count()).toBe(0);
+    expect(await current.timerSessions.count()).toBe(0);
+    expect(await current.timerBlockLogs.count()).toBe(0);
     current.close();
   });
 
-  it('v2 → v3: el cursor vuelve a 0 para bajar notas y tarjetas que la v2 ignoró; el resto intacto', async () => {
+  it('v2 → última: el cursor vuelve a 0 para bajar lo que la v2 ignoró; el resto intacto', async () => {
     const name = `migracion-${newId()}`;
     names.push(name);
     const v2 = openVersion1(name);
@@ -71,11 +73,30 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(3);
+    expect(current.verno).toBe(4);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
     expect(await current.reviewLogs.toArray()).toEqual([log]);
     expect(await current.outbox.toArray()).toEqual([pending]);
+    current.close();
+  });
+
+  it('v3 → v4: el cursor vuelve a 0 para bajar el temporizador; las notas quedan', async () => {
+    const name = `migracion-${newId()}`;
+    names.push(name);
+    const v3 = openVersion1(name);
+    v3.version(2).stores({ userSettings: 'id, section' });
+    v3.version(3).stores({ notes: 'id, deckId', cards: 'id, noteId' });
+    const note = { id: newId(), deckId: newId(), deletedAt: null };
+    await v3.table('notes').add(note);
+    await v3.table('meta').put({ key: 'syncCursor', value: '77' });
+    v3.close();
+
+    const current = new EstudioDb(name);
+    await current.open();
+    expect(current.verno).toBe(4);
+    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
+    expect(await current.notes.toArray()).toEqual([note]);
     current.close();
   });
 });
