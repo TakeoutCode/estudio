@@ -83,7 +83,8 @@ function NoteForm({
   const [topicId, setTopicId] = useState(note?.topicId ?? NO_TOPIC);
   const [topicName, setTopicName] = useState('');
   const [topicExplanation, setTopicExplanation] = useState('');
-  const topics = useTopics(note?.deckId ?? (deckId === NEW_DECK ? null : deckId));
+  const topics = useTopics(deckId === NEW_DECK ? null : deckId);
+  const moving = note !== null && deckId !== note.deckId;
   const [status, setStatus] = useState<Status>('idle');
   const [busy, setBusy] = useState(false);
 
@@ -144,8 +145,15 @@ function NoteForm({
     setBusy(true);
     try {
       if (note) {
-        const updated = await updateNote(note.id, { content: content.data, topic });
+        const updated = await updateNote(note.id, {
+          content: content.data,
+          topic,
+          deck: moving ? deck : undefined,
+        });
+        setDeckId(updated.deckId);
         setTopicId(updated.topicId ?? NO_TOPIC);
+        setTopicName('');
+        setTopicExplanation('');
         setStatus('updated');
       } else {
         const created = await createNote({ deck, content: content.data, topic });
@@ -216,15 +224,17 @@ function NoteForm({
             <p className="m-0 text-caption text-muted">{t(`notes.kindHint.${kind}`)}</p>
           </fieldset>
         )}
-        {note ? null : (
+        <div className="flex flex-col gap-1">
           <label className="flex flex-col gap-1">
             <span>{t('notes.deck')}</span>
             <select
               className={field + ' min-h-11'}
               value={deckId}
+              aria-describedby={moving ? `${ids}-move-hint` : undefined}
               onChange={(event) => {
                 setDeckId(event.target.value);
                 setTopicId(NO_TOPIC); // los temas son de cada mazo
+                setStatus('idle');
               }}
             >
               {decks.map((deck) => (
@@ -235,8 +245,13 @@ function NoteForm({
               <option value={NEW_DECK}>{t('notes.newDeckOption')}</option>
             </select>
           </label>
-        )}
-        {!note && deckId === NEW_DECK ? (
+          {moving ? (
+            <span id={`${ids}-move-hint`} className="text-caption text-muted">
+              {t('notes.moveHint')}
+            </span>
+          ) : null}
+        </div>
+        {deckId === NEW_DECK ? (
           <label className="flex flex-col gap-1">
             <span>{t('notes.deckName')}</span>
             <input

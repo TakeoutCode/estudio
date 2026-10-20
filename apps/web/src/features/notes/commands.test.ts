@@ -152,4 +152,38 @@ describe('temas de las notas (LD5, P4)', () => {
     );
     expect((await db.topics.get(moved.topicId ?? ''))?.name).toBe('Manguito rotador');
   });
+
+  it('mover a otro mazo conserva tarjetas e historial FSRS y deja sin tema', async () => {
+    const note = await createNote({ deck: { name: 'Hombro' }, content, topic }, { now: T0 });
+    const cardId = cardIdFor(note.id, 0);
+    await answerCard(
+      { cardId, rating: Rating.Good, durationMs: 4_000, sessionId: SESSION, confidence: null },
+      { now: T0 + MIN },
+    );
+    const state = await db.cardStates.get(cardId);
+    const elbow = await createDeck({ name: 'Codo' }, { now: T0 + 2 * MIN });
+
+    const moved = await updateNote(note.id, { content, deck: { id: elbow.id } }, { now: T0 + 3 * MIN });
+    expect(moved).toMatchObject({ deckId: elbow.id, topicId: null });
+    expect(await db.cardStates.get(cardId)).toEqual(state);
+    expect((await db.cards.get(cardId))?.deletedAt).toBeNull();
+    expect((await db.outbox.toArray()).map((m) => m.row)).toContainEqual(moved);
+  });
+
+  it('al mover, un tema del mazo viejo falla sin escribir; uno nuevo se crea en el mazo nuevo', async () => {
+    const note = await createNote({ deck: { name: 'Hombro' }, content, topic }, { now: T0 });
+    const elbow = await createDeck({ name: 'Codo' }, { now: T0 + 1 });
+    const before = await db.outbox.count();
+    await expect(
+      updateNote(note.id, { content, deck: { id: elbow.id }, topic: { id: note.topicId ?? '' } }),
+    ).rejects.toThrow('topic_not_found');
+    expect(await db.outbox.count()).toBe(before);
+
+    const moved = await updateNote(
+      note.id,
+      { content, deck: { id: elbow.id }, topic: { name: 'Epicóndilo', explanation: '' } },
+      { now: T0 + MIN },
+    );
+    expect(await db.topics.get(moved.topicId ?? '')).toMatchObject({ deckId: elbow.id, name: 'Epicóndilo' });
+  });
 });

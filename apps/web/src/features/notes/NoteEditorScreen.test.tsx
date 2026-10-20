@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/schema';
 import { createDeck } from '@/features/decks';
+import { createNote } from './commands';
 import { NoteEditorScreen } from './NoteEditorScreen';
 
 const renderEditor = () =>
@@ -38,6 +39,34 @@ describe('editor de notas · desde un mazo (?mazo=)', () => {
     });
     fireEvent.click(screen.getByRole('link', { name: 'Volver al mazo' }));
     expect(await screen.findByText('Pantalla del mazo')).toBeTruthy();
+  });
+
+  it('al editar se puede mover a otro mazo: lo avisa y la deja sin tema', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    const note = await createNote({
+      deck: { name: 'Carpo' },
+      content: { kind: 'basic', front: '¿Escafoides?', back: 'Carpo', explanation: '', reverse: false },
+      topic: { name: 'Fila proximal', explanation: '' },
+    });
+    const tarsus = await createDeck({ name: 'Tarso' });
+    render(
+      <MemoryRouter initialEntries={[`/notes/${note.id}`]}>
+        <Routes>
+          <Route path="/notes/:noteId" element={<NoteEditorScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const deck = await screen.findByLabelText<HTMLSelectElement>('Mazo');
+    expect(deck.value).toBe(note.deckId);
+    expect(screen.queryByText(/pasa a ese mazo con todo su historial/)).toBeNull();
+    fireEvent.change(deck, { target: { value: tarsus.id } });
+    expect(screen.getByText(/pasa a ese mazo con todo su historial/)).toBeTruthy();
+    expect(screen.getByLabelText<HTMLSelectElement>('Tema (opcional)').value).toBe('');
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect(await db.notes.get(note.id)).toMatchObject({ deckId: tarsus.id, topicId: null });
+    });
+    expect(screen.queryByText(/pasa a ese mazo con todo su historial/)).toBeNull();
   });
 
   it('un ?mazo= que no existe se ignora: vuelve a Hoy', async () => {

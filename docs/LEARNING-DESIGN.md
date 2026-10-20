@@ -4,7 +4,7 @@
 
 ## 1. Modelo: nota y tarjeta
 
-Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una **`Card`** es la unidad que programa FSRS: una por lado, por hueco cloze, por grupo de máscaras o por pregunta de ejercicio. Cada `Card` tiene su propio estado FSRS (`cardStates`, ARC5). Un `Exercise` también genera `Card`s.
+Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una **`Card`** es la unidad que programa FSRS: una por lado, por hueco cloze, por grupo de máscaras o por pregunta de ejercicio. Cada `Card` tiene su propio estado FSRS (`cardStates`, ARC5). Un `Exercise` también genera `Card`s. Una nota se puede mover a otro mazo al editarla: sus `Card`s y su historial no cambian, y como los temas son de cada mazo, queda sin tema o con uno del mazo nuevo.
 
 | Tipo de nota | Cards que genera | Intento (R1) | Calificación |
 |---|---|---|---|

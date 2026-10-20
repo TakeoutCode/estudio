@@ -82,19 +82,29 @@ export function createNote(
  * Editar el contenido. Si una de sus Cards estaba para reformular (P3), editarla es
  * reformularla: desde aquí solo cuentan los lapsos nuevos.
  */
+/**
+ * Edita la nota. Con `deck`, la mueve a otro mazo: sus tarjetas y su historial FSRS no
+ * cambian, y como los temas son de cada mazo, el tema tiene que ser del mazo nuevo (sin
+ * `topic`, queda sin tema).
+ */
 export function updateNote(
   id: string,
-  input: { readonly content: NoteContent; readonly topic?: TopicChoice },
+  input: { readonly content: NoteContent; readonly topic?: TopicChoice; readonly deck?: DeckChoice },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
 ): Promise<Note> {
   return write(database, async () => {
     const current = await existing(database, id);
+    const deckId = input.deck === undefined ? current.deckId : await resolveDeck(database, input.deck, now);
+    const moved = deckId !== current.deckId;
     const topicId =
       input.topic === undefined
-        ? current.topicId
-        : await resolveTopic(database, input.topic, current.deckId, now);
+        ? moved
+          ? null
+          : current.topicId
+        : await resolveTopic(database, input.topic, deckId, now);
     const note = NoteSchema.parse({
       ...current,
+      deckId,
       topicId,
       content: input.content,
       ...(await stamp(database, now)),
