@@ -1,4 +1,4 @@
-import type { ExamConfig, FsrsConfig, Rating, ReviewLog } from '@estudio/shared';
+import { DAY_MS, type ExamConfig, type FsrsConfig, type Rating, type ReviewLog } from '@estudio/shared';
 import {
   type Card as FsrsCard,
   createEmptyCard,
@@ -37,7 +37,13 @@ export interface ReviewInput {
 
 export interface Scheduler {
   apply(state: CardState, review: ReviewInput): CardState;
+  /** Probabilidad de recordarla en `now` según FSRS (0 si es nueva). Ordena la cola (§3, P8). */
+  retrievability(state: CardState, now: number): number;
 }
+
+/** Tipo de repaso según la fase antes de responder: nuevas y en aprendizaje son `learn` (R3). */
+export const reviewTypeFor = (phase: CardPhase): 'learn' | 'review' =>
+  phase === 'new' || phase === 'learning' ? 'learn' : 'review';
 
 const PHASE: Record<State, CardPhase> = {
   [State.New]: 'new',
@@ -108,6 +114,11 @@ export function createScheduler(cfg: FsrsConfig): Scheduler {
     apply(state, review) {
       const { card } = engine.next(toFsrs(state), review.reviewedAt, GRADE[review.rating]);
       return fromFsrs(state.cardId, card);
+    },
+    retrievability(state, now) {
+      if (state.phase === 'new' || state.lastReview === null) return 0;
+      // En días con decimales: ts-fsrs redondea a días enteros y empataría casi toda la cola.
+      return engine.forgetting_curve(Math.max(0, now - state.lastReview) / DAY_MS, state.stability);
     },
   };
 }

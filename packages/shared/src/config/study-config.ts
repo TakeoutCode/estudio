@@ -20,9 +20,12 @@ export const PlannerConfigSchema = z
     newPerSessionMax: int(0, 30).default(10), // P1 · hipótesis
     bootstrapReviewSec: int(1, 600).default(20), // P1 · hipótesis
     bootstrapNewSec: int(1, 1800).default(60), // P1 · hipótesis
+    timingMinSamples: int(1, 500).default(20), // P1 · diseño · sin evidencia: muestras antes de usar sus medianas
+    sessionBlocksDefault: int(1, 12).default(1), // P1 · diseño · sin evidencia: bloques planeados si no elige
     overdueFactorForZeroNew: z.number().min(1).max(5).default(2), // P2 · hipótesis
     lowRetentionWindowDays: int(1, 14).default(3), // P3 · hipótesis
     lowRetentionDropPts: int(1, 50).default(10), // P3 · hipótesis
+    lowRetentionMinReviews: int(1, 500).default(20), // P3 · diseño · sin evidencia: repasos para juzgar la ventana
     leechLapses: int(2, 20).default(6), // P3 · hipótesis
     lowRetentionPersistDays: int(2, 30).default(7), // P3 · hipótesis
     persistNewFactor: share().default(0.5), // P3 · hipótesis

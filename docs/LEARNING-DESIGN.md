@@ -66,9 +66,9 @@ Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una 
 
 | Regla | Claves de `StudyConfig.planner` (valor inicial) | Comportamiento |
 |---|---|---|
-| P1 | `newPerSessionMax` (10, rango 0-30), `bootstrapReviewSec` (20), `bootstrapNewSec` (60) | `nuevas = min(tope, ⌊(presupuesto − vencidas × t_repaso) / t_nueva⌋)`, con medianas de su historial |
+| P1 | `newPerSessionMax` (10, rango 0-30), `bootstrapReviewSec` (20), `bootstrapNewSec` (60), `timingMinSamples` (20, *diseño*), `sessionBlocksDefault` (1, *diseño*) | `nuevas = min(tope, ⌊(presupuesto − repasos de la sesión × t_repaso) / t_nueva⌋)`, con medianas de su historial a partir de `timingMinSamples` muestras (una nueva = la suma de sus pasos `learn`). Se restan los repasos que entran en la sesión tras P8, no todas las vencidas: si no, P2 nunca tendría efecto |
 | P2 | `overdueFactorForZeroNew` (2) | Si las vencidas superan 2 × lo que cabe en la sesión: 0 nuevas |
-| P3 | `lowRetentionWindowDays` (3), `lowRetentionDropPts` (10), `leechLapses` (6), `lowRetentionPersistDays` (7), `persistNewFactor` (0.5) | 0 nuevas si la retención cae; con ≥6 lapsos la Card va a "reformular"; si persiste, se propone la mitad de nuevas |
+| P3 | `lowRetentionWindowDays` (3), `lowRetentionDropPts` (10), `lowRetentionMinReviews` (20, *diseño*), `leechLapses` (6), `lowRetentionPersistDays` (7), `persistNewFactor` (0.5) | 0 nuevas si la retención cae (ventana en días locales de ella; con menos de `lowRetentionMinReviews` repasos no se juzga); con ≥6 lapsos la Card va a "reformular" y editar su nota la reformula (`Card.lapseBaseline`); si persiste, se propone la mitad de nuevas |
 | P4 | `reviewMaxSameTopicRun` (5), `newMaxSameTopicRun` (10) | Repasos mezclados; nuevas por tema y luego mezcladas |
 | P5 | `fatigueWindowCards` (10), `fatigueAccuracyDropPts` (20), `fatigueLatencyFactor` (1.5) | Sugerencia suave de descanso |
 | P6 | `stopAfterNetBlocks` (4), `fatigueWarningsToStop` (2); hora de dormir en `profile.bedtime` (si es `null`, se usa `quietHours.start`) | Sugerir parar, nunca bloquear |
