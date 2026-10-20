@@ -1,5 +1,5 @@
 import { RETENTION_RANGE, type StudyConfig, TIMER_RANGES } from '@estudio/shared';
-import { type SubmitEvent, useId, useState } from 'react';
+import { type ReactNode, type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ActionBar } from '@/ui/ActionBar';
@@ -30,16 +30,17 @@ type MetricKey = (typeof METRIC_KEYS)[number];
 
 /**
  * Ajustes de estudio: retención objetivo con su carga (R2, LD8), temporizador (R7), confianza
- * en repasos (R6) y métricas visibles (UX9).
+ * en repasos (R6) y métricas visibles (UX9). `children`: secciones de otras features (avisos),
+ * que el router compone para que `settings` no dependa de ellas.
  */
-export function SettingsScreen() {
+export function SettingsScreen({ children }: { readonly children?: ReactNode }) {
   const config = useStudyConfig();
-  return config ? <SettingsForm config={config} /> : null;
+  return config ? <SettingsForm config={config}>{children}</SettingsForm> : null;
 }
 
 type Status = 'idle' | 'saved' | 'failed';
 
-function SettingsForm({ config }: { readonly config: StudyConfig }) {
+function SettingsForm({ config, children }: { readonly config: StudyConfig; readonly children?: ReactNode }) {
   const { t, i18n } = useTranslation();
   const ids = useId();
   const savedPoints = toPoints(config.fsrs.requestRetention);
@@ -198,6 +199,8 @@ function SettingsForm({ config }: { readonly config: StudyConfig }) {
       </section>
 
       <BreakUsageSection />
+
+      {children}
 
       <ThemeSection />
 

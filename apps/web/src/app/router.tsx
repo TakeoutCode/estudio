@@ -31,7 +31,20 @@ export const router = createBrowserRouter([
           },
           {
             path: 'settings',
-            lazy: async () => ({ Component: (await import('@/features/settings')).SettingsScreen }),
+            lazy: async () => {
+              // `settings` no depende de `notifications`: la sección se compone aquí.
+              const [{ SettingsScreen }, { NotificationsSection }] = await Promise.all([
+                import('@/features/settings'),
+                import('@/features/notifications'),
+              ]);
+              return {
+                Component: () => (
+                  <SettingsScreen>
+                    <NotificationsSection />
+                  </SettingsScreen>
+                ),
+              };
+            },
           },
           {
             path: 'exams',

@@ -5,8 +5,9 @@ import { z } from 'zod';
 
 const WebEnvSchema = z.object({
   VITE_API_URL: z.url({ protocol: /^https?$/ }),
-  // Pasan a obligatorias cuando se implementen NOTIFICATIONS y media.
+  // Sin clave VAPID, Ajustes dice que este navegador no permite avisos (NOTIFICATIONS NT8).
   VITE_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  // Pasa a obligatoria cuando se implemente media.
   VITE_CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
 });
 

@@ -19,12 +19,12 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
 });
 clientsClaim();
 
+/** `PushPayload` de @estudio/shared, leído sin zod para no cargarlo en el SW. */
 interface PushPayload {
   readonly title: string;
   readonly body?: string;
   readonly tag?: string;
   readonly url?: string;
-  readonly eventId?: string;
 }
 
 function parsePayload(data: PushMessageData | null): PushPayload {
@@ -48,7 +48,7 @@ self.addEventListener('push', (event: PushEvent) => {
       body: payload.body,
       tag: payload.tag,
       icon: '/icon.svg',
-      data: { url: payload.url ?? '/', eventId: payload.eventId },
+      data: { url: payload.url ?? '/' },
     }),
   );
 });
@@ -57,7 +57,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close();
   const data = event.notification.data as { url?: string } | undefined;
   const target = new URL(data?.url ?? '/', self.location.origin).href;
-  // El reporte de apertura (NT7) llega con el módulo de notificaciones.
+  // NT7: la URL de un recordatorio trae `?aviso=<id>`; la app reporta la apertura al cargar.
   event.waitUntil(
     (async () => {
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });

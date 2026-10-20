@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useExamsOverview } from '@/features/exams';
+import { NotificationsAtOpen } from '@/features/notifications';
 import { type PlanSnapshot, useTodayPlan } from '@/features/study';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
@@ -33,6 +34,7 @@ export function TodayScreen() {
           </Link>
         </nav>
       </header>
+      <NotificationsAtOpen />
       {snapshot ? <Summary snapshot={snapshot} /> : null}
     </>
   );

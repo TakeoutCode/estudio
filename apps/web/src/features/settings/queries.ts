@@ -1,7 +1,7 @@
-import { DAY_MS, type StudyConfig, type UiSettings } from '@estudio/shared';
+import { DAY_MS, type NotificationPrefs, type StudyConfig, type UiSettings } from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { alive, db, type EstudioDb } from '@/db/schema';
-import { readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
+import { readNotificationPrefs, readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
 import type { BreakUsageInput, LoadProjectionInput } from '@/workers/projection-api';
 
 /** §5: bloques y descansos del temporizador para "Tus descansos"; srs elige las semanas. */
@@ -36,3 +36,7 @@ export async function loadProjectionInput(
 
 /** UI-UX UX5: el tema elegido (Sistema por defecto). */
 export const useUiSettings = (): UiSettings | undefined => useLiveQuery(() => readUiSettings(db), []);
+
+/** NOTIFICATIONS §1: preferencias de avisos (apagados por defecto, NT8). */
+export const useNotificationPrefs = (): NotificationPrefs | undefined =>
+  useLiveQuery(() => readNotificationPrefs(db), []);

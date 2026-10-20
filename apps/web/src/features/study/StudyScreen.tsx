@@ -19,6 +19,7 @@ import {
   useTimerTicker,
   useTimerView,
 } from '@/features/timer';
+import { useBreakEndNotice } from '@/features/notifications';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
@@ -151,6 +152,7 @@ function Session({
 
   // Temporizador (§3): opcional; si corre en este dispositivo, el descanso reemplaza la tarjeta.
   const timer = useTimerView();
+  useBreakEndNotice(timer); // NT4: si sale de la app durante el descanso
   const onBreak =
     timer?.isOwner === true &&
     (timer.session?.state === 'break_short' || timer.session?.state === 'break_long');

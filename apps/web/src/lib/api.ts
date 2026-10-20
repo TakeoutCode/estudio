@@ -24,11 +24,13 @@ export interface ApiClientDeps {
 }
 
 export interface RequestOptions<T> {
-  readonly method?: 'GET' | 'POST';
+  readonly method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   readonly body?: unknown;
   readonly schema: z.ZodType<T>;
   /** `false` en los endpoints de auth: sin Bearer y sin reintento por 401. */
   readonly auth?: boolean;
+  /** La request sigue aunque la página pase a segundo plano (NOTIFICATIONS NT4). */
+  readonly keepalive?: boolean;
 }
 
 export type ApiClient = <T>(path: string, options: RequestOptions<T>) => Promise<T>;
@@ -59,6 +61,7 @@ export function createApiClient(deps: ApiClientDeps): ApiClient {
         headers,
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         credentials: 'include', // la cookie de refresh viaja solo a /auth (Path=/auth)
+        keepalive: options.keepalive,
       });
     } catch {
       throw new ApiError(0, 'network');

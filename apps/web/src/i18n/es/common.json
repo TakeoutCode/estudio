@@ -445,5 +445,41 @@
       "under": "En este simulacro acertaste más de lo que esperabas.",
       "aligned": "En este simulacro tu confianza y tus aciertos coincidieron bastante."
     }
+  },
+  "notifications": {
+    "title": "Avisos",
+    "hint_one": "Estudio te avisa cuando termina un descanso y, si eliges una hora, te recuerda lo pendiente. Nunca entre las {{start}} y las {{end}}, y como máximo {{count}} recordatorio al día.",
+    "hint_other": "Estudio te avisa cuando termina un descanso y, si eliges una hora, te recuerda lo pendiente. Nunca entre las {{start}} y las {{end}}, y como máximo {{count}} recordatorios al día.",
+    "enable": "Activar avisos",
+    "enableHere": "Activar en este dispositivo",
+    "otherDevice": "Los avisos están activos en otro dispositivo.",
+    "needsConnection": "Requiere conexión.",
+    "denied": "Los avisos están bloqueados para Estudio. Puedes permitirlos en los ajustes del teléfono o del navegador.",
+    "failed": "No se pudieron activar los avisos. Intenta de nuevo.",
+    "install": "En iPhone y iPad, los avisos funcionan con Estudio en la pantalla de inicio: toca Compartir, luego «Agregar a inicio», y abre Estudio desde ahí.",
+    "unsupported": "Este navegador no permite avisos.",
+    "daily": "Recordatorio diario",
+    "dailyHint_one": "Solo si tienes al menos {{count}} tarjeta pendiente. Déjalo vacío si no lo quieres.",
+    "dailyHint_other": "Solo si tienes al menos {{count}} tarjetas pendientes. Déjalo vacío si no lo quieres.",
+    "inQuietHours": "Esa hora cae en tus horas silenciosas; elige otra.",
+    "breakEnd": "Fin del descanso",
+    "breakEndHint": "Cuando termina con la app en segundo plano.",
+    "examSoon": "Antes de un examen",
+    "examSoonHint": "{{days}} días antes.",
+    "studyPlan": "Plan del día",
+    "studyPlanHint": "Cuántas nuevas tocan hoy, si tienes un examen con plan.",
+    "quiet": "Horas silenciosas",
+    "quietHint": "En este horario no llega ningún aviso.",
+    "quietFrom": "Desde",
+    "quietTo": "Hasta",
+    "disable": "Desactivar avisos",
+    "backoff": {
+      "question": "¿Quieres seguir recibiendo recordatorios?",
+      "asBefore": "Como antes",
+      "reduced_one": "Cada {{count}} día",
+      "reduced_other": "Cada {{count}} días",
+      "off": "Desactivar",
+      "failed": "No se pudo guardar tu respuesta. Intenta de nuevo."
+    }
   }
 }
