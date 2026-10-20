@@ -218,7 +218,31 @@
     "study": "Estudiar",
     "studyNamed": "Estudiar {{name}}",
     "new": "Nuevo mazo",
-    "create": "Crear"
+    "create": "Crear",
+    "back": "Mazos",
+    "missing": "Este mazo ya no existe; puede que se haya borrado en otro dispositivo.",
+    "studyThis": "Estudiar este mazo",
+    "edit": "Editar nombre o borrar",
+    "name": "Nombre",
+    "description": "Descripción (opcional)",
+    "save": "Guardar",
+    "saved": "Cambios guardados.",
+    "error": {
+      "name": "Escribe el nombre del mazo."
+    },
+    "delete": "Borrar mazo",
+    "deleteConfirm_one": "Se borrarán este mazo, sus temas y su {{count}} tarjeta, también en tus otros dispositivos. No se puede deshacer.",
+    "deleteConfirm_other": "Se borrarán este mazo, sus temas y sus {{count}} tarjetas, también en tus otros dispositivos. No se puede deshacer.",
+    "deleteYes": "Sí, borrar el mazo",
+    "cancel": "Cancelar",
+    "topics": "Temas",
+    "noTopics": "Sin temas todavía. Se crean al escribir una tarjeta y sirven para explicar antes de lo nuevo.",
+    "notes": "Tarjetas",
+    "noNotes": "Este mazo todavía no tiene tarjetas.",
+    "search": "Buscar en este mazo",
+    "noMatches": "Ninguna tarjeta coincide con la búsqueda.",
+    "matches_one": "{{count}} de {{total}} tarjetas",
+    "matches_other": "{{count}} de {{total}} tarjetas"
   },
   "topics": {
     "title": "Tema",

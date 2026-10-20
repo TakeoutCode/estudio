@@ -2,7 +2,7 @@ import { compareHlc, decodeHlc, MutationSchema } from '@estudio/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/schema';
 import { createNote } from '@/features/notes';
-import { createDeck, deleteDeck, deleteTopic, renameDeck, updateTopic } from './commands';
+import { createDeck, deleteDeck, deleteTopic, renameDeck, updateDeck, updateTopic } from './commands';
 
 const T0 = 1_760_000_000_000;
 
@@ -35,6 +35,20 @@ describe('comandos de mazo (FRONTEND FE3)', () => {
     const renamed = await renameDeck(deck.id, 'Huesos del carpo', { now: T0 - 60_000 });
     expect(compareHlc(renamed.hlc, deck.hlc)).toBeGreaterThan(0);
     expect(await db.outbox.count()).toBe(2);
+  });
+
+  it('editar nombre y descripción; una descripción en blanco queda en null', async () => {
+    const deck = await createDeck({ name: 'Carpo' }, { now: T0 });
+    const edited = await updateDeck(
+      deck.id,
+      { name: 'Huesos del carpo', description: 'Parcial 2' },
+      { now: T0 + 1 },
+    );
+    expect(edited).toMatchObject({ name: 'Huesos del carpo', description: 'Parcial 2' });
+    const cleared = await updateDeck(deck.id, { name: 'Carpo', description: '   ' }, { now: T0 + 2 });
+    expect(cleared.description).toBeNull();
+    expect((await db.outbox.toArray()).map((m) => m.row)).toContainEqual(cleared);
+    await expect(updateDeck(deck.id, { name: ' ', description: '' })).rejects.toThrow();
   });
 
   it('SY5: borrar es una escritura más con deletedAt; no se puede editar algo borrado', async () => {

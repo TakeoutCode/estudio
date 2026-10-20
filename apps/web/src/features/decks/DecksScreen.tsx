@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
 import { createDeck } from './commands';
 import { type DeckOverview, useDeckOverview } from './queries';
+import { deckSummary } from './summary';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-4 text-text ${focus}`;
@@ -42,16 +43,9 @@ export function DecksScreen() {
   );
 }
 
-function DeckRow({ item: { deck, load } }: { readonly item: DeckOverview }) {
+function DeckRow({ item: { deck, load, notes } }: { readonly item: DeckOverview }) {
   const { t } = useTranslation();
-  const summary =
-    load.cards === 0
-      ? t('decks.noCards')
-      : [
-          t('decks.cards', { count: load.cards }),
-          t('decks.due', { count: load.due }),
-          t('decks.fresh', { count: load.fresh }),
-        ].join(' · ');
+  const summary = deckSummary(t, notes, load);
   return (
     <li className="flex items-center gap-2 rounded-(--radius-card) bg-surface py-2 pr-2 pl-4">
       <Link

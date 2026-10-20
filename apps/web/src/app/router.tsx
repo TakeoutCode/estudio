@@ -67,6 +67,10 @@ export const router = createBrowserRouter([
             lazy: async () => ({ Component: (await import('@/features/decks')).DecksScreen }),
           },
           {
+            path: 'decks/:deckId',
+            lazy: async () => ({ Component: (await import('@/features/decks')).DeckScreen }),
+          },
+          {
             path: 'topics/:topicId',
             lazy: async () => ({ Component: (await import('@/features/decks')).TopicScreen }),
           },

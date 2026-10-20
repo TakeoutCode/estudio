@@ -52,6 +52,21 @@ export function renameDeck(
   return saveDeck(database, now, async (stamp) => ({ ...(await existing(database, id)), name, ...stamp }));
 }
 
+/** Nombre y descripción del mazo; una descripción vacía se guarda como `null`. */
+export function updateDeck(
+  id: string,
+  input: { readonly name: string; readonly description: string },
+  { database = defaultDb, now = Date.now() }: CommandOptions = {},
+): Promise<Deck> {
+  const description = input.description.trim() === '' ? null : input.description;
+  return saveDeck(database, now, async (stamp) => ({
+    ...(await existing(database, id)),
+    name: input.name,
+    description,
+    ...stamp,
+  }));
+}
+
 /**
  * Borrado lógico (SYNC §6): escribe `deletedAt` y viaja como cualquier otra edición. SY5:
  * sus notas y tarjetas se borran en la misma transacción, cada una como su propia escritura.
