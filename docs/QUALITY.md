@@ -15,9 +15,9 @@
 
 ## 2. Máquina de estados del temporizador (§3, R7, R8, R13, R21)
 
-**QA2 · DEBE** cubrir la tabla completa estado × evento (`idle`, `focus`, `paused`, `break_short`, `break_long`, `ended` × `start`, `pause`, `resume`, `tick`, `cardDone`, `extend`, `skipBreak`, `stop`, `takeover`): una transición inválida devuelve el mismo estado y un error tipado. Además, estas propiedades con fast-check. *Razón:* los errores aparecen con secuencias que nadie escribe a mano.
+**QA2 · DEBE** cubrir la tabla completa estado × evento (`idle`, `focus`, `paused`, `break_short`, `break_long`, `ended` × `start`, `pause`, `resume`, `tick`, `cardDone`, `extend`, `takeBreak`, `skipBreak`, `stop`, `takeover`): una transición inválida devuelve el mismo estado y un error tipado. `takeBreak` es cuando ella pide el descanso: el fin de bloque en flexible y libre, o aceptar la sugerencia de P5. Además, estas propiedades con fast-check. *Razón:* los errores aparecen con secuencias que nadie escribe a mano.
 - `remainingMs ≥ 0` y `activeMs` no decrece, aun si el reloj del dispositivo retrocede.
-- Una pausa mayor que `timer.pauseTimeoutMin` marca el bloque como `interrupted` y no completa el ciclo.
+- Una pausa mayor que `timer.pauseTimeoutMin` marca el bloque como `interrupted` y no completa el ciclo. Lo mismo un hueco mayor entre ticks, que significa que la app estuvo cerrada o en segundo plano (§3, "cierre de la app a mitad").
 - En modo estructurado, el fin de bloque espera la tarjeta en curso hasta `timer.endOfBlockGraceSec` (60) (R13). En flexible, `extend` funciona una vez por bloque. En libre, solo registra.
 - Hay descanso largo después de `cyclesBeforeLong` bloques completados.
 ```ts

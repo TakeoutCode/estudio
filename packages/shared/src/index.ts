@@ -13,3 +13,4 @@ export * from './sync/row-schemas.js';
 export * from './domain/review.js';
 export * from './domain/deck.js';
 export * from './domain/user-settings.js';
+export * from './domain/timer.js';
