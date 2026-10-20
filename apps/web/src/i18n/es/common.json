@@ -258,6 +258,8 @@
     "saved": "Cambios guardados.",
     "delete": "Borrar tema",
     "deleteHint": "Sus tarjetas se quedan, sin tema.",
+    "deleteConfirm": "Se borrarán el tema y su explicación, también en tus otros dispositivos; sus tarjetas se quedan, sin tema. No se puede deshacer.",
+    "deleteYes": "Sí, borrar el tema",
     "missing": "Este tema ya no existe.",
     "error": {
       "name": "Escribe el nombre del tema."

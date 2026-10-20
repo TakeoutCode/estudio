@@ -18,7 +18,19 @@ export function TopicScreen() {
   const { topicId } = useParams();
   const topic = useTopic(topicId);
   if (topic === undefined) return null;
-  if (topic === null) return <EmptyState message={t('topics.missing')} />;
+  if (topic === null) {
+    return (
+      <>
+        <Link
+          className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`}
+          to="/decks"
+        >
+          {t('decks.back')}
+        </Link>
+        <EmptyState message={t('topics.missing')} />
+      </>
+    );
+  }
   return <TopicForm key={topic.id} topic={topic} />;
 }
 
@@ -32,6 +44,9 @@ function TopicForm({ topic }: { readonly topic: Topic }) {
   const [explanation, setExplanation] = useState(topic.explanation);
   const [status, setStatus] = useState<Status>('idle');
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  // El tema es de un mazo: "Volver" y borrar regresan a él, venga de donde venga.
+  const deckPath = `/decks/${topic.deckId}`;
 
   const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,9 +79,9 @@ function TopicForm({ topic }: { readonly topic: Topic }) {
       <header className="flex flex-col">
         <Link
           className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`}
-          to="/"
+          to={deckPath}
         >
-          {t('notes.backToToday')}
+          {t('notes.backToDeck')}
         </Link>
         <h1 className="m-0 text-title font-semibold">{t('topics.title')}</h1>
       </header>
@@ -109,16 +124,51 @@ function TopicForm({ topic }: { readonly topic: Topic }) {
           {t('topics.save')}
         </button>
       </form>
-      <button
-        type="button"
-        className={`min-h-11 w-full rounded-(--radius-card) px-4 text-danger ${focus}`}
-        onClick={() => {
-          void deleteTopic(topic.id).then(() => navigate('/'));
-        }}
-      >
-        {t('topics.delete')}
-      </button>
-      <p className="m-0 text-center text-caption text-muted">{t('topics.deleteHint')}</p>
+      {confirming ? (
+        <div role="alertdialog" aria-labelledby={`${ids}-confirm`} className="flex flex-col gap-2">
+          <p id={`${ids}-confirm`} className="m-0">
+            {t('topics.deleteConfirm')}
+          </p>
+          <button
+            type="button"
+            className={`min-h-11 w-full rounded-(--radius-card) border border-danger px-4 font-medium text-danger disabled:opacity-60 ${focus}`}
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              deleteTopic(topic.id)
+                .then(() => navigate(deckPath))
+                .catch(() => {
+                  setStatus('failed');
+                  setBusy(false);
+                });
+            }}
+          >
+            {t('topics.deleteYes')}
+          </button>
+          <button
+            type="button"
+            className={`min-h-11 w-full rounded-(--radius-card) px-4 text-primary ${focus}`}
+            onClick={() => {
+              setConfirming(false);
+            }}
+          >
+            {t('decks.cancel')}
+          </button>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            className={`min-h-11 w-full rounded-(--radius-card) px-4 text-danger ${focus}`}
+            onClick={() => {
+              setConfirming(true);
+            }}
+          >
+            {t('topics.delete')}
+          </button>
+          <p className="m-0 text-center text-caption text-muted">{t('topics.deleteHint')}</p>
+        </>
+      )}
     </>
   );
 }
