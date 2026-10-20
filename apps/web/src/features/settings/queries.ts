@@ -1,8 +1,19 @@
-import type { StudyConfig } from '@estudio/shared';
+import { DAY_MS, type StudyConfig } from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { alive, db, type EstudioDb } from '@/db/schema';
 import { readProfile, readStudyConfig } from '@/db/settings';
-import type { LoadProjectionInput } from '@/workers/projection-api';
+import type { BreakUsageInput, LoadProjectionInput } from '@/workers/projection-api';
+
+/** §5: bloques y descansos del temporizador para "Tus descansos"; srs elige las semanas. */
+export const useBreakUsageInput = (): BreakUsageInput | undefined =>
+  useLiveQuery(async () => {
+    const now = Date.now();
+    const [config, profile] = await Promise.all([readStudyConfig(db), readProfile(db)]);
+    // Una semana de margen sobre la ventana de `baselineWeeks`; srs recorta por días locales.
+    const since = now - (config.metrics.baselineWeeks + 1) * 7 * DAY_MS;
+    const blocks = await db.timerBlockLogs.where('endedAt').aboveOrEqual(since).toArray();
+    return { blocks, config, now, timeZone: profile.timeZone };
+  }, []);
 
 /** La configuración guardada (ARC9: ya parseada, con los valores iniciales que falten). */
 export const useStudyConfig = (): StudyConfig | undefined => useLiveQuery(() => readStudyConfig(db), []);

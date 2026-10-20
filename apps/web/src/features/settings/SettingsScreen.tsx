@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { ActionBar } from '@/ui/ActionBar';
 import { NumberField } from '@/ui/NumberField';
 import { Toggle } from '@/ui/Toggle';
+import { BreakUsageSection } from './BreakUsageSection';
 import { updateStudyConfig } from './commands';
 import { useStudyConfig } from './queries';
 import { type ProjectedLoad, useProjectedLoad } from './use-projected-load';
@@ -194,6 +195,8 @@ function SettingsForm({ config }: { readonly config: StudyConfig }) {
           ))}
         </div>
       </section>
+
+      <BreakUsageSection />
 
       <section aria-labelledby={`${ids}-review`} className="flex flex-col gap-2">
         <h2 id={`${ids}-review`} className="m-0 text-body font-semibold">

@@ -192,6 +192,14 @@
       "longBreakMin": "Descanso largo (min)",
       "cyclesBeforeLong": "Bloques antes del largo"
     },
+    "breaks": {
+      "title": "Tus descansos",
+      "window": "Con el temporizador, en tus últimas {{weeks}} semanas:",
+      "taken": "Descansos completos",
+      "cutShort": "Descansos terminados antes de tiempo",
+      "extended": "Bloques en los que sumaste minutos",
+      "none": "Cuando uses el temporizador, aquí verás cómo usas los descansos."
+    },
     "review": {
       "title": "Repaso",
       "askConfidence": "Pedir tu confianza antes de mostrar la respuesta",

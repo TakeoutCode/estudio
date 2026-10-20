@@ -1,5 +1,5 @@
-import { cardIdFor, Rating } from '@estudio/shared';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cardIdFor, newId, Rating } from '@estudio/shared';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
@@ -18,6 +18,7 @@ vi.mock('@/workers/projection', async () => {
       projectLoads: (...args: Parameters<typeof api.projectLoads>) =>
         Promise.resolve(api.projectLoads(...args)),
       replayCards: (...args: Parameters<typeof api.replayCards>) => Promise.resolve(api.replayCards(...args)),
+      breakUsage: (...args: Parameters<typeof api.breakUsage>) => Promise.resolve(api.breakUsage(...args)),
     }),
   };
 });
@@ -155,5 +156,47 @@ describe('Ajustes · confianza y métricas (R6, UX9)', () => {
     const config = await readStudyConfig(db);
     expect(config.review.askConfidence).toBe(true);
     expect(config.metrics.visible).toMatchObject({ retention: false, activeTime: true, calibration: true });
+  });
+});
+
+describe('Ajustes · uso de descansos (§5)', () => {
+  const block = (
+    kind: 'focus' | 'break_short',
+    outcome: 'completed' | 'interrupted',
+    at: number,
+    extended = false,
+  ) => ({
+    id: newId(),
+    timerSessionId: SESSION,
+    deviceId: SESSION,
+    kind,
+    blockIndex: 0,
+    mode: 'flexible' as const,
+    startedAt: at - 60_000,
+    endedAt: at,
+    plannedMs: 60_000,
+    activeMs: 60_000,
+    outcome,
+    extended,
+  });
+
+  it('§5: sin temporizador lo explica; con bloques cuenta tomados, terminados antes y extendidos', async () => {
+    const { unmount } = renderSettings();
+    expect(await screen.findByText(/Cuando uses el temporizador/)).toBeTruthy();
+    unmount();
+
+    await db.timerBlockLogs.bulkAdd([
+      block('focus', 'completed', T0 - 3_600_000, true),
+      block('break_short', 'completed', T0 - 3_000_000),
+      block('focus', 'completed', T0 - 2 * DAY),
+      block('break_short', 'interrupted', T0 - 2 * DAY + 60_000),
+    ]);
+    renderSettings();
+    const section = await screen.findByRole('region', { name: 'Tus descansos' });
+    const value = (term: string) => within(section).getByText(term).nextElementSibling?.textContent;
+    expect(await within(section).findByText('Descansos completos')).toBeTruthy();
+    expect(value('Descansos completos')).toBe('1');
+    expect(value('Descansos terminados antes de tiempo')).toBe('1');
+    expect(value('Bloques en los que sumaste minutos')).toBe('1');
   });
 });

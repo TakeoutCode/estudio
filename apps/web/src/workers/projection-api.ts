@@ -1,5 +1,7 @@
-import type { ReviewLog, StudyConfig } from '@estudio/shared';
+import type { ReviewLog, StudyConfig, TimerBlockLog } from '@estudio/shared';
 import {
+  type BreakUsage,
+  breakUsage,
   type CardState,
   type LoadCard,
   projectReviewLoad,
@@ -46,6 +48,17 @@ export const projectionApi = {
   weeklyMetrics(input: WeeklyMetricsInput): WeeklyMetrics {
     return weeklyMetrics(input);
   },
+  /** §5: uso de descansos, solo en Ajustes. */
+  breakUsage(input: BreakUsageInput): BreakUsage {
+    return breakUsage(input.blocks, input.config, input.now, input.timeZone);
+  },
 };
+
+export interface BreakUsageInput {
+  readonly blocks: readonly TimerBlockLog[];
+  readonly config: Pick<StudyConfig, 'metrics'>;
+  readonly now: number;
+  readonly timeZone: string;
+}
 
 export type ProjectionApi = typeof projectionApi;
