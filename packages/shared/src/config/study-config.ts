@@ -9,10 +9,14 @@ import { z } from 'zod';
 const int = (min: number, max: number) => z.number().int().min(min).max(max);
 const share = () => z.number().min(0).max(1);
 
+/** R2: rango de la retención objetivo; Ajustes lo usa para su control. */
+export const RETENTION_RANGE = { min: 0.8, max: 0.95 } as const;
+
 export const FsrsConfigSchema = z.object({
-  requestRetention: z.number().min(0.8).max(0.95).default(0.9), // R2
+  requestRetention: z.number().min(RETENTION_RANGE.min).max(RETENTION_RANGE.max).default(0.9), // R2
   maximumIntervalDays: int(1, 36500).default(36500), // diseño · sin evidencia (valor de fábrica de ts-fsrs)
   enableFuzz: z.boolean().default(true), // diseño · fuzz con semilla determinista (ARC5)
+  projectionDays: int(7, 90).default(30), // R2, LD8 · diseño · sin evidencia: días simulados de la carga proyectada
 });
 
 export const PlannerConfigSchema = z
@@ -47,11 +51,21 @@ export const PlannerConfigSchema = z
 export const TimerModeSchema = z.enum(['structured', 'flexible', 'free']); // R8
 export type TimerMode = z.infer<typeof TimerModeSchema>;
 
+/** R7: rangos editables del temporizador; los campos de la UI salen de aquí. */
+export const TIMER_RANGES = {
+  focusMin: { min: 5, max: 120 },
+  shortBreakMin: { min: 1, max: 30 },
+  longBreakMin: { min: 5, max: 60 },
+  cyclesBeforeLong: { min: 2, max: 6 },
+} as const;
+
+const ranged = (range: { readonly min: number; readonly max: number }) => int(range.min, range.max);
+
 export const TimerConfigSchema = z.object({
-  focusMin: int(5, 120).default(25), // R7 · 25 por ser el más estudiado con estudiantes, no por óptimo (R17)
-  shortBreakMin: int(1, 30).default(5), // R7
-  longBreakMin: int(5, 60).default(20), // R7, §3
-  cyclesBeforeLong: int(2, 6).default(4), // R7
+  focusMin: ranged(TIMER_RANGES.focusMin).default(25), // R7 · 25 por ser el más estudiado con estudiantes, no por óptimo (R17)
+  shortBreakMin: ranged(TIMER_RANGES.shortBreakMin).default(5), // R7
+  longBreakMin: ranged(TIMER_RANGES.longBreakMin).default(20), // R7, §3
+  cyclesBeforeLong: ranged(TIMER_RANGES.cyclesBeforeLong).default(4), // R7
   mode: TimerModeSchema.default('flexible'), // R8 · diseño · sin evidencia
   pauseTimeoutMin: int(1, 120).default(10), // §3 · hipótesis
   endOfBlockGraceSec: int(0, 300).default(60), // §3, R13 · hipótesis

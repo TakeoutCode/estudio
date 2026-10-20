@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { defaultStudyConfig, StudyConfigSchema, TIMER_PRESETS } from './study-config.js';
+import {
+  defaultStudyConfig,
+  RETENTION_RANGE,
+  StudyConfigSchema,
+  TIMER_PRESETS,
+  TIMER_RANGES,
+} from './study-config.js';
 
 describe('StudyConfig: valores iniciales = STUDY-METHODS', () => {
   const cfg = defaultStudyConfig();
 
-  it('R2: retención objetivo 0.90', () => {
+  it('R2: retención objetivo 0.90; LD8: la carga se proyecta con 30 días simulados', () => {
     expect(cfg.fsrs.requestRetention).toBe(0.9);
+    expect(cfg.fsrs.projectionDays).toBe(30);
   });
 
   it('P1-P8: umbrales del planificador', () => {
@@ -65,6 +72,8 @@ describe('StudyConfig: rangos', () => {
   it.each([
     [{ fsrs: { requestRetention: 0.79 } }],
     [{ fsrs: { requestRetention: 0.96 } }],
+    [{ fsrs: { projectionDays: 6 } }],
+    [{ fsrs: { projectionDays: 91 } }],
     [{ timer: { focusMin: 4 } }],
     [{ timer: { focusMin: 121 } }],
     [{ timer: { shortBreakMin: 31 } }],
@@ -77,11 +86,25 @@ describe('StudyConfig: rangos', () => {
     expect(StudyConfigSchema.safeParse(input).success).toBe(false);
   });
 
-  it('acepta los extremos de R2 y R7', () => {
+  it('acepta los extremos de R2, LD8 y R7', () => {
     const r = StudyConfigSchema.safeParse({
-      fsrs: { requestRetention: 0.95 },
+      fsrs: { requestRetention: 0.95, projectionDays: 90 },
       timer: { focusMin: 120, shortBreakMin: 1, longBreakMin: 60, cyclesBeforeLong: 2 },
     });
     expect(r.success).toBe(true);
+  });
+
+  it('R2, R7: los rangos exportados para la UI son los del esquema', () => {
+    const accepts = (input: object) => StudyConfigSchema.safeParse(input).success;
+    expect(accepts({ fsrs: { requestRetention: RETENTION_RANGE.min } })).toBe(true);
+    expect(accepts({ fsrs: { requestRetention: RETENTION_RANGE.max } })).toBe(true);
+    expect(accepts({ fsrs: { requestRetention: RETENTION_RANGE.min - 0.01 } })).toBe(false);
+    expect(accepts({ fsrs: { requestRetention: RETENTION_RANGE.max + 0.01 } })).toBe(false);
+    for (const [key, range] of Object.entries(TIMER_RANGES)) {
+      expect(accepts({ timer: { [key]: range.min } })).toBe(true);
+      expect(accepts({ timer: { [key]: range.max } })).toBe(true);
+      expect(accepts({ timer: { [key]: range.min - 1 } })).toBe(false);
+      expect(accepts({ timer: { [key]: range.max + 1 } })).toBe(false);
+    }
   });
 });

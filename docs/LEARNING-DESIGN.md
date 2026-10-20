@@ -58,7 +58,9 @@ Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una 
 
 ## 5. FSRS (R2, R18)
 
-**LD8 · DEBE** programar con ts-fsrs y `fsrs.requestRetention` (inicial 0.90, rango 0.80-0.95), con fuzz determinista. Al cambiar la retención, Ajustes muestra la carga proyectada antes de guardar: "Con 0.95: ≈ 74 repasos al día (ahora 48)", calculada con `replay()` y 30 días simulados. *Razón:* R2.
+**LD8 · DEBE** programar con ts-fsrs y `fsrs.requestRetention` (inicial 0.90, rango 0.80-0.95), con fuzz determinista. Al cambiar la retención, Ajustes muestra la carga proyectada antes de guardar: "Con 95 %: ≈ 74 repasos al día (ahora 48)", calculada con `replay()` y `fsrs.projectionDays` días simulados (*diseño*, 30, rango 7-90) en el worker (FRONTEND FE4). *Razón:* R2.
+- `projectReviewLoad()` en `srs` reproduce el log con la retención a evaluar y simula días locales de ella. Supuestos (*diseño*): cada tarjeta se repasa al vencer (lo pendiente, hoy); en un repaso la recuerda con la probabilidad que da FSRS, con un sorteo de semilla fija por tarjeta que es el mismo para cualquier retención; las nuevas entran hasta `planner.newPerSessionMax` por día; los pasos de (re)aprendizaje se dan por bien, y las de "reformular" (P3) no se repiten. Cuenta solo repasos de tarjetas aprendidas (tipo `review`).
+- Al guardar otra retención (o recibirla por sync), toda la proyección `cardStates` se reconstruye con `replayCards()` en el worker; `replaySettingsKey()` dice si la proyección guardada quedó vieja (ARC5).
 
 **LD9 · NO DEBE** la app cambiar la retención objetivo por su cuenta, ni editar a mano fechas de FSRS, ni afirmar que los intervalos crecientes son mejores. Los pesos de FSRS son los de fábrica; optimizarlos queda fuera de la v1. *Razón:* P3 ("nunca bajar la retención sin avisar"), §3 y R18.
 
