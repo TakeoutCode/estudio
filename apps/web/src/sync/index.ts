@@ -2,9 +2,11 @@ import { PullResponseSchema, PushResponseSchema } from '@estudio/shared';
 import { db } from '@/db/schema';
 import { authorizedApi, useAuth } from '@/features/auth';
 import { syncOnce, type SyncTransport } from './engine';
+import { ensureProjection } from './projection';
 import { SYNC_TIMING, SyncScheduler } from './scheduler';
 import { useSyncStatus } from './status';
 
+export { ensureProjection } from './projection';
 export { useSyncStatus } from './status';
 export type { SyncState } from './scheduler';
 
@@ -21,7 +23,14 @@ const exclusive = (task: () => Promise<void>): Promise<void> =>
       })
     : task();
 
-export const syncScheduler = new SyncScheduler(() => syncOnce(db, httpTransport), {
+// SY4: un pull pudo traer otra retención; el replay completo, si hace falta, va al worker (FE4).
+const syncAndProject = async () => {
+  const report = await syncOnce(db, httpTransport);
+  if (report.pulled > 0) void ensureProjection();
+  return report;
+};
+
+export const syncScheduler = new SyncScheduler(syncAndProject, {
   setTimeout: (fn, ms) => window.setTimeout(fn, ms),
   clearTimeout: (handle) => {
     window.clearTimeout(handle as number);
@@ -55,4 +64,6 @@ export function startSync(): void {
     if (state.session && !previous.session) syncScheduler.resume();
   });
   syncScheduler.now();
+  // Una reconstrucción que no terminó (app cerrada a mitad) se retoma al abrir.
+  void ensureProjection();
 }

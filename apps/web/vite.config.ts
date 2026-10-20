@@ -11,6 +11,8 @@ export default defineConfig({
   // worker, IndexedDB y cookies con esta app y puede dejarla en blanco.
   server: { port: 5180, strictPort: true },
   preview: { port: 5181, strictPort: true },
+  // FRONTEND FE4: el worker de proyección es un módulo ES (Safari 15+).
+  worker: { format: 'es' },
   plugins: [
     react(),
     tailwindcss(),

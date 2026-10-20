@@ -4,7 +4,7 @@ import { db as defaultDb, type EstudioDb } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { writeAndQueue } from '@/db/write';
 import { accountUserId } from '@/features/auth';
-import { syncScheduler } from '@/sync';
+import { ensureProjection, syncScheduler } from '@/sync';
 
 /**
  * Cambia la sección `study` de UserSettings (SYNC §1: una fila por sección, id determinista).
@@ -35,5 +35,7 @@ export async function updateStudyConfig(
     },
   );
   syncScheduler.poke();
+  // R2, FE4: con otra retención, las fechas de todas las tarjetas se recalculan en el worker.
+  void ensureProjection();
   return saved;
 }

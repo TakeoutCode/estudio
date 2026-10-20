@@ -45,7 +45,9 @@ export async function renameDeck(id: DeckId, name: string) {
 }
 ```
 
-**FE4 · DEBE** ejecutar en `projection.worker.ts` el cálculo pesado: el `replay()` completo tras un pull o un cambio de `fsrs.requestRetention` (R2), las métricas y la gamificación. En el hilo principal solo va `applyReview()` de un paso. *Razón:* recalcular miles de tarjetas bloquearía la sesión en el iPhone.
+**FE4 · DEBE** ejecutar en `projection.worker.ts` el cálculo pesado: el `replay()` completo tras un pull o un cambio de `fsrs.requestRetention` (R2), la carga proyectada de Ajustes (LD8), las métricas y la gamificación. En el hilo principal solo va `applyReview()` de un paso. *Razón:* recalcular miles de tarjetas bloquearía la sesión en el iPhone.
+- `workers/projection-api.ts` tiene las funciones (se prueban sin Worker); `workers/projection.ts` crea el worker con Comlink y devuelve `null` donde no hay Worker, y entonces no se calcula.
+- `ensureProjection()` (`sync/projection.ts`) revisa la proyección al guardar la configuración, tras un pull con cambios y al abrir la app. `meta.projectionSettings` guarda la `replaySettingsKey()` con que se armó `cardStates`; si difiere, `reprojectIfStale()` reconstruye todo en el worker y vuelve a proyectar en el hilo principal solo las tarjetas que cambiaron mientras tanto.
 
 **FE5 · DEBE** leer el entorno solo en `lib/env.ts` con `WebEnvSchema`, que admite exactamente `VITE_API_URL`, `VITE_VAPID_PUBLIC_KEY` y `VITE_CLOUDINARY_CLOUD_NAME`. ESLint prohíbe `import.meta.env` fuera de ese archivo. *Razón:* todo `VITE_*` se publica en el bundle (AGENTS §5).
 
