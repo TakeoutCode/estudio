@@ -15,11 +15,11 @@ import {
   type CardState,
   createScheduler,
   finalReviewQueue,
-  newCardState,
   type PlannerCard,
   type SessionPlan,
 } from '@estudio/srs';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { readPlannerCards } from '@/db/planner-cards';
 import { alive, db, type EstudioDb } from '@/db/schema';
 import { readNotificationPrefs, readProfile, readStudyConfig } from '@/db/settings';
 
@@ -33,21 +33,23 @@ export interface PlanSnapshot {
   readonly cards: readonly PlannerCard[];
 }
 
-/** ARC2: la cola la arma `srs`; aquí solo se juntan sus datos desde Dexie (ARC3). */
+/**
+ * ARC2: la cola la arma `srs`; aquí solo se juntan sus datos desde Dexie (ARC3). Con `deckId`,
+ * P1-P8 se aplican solo a las tarjetas de ese mazo; los tiempos (P1) y la retención (P3)
+ * siguen saliendo de todo su historial, porque son de ella y no del mazo.
+ */
 export async function loadPlan(
   database: EstudioDb,
   now: number,
-  plannedBlocks?: number,
+  { plannedBlocks, deckId }: { readonly plannedBlocks?: number; readonly deckId?: string } = {},
 ): Promise<PlanSnapshot> {
-  const [config, profile] = await Promise.all([readStudyConfig(database), readProfile(database)]);
-  const notes = new Map((await alive(database.notes.toCollection()).toArray()).map((n) => [n.id, n]));
-  const cards = (await alive(database.cards.toCollection()).toArray()).filter((c) => notes.has(c.noteId));
-  const stored = await database.cardStates.bulkGet(cards.map((c) => c.id));
-  const plannerCards: PlannerCard[] = cards.map((card, i) => ({
-    state: stored[i] ?? newCardState(card.id, card.createdAt),
-    topicId: notes.get(card.noteId)?.topicId ?? null,
-    lapseBaseline: card.lapseBaseline,
-  }));
+  const [config, profile, all] = await Promise.all([
+    readStudyConfig(database),
+    readProfile(database),
+    readPlannerCards(database),
+  ]);
+  const { notes } = all;
+  const plannerCards = deckId === undefined ? all.cards : all.cards.filter((c) => c.deckId === deckId);
   const plan = buildSessionQueue({
     cards: plannerCards,
     logs: await database.reviewLogs.toArray(),
@@ -57,9 +59,8 @@ export async function loadPlan(
     timeZone: profile.timeZone,
     plannedBlocks,
   });
-  const leechNotes = new Set(
-    plan.reformulate.map((id) => cards.find((c) => c.id === id)?.noteId).filter((id) => id !== undefined),
-  );
+  const noteOf = new Map(plannerCards.map((c) => [c.state.cardId, c.noteId]));
+  const leechNotes = new Set(plan.reformulate.flatMap((id) => noteOf.get(id) ?? []));
   const toImprove = [...leechNotes].flatMap((noteId) => {
     const note = notes.get(noteId);
     return note ? [{ noteId, prompt: cardFaces(note.content, 0).prompt }] : [];
@@ -69,6 +70,19 @@ export async function loadPlan(
 
 /** Plan para empezar una sesión ahora (una sola lectura: la cola queda fija, §3). */
 export const planSessionNow = (): Promise<PlanSnapshot> => loadPlan(db, Date.now());
+
+/** Estudiar un solo mazo: el plan de `loadPlan` acotado a él, con su nombre para el título. */
+export async function loadDeckPlan(
+  database: EstudioDb,
+  deckId: string,
+  now: number,
+): Promise<PlanSnapshot & { readonly deckName: string }> {
+  const deck = await database.decks.get(deckId);
+  if (deck?.deletedAt !== null) throw new Error('deck_not_found');
+  return { ...(await loadPlan(database, now, { deckId })), deckName: deck.name };
+}
+
+export const planDeckNow = (deckId: string) => loadDeckPlan(db, deckId, Date.now());
 
 /**
  * LD12: la vuelta de repaso previa al examen. Usa el mismo plan (tiempos, retención) con la

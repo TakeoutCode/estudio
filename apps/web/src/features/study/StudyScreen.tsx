@@ -35,13 +35,14 @@ import {
 } from './CardView';
 import { answerCard } from './commands';
 import {
+  planDeckNow,
   planExamReviewNow,
   planSessionNow,
   useExplainedTopics,
   useQueueStates,
   useStudyCard,
 } from './queries';
-import { useStudy } from './store';
+import { scopeKey, type StudyScope, useStudy } from './store';
 import { SuggestionPanel } from './SuggestionPanel';
 import { TopicIntro } from './TopicIntro';
 import { useSessionSuggestion } from './use-session-suggestion';
@@ -61,44 +62,64 @@ export function StudyScreen() {
   const { t } = useTranslation();
   const session = useStudy((s) => s.session);
   const start = useStudy((s) => s.start);
-  const [loadFailed, setLoadFailed] = useState(false);
-  // LD12: `?examen=<id>` abre la vuelta de repaso previa a ese examen.
+  // LD12: `?examen=<id>` abre la vuelta de repaso previa a ese examen; `?mazo=<id>`, un solo mazo.
   const [params] = useSearchParams();
-  const examReviewId = params.get('examen');
+  const examId = params.get('examen');
+  const deckId = params.get('mazo');
+  const scope = useMemo<StudyScope>(
+    () => (examId ? { kind: 'exam', examId } : deckId ? { kind: 'deck', deckId } : { kind: 'today' }),
+    [examId, deckId],
+  );
+  const key = scopeKey(scope);
+  /** Clave del alcance que no se pudo armar (p. ej. un mazo borrado). */
+  const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session?.examReviewId === examReviewId) return;
+    if (session && scopeKey(session.scope) === key) return;
     let cancelled = false;
-    (examReviewId ? planExamReviewNow(examReviewId) : planSessionNow())
-      .then(({ plan, config }) => {
+    const planned =
+      scope.kind === 'exam'
+        ? planExamReviewNow(scope.examId).then((s) => ({ ...s, deckName: null }))
+        : scope.kind === 'deck'
+          ? planDeckNow(scope.deckId)
+          : planSessionNow().then((s) => ({ ...s, deckName: null }));
+    planned
+      .then(({ plan, config, deckName }) => {
         if (!cancelled) {
           start({
             id: newId(),
             startedAt: Date.now(),
             plan,
             askConfidence: config.review.askConfidence,
-            examReviewId,
+            scope,
+            deckName,
           });
         }
       })
       .catch(() => {
-        if (!cancelled) setLoadFailed(true);
+        if (!cancelled) setFailed(key);
       });
     return () => {
       cancelled = true;
     };
-  }, [session, start, examReviewId]);
+  }, [session, start, scope, key]);
 
-  if (loadFailed) return <EmptyState message={t('error.generic')} />;
+  if (failed === key) {
+    return <EmptyState message={t(scope.kind === 'deck' ? 'study.deck.missing' : 'error.generic')} />;
+  }
   if (!session) return null;
-  if (session.examReviewId !== examReviewId) return null; // se está armando la otra
+  if (scopeKey(session.scope) !== key) return null; // se está armando la otra
   if (session.plan.queue.length === 0) {
+    const empty = { today: 'today.empty', deck: 'study.deck.empty', exam: 'study.examReview.empty' } as const;
     return (
       <>
         <StudyHeader />
-        <EmptyState message={t(examReviewId ? 'study.examReview.empty' : 'today.empty')} />
+        <EmptyState message={t(empty[scope.kind])} />
         <ActionBar>
-          <Link className={primary} to="/notes/new">
+          <Link
+            className={primary}
+            to={scope.kind === 'deck' ? `/notes/new?mazo=${scope.deckId}` : '/notes/new'}
+          >
             {t('today.addCard')}
           </Link>
         </ActionBar>
@@ -114,15 +135,23 @@ export function StudyScreen() {
  */
 function StudyHeader({ done, total }: { readonly done?: number; readonly total?: number }) {
   const { t } = useTranslation();
-  const examReview = useStudy((s) => s.session?.examReviewId ?? null) !== null;
+  const scope = useStudy((s) => s.session?.scope.kind ?? 'today');
+  const deckName = useStudy((s) => s.session?.deckName ?? null);
+  const title =
+    scope === 'exam'
+      ? t('study.examReview.title')
+      : scope === 'deck' && deckName
+        ? deckName
+        : t('study.title');
   return (
     <header className="flex min-h-11 items-center justify-between gap-3">
-      <Link className={`-ml-2 inline-flex min-h-11 min-w-11 items-center px-2 text-primary ${focus}`} to="/">
+      <Link
+        className={`-ml-2 inline-flex min-h-11 min-w-11 items-center px-2 text-primary ${focus}`}
+        to={scope === 'deck' ? '/decks' : '/'}
+      >
         {t('study.exit')}
       </Link>
-      <h1 className="m-0 text-body font-semibold">
-        {t(examReview ? 'study.examReview.title' : 'study.title')}
-      </h1>
+      <h1 className="m-0 min-w-0 truncate text-body font-semibold">{title}</h1>
       <span className="min-w-11 text-right text-caption text-muted">
         {done !== undefined && total !== undefined ? t('study.progress', { done, total }) : null}
       </span>
@@ -174,7 +203,8 @@ function Session({
   useEffect(() => {
     if (onBreak) hold('break', breakStartedAt === null ? Date.now() : breakStartedAt - offsetMs);
     else {
-      const resumedAt = focusStartedAt === null ? Date.now() : Math.min(Date.now(), focusStartedAt - offsetMs);
+      const resumedAt =
+        focusStartedAt === null ? Date.now() : Math.min(Date.now(), focusStartedAt - offsetMs);
       release('break', resumedAt);
     }
   }, [onBreak, breakStartedAt, focusStartedAt, offsetMs, hold, release]);

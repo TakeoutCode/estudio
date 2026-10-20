@@ -84,6 +84,10 @@
       "title": "Repaso previo",
       "empty": "No hay tarjetas para el repaso previo: lo de este examen ya vence antes de la fecha o ya lo repasaste en estos días."
     },
+    "deck": {
+      "empty": "No hay tarjetas pendientes en este mazo. Puedes añadir nuevas o elegir otro mazo.",
+      "missing": "Este mazo ya no existe; puede que se haya borrado en otro dispositivo."
+    },
     "objective": {
       "right": "Correcto.",
       "wrong": "No coincide.",

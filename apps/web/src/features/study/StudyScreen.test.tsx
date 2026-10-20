@@ -6,7 +6,7 @@ import { deviceId } from '@/db/clock';
 import { db } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { createExam } from '@/features/exams';
-import { createNote } from '@/features/notes';
+import { createNote, deleteNote } from '@/features/notes';
 import { updateProfile, updateStudyConfig } from '@/features/settings';
 import { saveSelfExplanation } from './commands';
 import { planSessionNow } from './queries';
@@ -320,7 +320,14 @@ describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
   /** Sesión ya empezada con 20 respuestas que muestran fatiga (P5). */
   async function fatiguedSession() {
     const { plan } = await planSessionNow();
-    useStudy.getState().start({ id: SESSION, startedAt: T0, plan, askConfidence: false, examReviewId: null });
+    useStudy.getState().start({
+      id: SESSION,
+      startedAt: T0,
+      plan,
+      askConfidence: false,
+      scope: { kind: 'today' },
+      deckName: null,
+    });
     const fresh = Array.from({ length: 10 }, (_, i) => sessionLog(T0 + i * 10_000, Rating.Good, 5_000));
     await db.reviewLogs.bulkAdd([...fresh, ...tired(T0 + 200_000, 10)]);
   }
@@ -464,6 +471,64 @@ describe('StudyScreen · LD5 (entender antes de recordar)', () => {
     renderStudy();
     expect(await screen.findByText(deltoid.front)).toBeTruthy();
     expect(screen.queryByLabelText('Explícalo con tus palabras')).toBeNull();
+  });
+});
+
+describe('StudyScreen · un solo mazo (?mazo=)', () => {
+  const atlas = {
+    kind: 'basic',
+    front: '¿Primera vértebra cervical?',
+    back: 'El atlas',
+    explanation: '',
+    reverse: false,
+  } as const;
+  const renderAt = (path: string) =>
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/study" element={<StudyScreen />} />
+          <Route path="/decks" element={<p>Mazos</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+  it('solo entra ese mazo, con su nombre de título; "Salir" vuelve a Mazos', async () => {
+    const note = await createNote({ deck: { name: 'Columna' }, content: atlas }, { now: T0 - 3 });
+    renderAt(`/study?mazo=${note.deckId}`);
+    expect(await screen.findByText(atlas.front)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Columna' })).toBeTruthy();
+    expect(useStudy.getState().session?.plan.queue.map((q) => q.cardId)).toEqual([cardIdFor(note.id, 0)]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    expect(await screen.findByText(/vuelve en \d+ min/)).toBeTruthy(); // ninguna de otro mazo
+    fireEvent.click(screen.getByRole('link', { name: 'Salir' }));
+    expect(await screen.findByText('Mazos')).toBeTruthy();
+  });
+
+  it('al volver a Hoy, la sesión mezcla otra vez todos los mazos', async () => {
+    const note = await createNote({ deck: { name: 'Columna' }, content: atlas }, { now: T0 - 3 });
+    const first = renderAt(`/study?mazo=${note.deckId}`);
+    await screen.findByText(atlas.front);
+    first.unmount();
+    renderAt('/study');
+    expect(await screen.findByRole('heading', { name: 'Repaso' })).toBeTruthy();
+    await waitFor(() => {
+      expect(useStudy.getState().session?.plan.queue).toHaveLength(3);
+    });
+  });
+
+  it('un mazo sin pendientes lo dice y ofrece añadir en él; uno borrado, que ya no existe', async () => {
+    const note = await createNote({ deck: { name: 'Columna' }, content: atlas }, { now: T0 - 3 });
+    await deleteNote(note.id);
+    const empty = renderAt(`/study?mazo=${note.deckId}`);
+    expect(await screen.findByText(/No hay tarjetas pendientes en este mazo/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Nueva tarjeta' }).getAttribute('href')).toBe(
+      `/notes/new?mazo=${note.deckId}`,
+    );
+    empty.unmount();
+    renderAt('/study?mazo=0192f1a0-0000-7000-8000-0000000dead0');
+    expect(await screen.findByText(/Este mazo ya no existe/)).toBeTruthy();
   });
 });
 

@@ -21,14 +21,28 @@ export type Attempt =
   | { readonly kind: 'typed'; readonly text: string; readonly correct: boolean }
   | { readonly kind: 'choice'; readonly option: number; readonly correct: boolean };
 
+/**
+ * Qué se estudia: Hoy mezcla todos los mazos (R9, P4); `deck` aplica el plan a un solo mazo
+ * (`?mazo=`); `exam` es la vuelta de repaso previa a un examen (LD12, `?examen=`).
+ */
+export type StudyScope =
+  | { readonly kind: 'today' }
+  | { readonly kind: 'deck'; readonly deckId: string }
+  | { readonly kind: 'exam'; readonly examId: string };
+
+/** Dos alcances con la misma clave son la misma sesión. */
+export const scopeKey = (scope: StudyScope): string =>
+  scope.kind === 'deck' ? `deck:${scope.deckId}` : scope.kind === 'exam' ? `exam:${scope.examId}` : 'today';
+
 export interface StudySession {
   readonly id: string;
   readonly startedAt: number;
   readonly plan: SessionPlan;
   /** R6, LD6: pedir confianza antes de revelar (`review.askConfidence`). */
   readonly askConfidence: boolean;
-  /** LD12: la vuelta de repaso previa a este examen; null en la sesión de Hoy. */
-  readonly examReviewId: string | null;
+  readonly scope: StudyScope;
+  /** Nombre del mazo con `scope.kind === 'deck'`, para el título. */
+  readonly deckName: string | null;
 }
 
 /** P5 en la sesión. */
