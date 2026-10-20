@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ActionBar } from '@/ui/ActionBar';
 import { EmptyState } from '@/ui/EmptyState';
-import { deleteDeck, updateDeck } from './commands';
+import { Toggle } from '@/ui/Toggle';
+import { deleteDeck, setDeckPaused, updateDeck } from './commands';
 import { type DeckDetail, type DeckNoteRow, matchesSearch, useDeckDetail } from './queries';
 import { deckSummary } from './summary';
 
@@ -45,7 +46,8 @@ function DeckView({ detail: { deck, load, topics, notes } }: { readonly detail: 
   const { t } = useTranslation();
   const editId = useId();
   const [editing, setEditing] = useState(false);
-  const summary = deckSummary(t, notes.length, load);
+  const paused = deck.pausedAt !== null;
+  const summary = deckSummary(t, notes.length, load, paused);
   return (
     <>
       <header className="flex flex-col gap-1">
@@ -56,6 +58,7 @@ function DeckView({ detail: { deck, load, topics, notes } }: { readonly detail: 
         {deck.description ? <p className="m-0 whitespace-pre-wrap text-muted">{deck.description}</p> : null}
         <p className="m-0 text-caption text-muted">{summary}</p>
       </header>
+      <PauseToggle deckId={deck.id} paused={paused} />
       <div className="flex flex-col">
         <button
           type="button"
@@ -83,6 +86,45 @@ function DeckView({ detail: { deck, load, topics, notes } }: { readonly detail: 
         </Link>
       </ActionBar>
     </>
+  );
+}
+
+/**
+ * Pausar (*diseño*): el mazo sale de Hoy, de la carga y de los recordatorios, sin tocar FSRS
+ * (LD9). Se guarda al tocarlo, como el tema; la consulta en vivo trae el estado nuevo.
+ */
+function PauseToggle({ deckId, paused }: { readonly deckId: string; readonly paused: boolean }) {
+  const { t } = useTranslation();
+  const [failed, setFailed] = useState(false);
+  // Lo elegido se ve al instante; cuando llega el valor guardado (o de otro dispositivo), manda ese.
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const [stored, setStored] = useState(paused);
+  if (stored !== paused) {
+    setStored(paused);
+    setChosen(null);
+  }
+  const shown = chosen ?? paused;
+  return (
+    <div className="flex flex-col gap-1 rounded-(--radius-card) bg-surface px-4 py-2">
+      <Toggle
+        label={t('decks.pause')}
+        hint={t(shown ? 'decks.pausedHint' : 'decks.pauseHint')}
+        checked={shown}
+        onChange={(next) => {
+          setFailed(false);
+          setChosen(next);
+          setDeckPaused(deckId, next).catch(() => {
+            setChosen(null);
+            setFailed(true);
+          });
+        }}
+      />
+      {failed ? (
+        <p role="alert" className="m-0 text-caption">
+          {t('error.generic')}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

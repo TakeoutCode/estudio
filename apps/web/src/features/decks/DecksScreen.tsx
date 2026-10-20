@@ -45,7 +45,7 @@ export function DecksScreen() {
 
 function DeckRow({ item: { deck, load, notes } }: { readonly item: DeckOverview }) {
   const { t } = useTranslation();
-  const summary = deckSummary(t, notes, load);
+  const summary = deckSummary(t, notes, load, deck.pausedAt !== null);
   return (
     <li className="flex items-center gap-2 rounded-(--radius-card) bg-surface py-2 pr-2 pl-4">
       <Link

@@ -39,6 +39,7 @@ export function createDeck(
     id: newId(),
     name: input.name,
     description: input.description ?? null,
+    pausedAt: null,
     deletedAt: null,
     ...stamp,
   }));
@@ -64,6 +65,23 @@ export function updateDeck(
     name: input.name,
     description,
     ...stamp,
+  }));
+}
+
+/**
+ * Pausar o reanudar (*diseño*): en pausa, sus tarjetas salen de Hoy, de la carga y de los
+ * recordatorios. Solo cambia `pausedAt`: FSRS no se toca (LD9) y al reanudar lo vencido entra
+ * con P8. Viaja por LWW como cualquier edición.
+ */
+export function setDeckPaused(
+  id: string,
+  paused: boolean,
+  { database = defaultDb, now = Date.now() }: CommandOptions = {},
+): Promise<Deck> {
+  return saveDeck(database, now, async (stamp) => ({
+    ...(await existing(database, id)),
+    ...stamp,
+    pausedAt: paused ? stamp.updatedAt : null,
   }));
 }
 

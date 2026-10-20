@@ -2,7 +2,15 @@ import { compareHlc, decodeHlc, MutationSchema } from '@estudio/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/schema';
 import { createNote } from '@/features/notes';
-import { createDeck, deleteDeck, deleteTopic, renameDeck, updateDeck, updateTopic } from './commands';
+import {
+  createDeck,
+  deleteDeck,
+  deleteTopic,
+  renameDeck,
+  setDeckPaused,
+  updateDeck,
+  updateTopic,
+} from './commands';
 
 const T0 = 1_760_000_000_000;
 
@@ -49,6 +57,16 @@ describe('comandos de mazo (FRONTEND FE3)', () => {
     expect(cleared.description).toBeNull();
     expect((await db.outbox.toArray()).map((m) => m.row)).toContainEqual(cleared);
     await expect(updateDeck(deck.id, { name: ' ', description: '' })).rejects.toThrow();
+  });
+
+  it('pausar escribe pausedAt con la hora del HLC; reanudar lo vuelve null; ambos viajan', async () => {
+    const deck = await createDeck({ name: 'Carpo' }, { now: T0 });
+    expect(deck.pausedAt).toBeNull();
+    const paused = await setDeckPaused(deck.id, true, { now: T0 + 1 });
+    expect(paused.pausedAt).toBe(paused.updatedAt);
+    const resumed = await setDeckPaused(deck.id, false, { now: T0 + 2 });
+    expect(resumed.pausedAt).toBeNull();
+    expect((await db.outbox.toArray()).map((m) => m.row)).toEqual([deck, paused, resumed]);
   });
 
   it('SY5: borrar es una escritura más con deletedAt; no se puede editar algo borrado', async () => {

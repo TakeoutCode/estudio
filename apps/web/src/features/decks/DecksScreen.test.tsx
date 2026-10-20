@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
 import { createNote } from '@/features/notes';
-import { createDeck } from './commands';
+import { createDeck, setDeckPaused } from './commands';
 import { DecksScreen } from './DecksScreen';
 
 const T0 = Date.UTC(2026, 9, 20, 15); // 09:00 en CDMX
@@ -75,6 +75,19 @@ describe('Mazos (§5)', () => {
     expect(surface.getByRole('link', { name: /Anatomía de superficie/ }).getAttribute('href')).toBe(
       `/decks/${empty.id}`,
     );
+  });
+
+  it('los mazos en pausa van al final, lo dicen y se pueden estudiar igual', async () => {
+    const anatomy = await createNote({ deck: { name: 'Anatomía' }, content: basic('¿C1?') }, { now: T0 });
+    await createNote({ deck: { name: 'Bioquímica' }, content: basic('¿ATP?') }, { now: T0 });
+    await setDeckPaused(anatomy.deckId, true, { now: T0 + 1 });
+    renderDecks();
+    const items = await screen.findAllByRole('listitem');
+    expect(items.map((li) => li.querySelector('span')?.textContent)).toEqual(['Bioquímica', 'Anatomía']);
+    const paused = items[1];
+    if (!paused) throw new Error('falta el mazo en pausa');
+    expect(within(paused).getByText('En pausa · 1 tarjeta · 0 pendientes · 1 nueva')).toBeTruthy();
+    expect(within(paused).getByRole('link', { name: 'Estudiar Anatomía' })).toBeTruthy();
   });
 
   it('UX3: sin mazos lo explica y deja crear uno', async () => {

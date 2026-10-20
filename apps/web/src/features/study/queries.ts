@@ -31,17 +31,24 @@ export interface PlanSnapshot {
   readonly toImprove: readonly { readonly noteId: string; readonly prompt: string }[];
   /** Tarjetas vivas con su estado y tema, de donde salió la cola. */
   readonly cards: readonly PlannerCard[];
+  /** Mazos en pausa, que Hoy deja fuera. */
+  readonly pausedDecks: number;
 }
 
 /**
- * ARC2: la cola la arma `srs`; aquí solo se juntan sus datos desde Dexie (ARC3). Con `deckId`,
- * P1-P8 se aplican solo a las tarjetas de ese mazo; los tiempos (P1) y la retención (P3)
- * siguen saliendo de todo su historial, porque son de ella y no del mazo.
+ * ARC2: la cola la arma `srs`; aquí solo se juntan sus datos desde Dexie (ARC3). Hoy deja
+ * fuera los mazos en pausa. Con `deckId`, P1-P8 se aplican solo a las tarjetas de ese mazo,
+ * aunque esté en pausa (ella lo eligió); los tiempos (P1) y la retención (P3) siguen saliendo
+ * de todo su historial, porque son de ella y no del mazo. `includePaused`: todas (exámenes).
  */
 export async function loadPlan(
   database: EstudioDb,
   now: number,
-  { plannedBlocks, deckId }: { readonly plannedBlocks?: number; readonly deckId?: string } = {},
+  {
+    plannedBlocks,
+    deckId,
+    includePaused = false,
+  }: { readonly plannedBlocks?: number; readonly deckId?: string; readonly includePaused?: boolean } = {},
 ): Promise<PlanSnapshot> {
   const [config, profile, all] = await Promise.all([
     readStudyConfig(database),
@@ -49,7 +56,13 @@ export async function loadPlan(
     readPlannerCards(database),
   ]);
   const { notes } = all;
-  const plannerCards = deckId === undefined ? all.cards : all.cards.filter((c) => c.deckId === deckId);
+  const plannerCards =
+    deckId !== undefined
+      ? all.cards.filter((c) => c.deckId === deckId)
+      : includePaused
+        ? all.cards
+        : all.cards.filter((c) => !c.deckPaused);
+  const pausedDecks = all.pausedDeckIds.size;
   const plan = buildSessionQueue({
     cards: plannerCards,
     logs: await database.reviewLogs.toArray(),
@@ -65,7 +78,7 @@ export async function loadPlan(
     const note = notes.get(noteId);
     return note ? [{ noteId, prompt: cardFaces(note.content, 0).prompt }] : [];
   });
-  return { plan, config, profile, toImprove, cards: plannerCards };
+  return { plan, config, profile, toImprove, cards: plannerCards, pausedDecks };
 }
 
 /** Plan para empezar una sesión ahora (una sola lectura: la cola queda fija, §3). */
@@ -93,7 +106,8 @@ export async function loadExamReviewPlan(
   examId: string,
   now: number,
 ): Promise<PlanSnapshot> {
-  const snapshot = await loadPlan(database, now);
+  // El alcance del examen lo eligió ella: entran sus temas aunque el mazo esté en pausa.
+  const snapshot = await loadPlan(database, now, { includePaused: true });
   const exam = await database.exams.get(examId);
   if (exam?.deletedAt !== null) throw new Error('exam_not_found');
   const alive = new Set(

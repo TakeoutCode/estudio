@@ -109,6 +109,19 @@ export class EstudioDb extends Dexie {
     this.version(8)
       .stores({ studySessions: 'id, examId' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // Mazos en pausa (Deck.pausedAt): los guardados quedan activos. El cursor vuelve a 0 por
+    // si otro dispositivo ya pausó un mazo y esta versión lo bajó sin el campo.
+    this.version(9)
+      .stores({})
+      .upgrade(async (tx) => {
+        await tx
+          .table<{ pausedAt?: number | null }, string>('decks')
+          .toCollection()
+          .modify((deck) => {
+            deck.pausedAt ??= null;
+          });
+        await tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' });
+      });
   }
 }
 

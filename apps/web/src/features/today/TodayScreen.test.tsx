@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/schema';
+import { setDeckPaused } from '@/features/decks';
 import { createNote } from '@/features/notes';
 import { TodayScreen } from './TodayScreen';
 
@@ -39,5 +40,14 @@ describe('TodayScreen', () => {
     expect(await screen.findByText('Y 1 nueva para aprender')).toBeTruthy();
     expect(screen.getByText('Hoy no hay repasos pendientes')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Empezar' }).getAttribute('href')).toBe('/study');
+  });
+
+  it('un mazo en pausa no cuenta en Hoy y el enlace a mazos lo dice', async () => {
+    await createNote({ deck: { name: 'Huesos' }, content });
+    const paused = await createNote({ deck: { name: 'Nervios' }, content: { ...content, front: '¿Par I?' } });
+    await setDeckPaused(paused.deckId, true);
+    renderToday();
+    expect(await screen.findByText('Y 1 nueva para aprender')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Tus mazos · 1 en pausa' }).getAttribute('href')).toBe('/decks');
   });
 });

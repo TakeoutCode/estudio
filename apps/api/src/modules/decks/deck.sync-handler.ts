@@ -25,6 +25,7 @@ export class DeckSyncHandler implements EntitySyncHandler<'deck'> {
       id: d.id,
       name: d.name,
       description: d.description,
+      pausedAt: dbNumberOrNull(d.paused_at),
       hlc: d.hlc,
       updatedAt: dbNumber(d.updated_at),
       deletedAt: dbNumberOrNull(d.deleted_at),

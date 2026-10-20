@@ -27,6 +27,7 @@ export class DecksRepository {
       { name: 'user_id', value: userId, cast: 'uuid' },
       { name: 'name', value: deck.name },
       { name: 'description', value: deck.description },
+      { name: 'paused_at', value: deck.pausedAt, cast: 'bigint' },
       ...syncMetaColumns(deck),
     ]);
   }

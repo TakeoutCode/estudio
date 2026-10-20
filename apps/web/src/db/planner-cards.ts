@@ -6,6 +6,18 @@ import { alive, type EstudioDb } from './schema';
 export interface DeckPlannerCard extends PlannerCard {
   readonly noteId: string;
   readonly deckId: string;
+  /** Su mazo está en pausa: no entra en Hoy ni en la carga (LEARNING-DESIGN §6). */
+  readonly deckPaused: boolean;
+}
+
+/**
+ * Mazos en pausa (*diseño*, `Deck.pausedAt`): sus tarjetas no entran en Hoy, en la carga de Tu
+ * semana ni en la carga proyectada de Ajustes. Exámenes y estudiar ese mazo a propósito sí las
+ * ven, porque ella eligió ese alcance.
+ */
+export async function readPausedDeckIds(database: EstudioDb): Promise<ReadonlySet<string>> {
+  const decks = await alive(database.decks.toCollection()).toArray();
+  return new Set(decks.filter((deck) => deck.pausedAt !== null).map((deck) => deck.id));
 }
 
 /**
@@ -13,10 +25,16 @@ export interface DeckPlannerCard extends PlannerCard {
  * nuevo si nunca se respondió), su tema y su mazo. La cola de Hoy y la carga de cada mazo
  * salen de aquí, así cuentan lo mismo.
  */
-export async function readPlannerCards(
-  database: EstudioDb,
-): Promise<{ readonly cards: DeckPlannerCard[]; readonly notes: ReadonlyMap<string, Note> }> {
-  const notes = new Map((await alive(database.notes.toCollection()).toArray()).map((n) => [n.id, n]));
+export async function readPlannerCards(database: EstudioDb): Promise<{
+  readonly cards: DeckPlannerCard[];
+  readonly notes: ReadonlyMap<string, Note>;
+  readonly pausedDeckIds: ReadonlySet<string>;
+}> {
+  const [paused, aliveNotes] = await Promise.all([
+    readPausedDeckIds(database),
+    alive(database.notes.toCollection()).toArray(),
+  ]);
+  const notes = new Map(aliveNotes.map((n) => [n.id, n]));
   const cards = (await alive(database.cards.toCollection()).toArray()).filter((c) => notes.has(c.noteId));
   const stored = await database.cardStates.bulkGet(cards.map((c) => c.id));
   const planned = cards.flatMap((card, i) => {
@@ -29,8 +47,9 @@ export async function readPlannerCards(
         lapseBaseline: card.lapseBaseline,
         noteId: note.id,
         deckId: note.deckId,
+        deckPaused: paused.has(note.deckId),
       },
     ];
   });
-  return { cards: planned, notes };
+  return { cards: planned, notes, pausedDeckIds: paused };
 }

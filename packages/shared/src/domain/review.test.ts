@@ -56,6 +56,15 @@ describe('Deck', () => {
     expect(DeckSchema.parse({ ...deck, name: '  Huesos del carpo ' }).name).toBe('Huesos del carpo');
     expect(DeckSchema.safeParse({ ...deck, name: '   ' }).success).toBe(false);
   });
+
+  it('pausedAt: un mazo de un cliente anterior llega activo; la pausa es una hora epoch ms', () => {
+    expect(DeckSchema.parse({ ...deck, name: 'Carpo' }).pausedAt).toBeNull();
+    expect(DeckSchema.parse({ ...deck, name: 'Carpo', pausedAt: 1_760_000_000_500 }).pausedAt).toBe(
+      1_760_000_000_500,
+    );
+    expect(DeckSchema.safeParse({ ...deck, name: 'Carpo', pausedAt: -1 }).success).toBe(false);
+    expect(DeckSchema.safeParse({ ...deck, name: 'Carpo', pausedAt: 1.5 }).success).toBe(false);
+  });
 });
 
 describe('contrato', () => {

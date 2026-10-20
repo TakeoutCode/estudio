@@ -3,9 +3,11 @@ import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
+import { setDeckPaused } from '@/features/decks';
 import { createNote } from '@/features/notes';
 import { updateStudyConfig } from '@/features/settings';
 import { DashboardScreen } from './DashboardScreen';
+import { loadMetricsInput } from './queries';
 
 // jsdom no tiene Worker: el worker corre en el mismo hilo.
 vi.mock('@/workers/projection', async () => {
@@ -127,5 +129,20 @@ describe('Tu semana (§5, UX9)', () => {
     await db.reviewLogs.bulkAdd(today(20, 5, 3)); // mucha confianza, pocos aciertos
     renderDashboard();
     expect(await screen.findByText('Esta semana tu confianza fue más alta que tus aciertos.')).toBeTruthy();
+  });
+});
+
+describe('Tu semana · mazos en pausa', () => {
+  it('la carga deja fuera los mazos en pausa, como Hoy; el historial queda completo', async () => {
+    const basic = (front: string) =>
+      ({ kind: 'basic', front, back: 'R', explanation: '', reverse: false }) as const;
+    const kept = await createNote({ deck: { name: 'Huesos' }, content: basic('¿Fémur?') }, { now: T0 - 1 });
+    const paused = await createNote(
+      { deck: { name: 'Nervios' }, content: basic('¿Par I?') },
+      { now: T0 - 1 },
+    );
+    await setDeckPaused(paused.deckId, true);
+    const input = await loadMetricsInput(db, T0);
+    expect(input.cards.map((c) => c.state.cardId)).toEqual([cardIdFor(kept.id, 0)]);
   });
 });

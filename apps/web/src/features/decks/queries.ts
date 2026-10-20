@@ -95,7 +95,10 @@ export const useDeckDetail = (deckId: string | undefined): DeckDetail | null | u
     };
   }, [deckId]);
 
-/** Mazos vivos por nombre, cada uno con su carga; se recalcula tras responder o un pull. */
+/**
+ * Mazos vivos por nombre, primero los activos y después los que están en pausa, cada uno con
+ * su carga; se recalcula tras responder o un pull.
+ */
 export const useDeckOverview = (): DeckOverview[] | undefined =>
   useLiveQuery(async () => {
     const now = Date.now();
@@ -105,8 +108,9 @@ export const useDeckOverview = (): DeckOverview[] | undefined =>
       readStudyConfig(db),
       readProfile(db),
     ]);
+    const paused = (deck: Deck) => (deck.pausedAt === null ? 0 : 1);
     return decks
-      .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+      .sort((a, b) => paused(a) - paused(b) || a.name.localeCompare(b.name, 'es'))
       .map((deck) => {
         const own = cards.filter((card) => card.deckId === deck.id);
         return {

@@ -13,6 +13,8 @@
     "start": "Empezar",
     "addCard": "Nueva tarjeta",
     "decks": "Tus mazos",
+    "decksPaused_one": "Tus mazos · {{count}} en pausa",
+    "decksPaused_other": "Tus mazos · {{count}} en pausa",
     "improve": {
       "title": "Para mejorar",
       "hint": "Estas tarjetas quedan aparte: cambiarles la explicación o escribirlas con tus palabras suele ayudar más que repetirlas.",
@@ -207,7 +209,7 @@
   },
   "decks": {
     "title": "Mazos",
-    "hint": "Toca un mazo para editarlo o ver sus tarjetas. «Estudiar» repasa solo ese mazo; desde Hoy se mezclan todos.",
+    "hint": "Toca un mazo para editarlo o ver sus tarjetas. «Estudiar» repasa solo ese mazo; desde Hoy se mezclan todos los que no están en pausa.",
     "empty": "Todavía no tienes mazos. Crea uno aquí o al escribir tu primera tarjeta.",
     "noCards": "Sin tarjetas todavía",
     "cards_one": "{{count}} tarjeta",
@@ -220,6 +222,10 @@
     "studyNamed": "Estudiar {{name}}",
     "new": "Nuevo mazo",
     "create": "Crear",
+    "paused": "En pausa",
+    "pause": "Pausar este mazo",
+    "pauseHint": "Si lo pausas, no entra en Hoy, en la carga ni en los recordatorios. Puedes estudiarlo desde aquí cuando quieras.",
+    "pausedHint": "No entra en Hoy, en la carga ni en los recordatorios. Al reanudarlo, si sus pendientes no caben en un día, se reparten en unos días.",
     "back": "Mazos",
     "missing": "Este mazo ya no existe; puede que se haya borrado en otro dispositivo.",
     "studyThis": "Estudiar este mazo",

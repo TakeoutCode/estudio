@@ -185,7 +185,12 @@ export class NotificationsService {
     return {
       userId,
       eventId: event.id,
-      payload: { title: text('title'), body: reminderBody(event.payload), tag: 'reminder', url: `/?aviso=${event.id}` },
+      payload: {
+        title: text('title'),
+        body: reminderBody(event.payload),
+        tag: 'reminder',
+        url: `/?aviso=${event.id}`,
+      },
       ttlSec: NOTIFICATION_DELIVERY.reminderTtlSeconds,
     };
   }
@@ -202,19 +207,30 @@ export class NotificationsService {
       this.repo.sentReminders(userId),
       this.repo.state(userId),
     ]);
-    const liveNotes = new Map(data.notes.map((n) => [n.id, n.topicId]));
+    const liveNotes = new Map(data.notes.map((n) => [n.id, n]));
     const cards = data.cards.filter((c) => liveNotes.has(c.noteId));
     const states = replayCards(
       cards.map((c) => ({ cardId: c.id, createdAt: c.createdAt })),
       data.logs,
       ctx.study,
     );
-    const plannerCards: PlannerCard[] = cards.flatMap((card, i) => {
+    const plannerCards: (PlannerCard & { readonly paused: boolean })[] = cards.flatMap((card, i) => {
       const state = states[i];
-      return state ? [{ state, topicId: liveNotes.get(card.noteId) ?? null, lapseBaseline: card.lapseBaseline }] : [];
+      const note = liveNotes.get(card.noteId);
+      return state && note
+        ? [
+            {
+              state,
+              topicId: note.topicId,
+              lapseBaseline: card.lapseBaseline,
+              paused: data.pausedDeckIds.has(note.deckId),
+            },
+          ]
+        : [];
     });
     const candidates = reminderCandidates({
       cards: plannerCards,
+      dueCards: plannerCards.filter((card) => !card.paused),
       logs: data.logs,
       config: ctx.study,
       scheduler: createScheduler(ctx.study.fsrs),

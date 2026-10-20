@@ -6,6 +6,7 @@ import {
   type UiSettings,
 } from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { readPausedDeckIds } from '@/db/planner-cards';
 import { alive, db, type EstudioDb } from '@/db/schema';
 import { readNotificationPrefs, readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
 import type { BreakUsageInput, LoadProjectionInput } from '@/workers/projection-api';
@@ -26,14 +27,22 @@ export const useStudyConfig = (): StudyConfig | undefined => useLiveQuery(() => 
 
 /**
  * R2 y LD8: lo que el worker necesita para proyectar la carga, leído una vez de Dexie
- * (ARC3). Solo tarjetas vivas de notas vivas, como la cola.
+ * (ARC3). Solo tarjetas vivas de notas vivas y sin los mazos en pausa, como la cola de Hoy.
  */
 export async function loadProjectionInput(
   database: EstudioDb = db,
   now: number = Date.now(),
 ): Promise<LoadProjectionInput> {
-  const [config, profile] = await Promise.all([readStudyConfig(database), readProfile(database)]);
-  const notes = new Set((await alive(database.notes.toCollection()).toArray()).map((n) => n.id));
+  const [config, profile, paused] = await Promise.all([
+    readStudyConfig(database),
+    readProfile(database),
+    readPausedDeckIds(database),
+  ]);
+  const notes = new Set(
+    (await alive(database.notes.toCollection()).toArray())
+      .filter((n) => !paused.has(n.deckId))
+      .map((n) => n.id),
+  );
   const cards = (await alive(database.cards.toCollection()).toArray())
     .filter((card) => notes.has(card.noteId))
     .map((card) => ({ cardId: card.id, createdAt: card.createdAt, lapseBaseline: card.lapseBaseline }));

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deviceId } from '@/db/clock';
 import { db } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
+import { setDeckPaused } from '@/features/decks';
 import { createExam } from '@/features/exams';
 import { createNote, deleteNote } from '@/features/notes';
 import { updateProfile, updateStudyConfig } from '@/features/settings';
@@ -518,6 +519,17 @@ describe('StudyScreen · un solo mazo (?mazo=)', () => {
     });
   });
 
+  it('un mazo en pausa no entra en Hoy, pero se puede estudiar a propósito', async () => {
+    const note = await createNote({ deck: { name: 'Columna' }, content: atlas }, { now: T0 - 3 });
+    await setDeckPaused(note.deckId, true);
+    const today = renderAt('/study');
+    expect(await screen.findByText(humerus.front)).toBeTruthy();
+    expect(useStudy.getState().session?.plan.queue.map((q) => q.cardId)).not.toContain(cardIdFor(note.id, 0));
+    today.unmount();
+    renderAt(`/study?mazo=${note.deckId}`);
+    expect(await screen.findByText(atlas.front)).toBeTruthy();
+  });
+
   it('un mazo sin pendientes lo dice y ofrece añadir en él; uno borrado, que ya no existe', async () => {
     const note = await createNote({ deck: { name: 'Columna' }, content: atlas }, { now: T0 - 3 });
     await deleteNote(note.id);
@@ -562,6 +574,8 @@ describe('StudyScreen · LD12 (repaso previo al examen)', () => {
       lastReview: T0 - 20 * DAY, // antes de la ventana
     });
     const exam = await createExam({ title: 'Parcial 1', date: T0 + 3 * DAY, topicIds: [note.topicId ?? ''] });
+    // El alcance del examen lo eligió ella: entra aunque su mazo esté en pausa.
+    await setDeckPaused(note.deckId, true);
     // R5 ya atendido para que vaya directo a la tarjeta.
     await saveSelfExplanation({ topicId: note.topicId ?? '', text: 'Ya lo expliqué.' }, { now: T0 - DAY });
 

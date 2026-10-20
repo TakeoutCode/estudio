@@ -92,6 +92,22 @@ describe('sync contra Postgres real (SYNC.md)', () => {
     expect(rows[0]?.n).toBe(1n);
   });
 
+  it('Deck.pausedAt viaja ida y vuelta; un mazo sin el campo (contrato 8) queda activo', async () => {
+    const legacy = deckRow(now, NODE); // como lo envía un cliente anterior: sin pausedAt
+    expect((await push(a.token, [upsert(legacy)])).results[0]?.status).toBe('applied');
+    const pulled = async () =>
+      (await allChanges(a.token)).find((c) => c.entity === 'deck' && c.row.id === legacy.id)?.row;
+    expect(await pulled()).toMatchObject({ pausedAt: null });
+
+    const paused = { ...legacy, pausedAt: now + 5, hlc: hlcAt(now + 5, NODE), updatedAt: now + 5 };
+    expect((await push(a.token, [upsert(paused)])).results[0]?.status).toBe('applied');
+    expect(await pulled()).toMatchObject({ pausedAt: now + 5 });
+
+    const resumed = { ...paused, pausedAt: null, hlc: hlcAt(now + 6, NODE), updatedAt: now + 6 };
+    expect((await push(a.token, [upsert(resumed)])).results[0]?.status).toBe('applied');
+    expect(await pulled()).toMatchObject({ pausedAt: null });
+  });
+
   it('SY-T6: HLC viejo → stale; nuevo → gana; borrar y luego editar revive', async () => {
     const deck = deckRow(now, NODE);
     await push(a.token, [upsert(deck)]);

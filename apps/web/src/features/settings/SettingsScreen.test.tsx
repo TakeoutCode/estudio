@@ -5,6 +5,7 @@ import { useStoredTheme } from '@/app/use-stored-theme';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
 import { readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
+import { setDeckPaused } from '@/features/decks';
 import { createNote } from '@/features/notes';
 import { answerCard } from '@/features/study';
 import { projectionApi } from '@/workers/projection-api';
@@ -278,5 +279,20 @@ describe('Ajustes · hora de dormir (P6)', () => {
       target: { value: '07:00' },
     });
     expect(screen.getByText(/así que la sesión no te sugerirá parar por la hora/)).toBeTruthy();
+  });
+});
+
+describe('Ajustes · carga proyectada sin mazos en pausa (R2)', () => {
+  it('la proyección cuenta solo los mazos activos, como Hoy', async () => {
+    const basic = (front: string) =>
+      ({ kind: 'basic', front, back: 'R', explanation: '', reverse: false }) as const;
+    const kept = await createNote({ deck: { name: 'Huesos' }, content: basic('¿Fémur?') }, { now: T0 - 1 });
+    const paused = await createNote(
+      { deck: { name: 'Nervios' }, content: basic('¿Par I?') },
+      { now: T0 - 1 },
+    );
+    await setDeckPaused(paused.deckId, true);
+    const input = await loadProjectionInput(db, T0);
+    expect(input.cards.map((c) => c.cardId)).toEqual([cardIdFor(kept.id, 0)]);
   });
 });

@@ -81,6 +81,8 @@ Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una 
 
 **Estudiar un mazo** (*diseño*): la sesión de Hoy mezcla todos los mazos (R9, P4). Desde Mazos se puede estudiar uno solo (`/study?mazo=<id>`): P1-P8 se aplican solo a sus tarjetas, pero los tiempos medianos (P1) y la retención reciente (P3) siguen saliendo de todo su historial, porque son de ella y no del mazo. Dentro del mazo, los temas se siguen mezclando (P4). Las cargas por mazo (`loadSummary()`) cuentan con la misma regla que la cola.
 
+**Pausar un mazo** (*diseño*, `Deck.pausedAt`): sus tarjetas no entran en Hoy (cola, P2, P8), en la carga de Tu semana, en la carga proyectada de Ajustes (LD8) ni en el conteo de los recordatorios (NOTIFICATIONS NT3). FSRS no cambia (LD9): sus fechas siguen corriendo y, al reanudarlo, lo pendiente entra con P8 (se reparte en 3-7 días si no cabe). Se puede estudiar igual desde Mazos, y los exámenes (repaso previo, simulacros, plan por tema) lo siguen viendo, porque ese alcance lo eligió ella. El historial completo sigue alimentando P1, P3 y las métricas.
+
 **LD10 · DEBE** implementar los sets de contraste (R9, P4) solo sobre `ContrastGroup`s marcados como confundibles, y después del primer acierto de cada miembro. Cada grupo recibe al crearse un `abArm: 'contrast' | 'control'` (sorteo con semilla guardada), y se compara la retención a 7 días entre brazos. *Razón:* la evidencia es contradictoria ([7] frente a [8]).
 
 ## 7. Exámenes y simulacros (R11, P7)

@@ -74,17 +74,22 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
   const upsert = (entity: string, row: Record<string, unknown>) => ({ mutationId: newId(), op: 'upsert', entity, row });
   const append = (entity: string, row: Record<string, unknown>) => ({ mutationId: newId(), op: 'append', entity, row });
 
-  /** Una cuenta con `due` tarjetas vencidas de un tema y una suscripción. */
+  /** Una cuenta con `due` tarjetas vencidas de un tema y una suscripción; `pausedAt` pausa su mazo. */
   const seed = async (
     email: string,
-    { time, due, notifications = {} }: { time: string; due: number; notifications?: Record<string, unknown> },
+    {
+      time,
+      due,
+      notifications = {},
+      pausedAt = null,
+    }: { time: string; due: number; notifications?: Record<string, unknown>; pausedAt?: number | null },
   ): Promise<Seeded> => {
     const user = await signIn(server, email);
     const wall = local(-40, 12);
     const meta = { hlc: hlcAt(wall, PHONE), updatedAt: wall, deletedAt: null };
     const settings = (section: 'profile' | 'notifications', data: Record<string, unknown>) =>
       upsert('userSettings', { id: settingsRowId(user.userId, section), section, data, ...meta });
-    const deck = deckRow(wall, PHONE);
+    const deck = deckRow(wall, PHONE, { pausedAt });
     const topic = { id: newId(), deckId: deck.id, name: 'Huesos del carpo', explanation: '', ...meta };
     const notes = Array.from({ length: due }, () => noteRow(wall, PHONE, deck.id, { topicId: topic.id }));
     const cards = notes.map((n) => cardRow(wall, PHONE, n.id));
@@ -176,6 +181,15 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
   it('NT-T1, §6: con 9 pendientes no se envía y queda registrado con su motivo', async () => {
     const user = await seed('avisos-b@ejemplo.mx', { time: '19:10', due: 9 });
     await tick(0, 19, 10);
+    expect(sender.to(user.endpoint)).toEqual([]);
+    expect(await events(user.userId)).toMatchObject([
+      { status: 'suppressed', reason: 'below_min_due', kinds: ['daily_reminder'] },
+    ]);
+  });
+
+  it('las pendientes de un mazo en pausa no cuentan: con 12 ahí no se envía (como en Hoy)', async () => {
+    const user = await seed('avisos-h@ejemplo.mx', { time: '19:15', due: 12, pausedAt: local(-2, 12) });
+    await tick(0, 19, 15);
     expect(sender.to(user.endpoint)).toEqual([]);
     expect(await events(user.userId)).toMatchObject([
       { status: 'suppressed', reason: 'below_min_due', kinds: ['daily_reminder'] },

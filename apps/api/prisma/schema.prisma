@@ -76,6 +76,7 @@ model Deck {
   userId      String  @map("user_id") @db.Uuid
   name        String
   description String?
+  pausedAt    BigInt? @map("paused_at") // diseño: en pausa, fuera de Hoy y de los recordatorios
   hlc         String
   updatedAt   BigInt  @map("updated_at")
   deletedAt   BigInt? @map("deleted_at")

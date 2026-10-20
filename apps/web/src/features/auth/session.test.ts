@@ -37,6 +37,7 @@ describe('cuenta del dispositivo', () => {
       id: newId(),
       name: 'De A',
       description: null,
+      pausedAt: null,
       hlc: 'x',
       updatedAt: 1,
       deletedAt: null,

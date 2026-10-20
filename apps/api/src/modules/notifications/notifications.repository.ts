@@ -28,7 +28,13 @@ export interface NotificationUser {
 
 /** Lo que el cron necesita para calcular los recordatorios de una cuenta (NT3). */
 export interface StudyData {
-  readonly notes: readonly { readonly id: string; readonly topicId: string | null }[];
+  readonly notes: readonly {
+    readonly id: string;
+    readonly deckId: string;
+    readonly topicId: string | null;
+  }[];
+  /** Mazos en pausa: sus tarjetas no cuentan como pendientes (como en Hoy). */
+  readonly pausedDeckIds: ReadonlySet<string>;
   readonly cards: readonly {
     readonly id: string;
     readonly noteId: string;
@@ -109,7 +115,9 @@ export class NotificationsRepository {
   /** Una sola fila por bloque (NT-T8): reprogramar cambia la hora si todavía no salió. */
   async scheduleBreakEnd(userId: string, id: string, input: BreakEndSchedule): Promise<void> {
     const key = { timerSessionId: input.timerSessionId, blockIndex: input.blockIndex };
-    const existing = await this.tx.scheduledNotification.findUnique({ where: { timerSessionId_blockIndex: key } });
+    const existing = await this.tx.scheduledNotification.findUnique({
+      where: { timerSessionId_blockIndex: key },
+    });
     if (existing && existing.userId !== userId) return;
     if (existing?.sentAt != null) return;
     await this.tx.scheduledNotification.upsert({
@@ -119,7 +127,12 @@ export class NotificationsRepository {
     });
   }
 
-  async cancelBreakEnd(userId: string, timerSessionId: string, blockIndex: number, now: number): Promise<void> {
+  async cancelBreakEnd(
+    userId: string,
+    timerSessionId: string,
+    blockIndex: number,
+    now: number,
+  ): Promise<void> {
     await this.tx.scheduledNotification.updateMany({
       where: { userId, timerSessionId, blockIndex, sentAt: null },
       data: { cancelledAt: now },
@@ -163,8 +176,11 @@ export class NotificationsRepository {
   }
 
   async studyData(userId: string): Promise<StudyData> {
-    const [notes, cards, logs, exams, topics] = await Promise.all([
-      this.tx.note.findMany({ where: { userId, deletedAt: null }, select: { id: true, topicId: true } }),
+    const [notes, cards, logs, exams, topics, paused] = await Promise.all([
+      this.tx.note.findMany({
+        where: { userId, deletedAt: null },
+        select: { id: true, deckId: true, topicId: true },
+      }),
       this.tx.card.findMany({
         where: { userId, deletedAt: null },
         select: { id: true, noteId: true, createdAt: true, lapseBaseline: true },
@@ -172,9 +188,14 @@ export class NotificationsRepository {
       this.tx.reviewLog.findMany({ where: { userId } }),
       this.tx.exam.findMany({ where: { userId, deletedAt: null } }),
       this.tx.topic.findMany({ where: { userId, deletedAt: null }, select: { id: true, name: true } }),
+      this.tx.deck.findMany({
+        where: { userId, deletedAt: null, pausedAt: { not: null } },
+        select: { id: true },
+      }),
     ]);
     return {
       notes,
+      pausedDeckIds: new Set(paused.map((d) => d.id)),
       cards: cards.map((c) => ({ ...c, createdAt: num(c.createdAt) })),
       logs: logs.map((l) =>
         ReviewLogSchema.parse({
@@ -218,7 +239,9 @@ export class NotificationsRepository {
     });
     return {
       events: rows.flatMap((r) =>
-        r.sentAt === null ? [] : [{ sentAt: num(r.sentAt), openedAt: r.openedAt === null ? null : num(r.openedAt) }],
+        r.sentAt === null
+          ? []
+          : [{ sentAt: num(r.sentAt), openedAt: r.openedAt === null ? null : num(r.openedAt) }],
       ),
       examDays: new Set(rows.flatMap((r) => r.examDays)),
     };

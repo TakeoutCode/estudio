@@ -6,11 +6,14 @@ import type { TFunction } from 'i18next';
  * notas que ella escribió (LD §1); pendientes y nuevas cuentan lo que se estudia, así que una
  * nota de huecos aporta una por hueco, como en Hoy.
  */
-export function deckSummary(t: TFunction, notes: number, load: LoadSummary): string {
-  if (notes === 0) return t('decks.noCards');
-  return [
-    t('decks.cards', { count: notes }),
-    t('decks.due', { count: load.due }),
-    t('decks.fresh', { count: load.fresh }),
-  ].join(' · ');
+export function deckSummary(t: TFunction, notes: number, load: LoadSummary, paused: boolean): string {
+  const parts =
+    notes === 0
+      ? [t('decks.noCards')]
+      : [
+          t('decks.cards', { count: notes }),
+          t('decks.due', { count: load.due }),
+          t('decks.fresh', { count: load.fresh }),
+        ];
+  return (paused ? [t('decks.paused'), ...parts] : parts).join(' · ');
 }

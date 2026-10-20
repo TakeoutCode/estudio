@@ -148,6 +148,26 @@ describe('pantalla de un mazo', () => {
     expect(screen.getByText('El […] y la escápula.')).toBeTruthy(); // sin la respuesta del primer hueco
   });
 
+  it('pausar se guarda al tocarlo y explica qué cambia; reanudar lo deja activo', async () => {
+    const femur = await lowerLimb();
+    renderDeck(femur.deckId);
+    const toggle = await screen.findByRole('checkbox', { name: /Pausar este mazo/ });
+    expect(screen.getByText(/Si lo pausas, no entra en Hoy/)).toBeTruthy();
+    fireEvent.click(toggle);
+    await waitFor(async () => {
+      expect((await db.decks.get(femur.deckId))?.pausedAt).not.toBeNull();
+    });
+    expect(await screen.findByText(/^En pausa · 2 tarjetas/)).toBeTruthy();
+    expect(screen.getByText(/si sus pendientes no caben en un día/)).toBeTruthy();
+    // En pausa se puede estudiar igual: ella lo eligió.
+    expect(screen.getByRole('link', { name: 'Estudiar este mazo' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Pausar este mazo/ }));
+    await waitFor(async () => {
+      expect((await db.decks.get(femur.deckId))?.pausedAt).toBeNull();
+    });
+  });
+
   it('un mazo que ya no existe lo dice y ofrece volver', async () => {
     renderDeck('0192f1a0-0000-7000-8000-0000000dead0');
     expect(await screen.findByText(/Este mazo ya no existe/)).toBeTruthy();

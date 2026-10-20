@@ -1,4 +1,12 @@
-export { createDeck, deleteDeck, deleteTopic, renameDeck, updateDeck, updateTopic } from './commands';
+export {
+  createDeck,
+  deleteDeck,
+  deleteTopic,
+  renameDeck,
+  setDeckPaused,
+  updateDeck,
+  updateTopic,
+} from './commands';
 export { DeckScreen } from './DeckScreen';
 export { DecksScreen } from './DecksScreen';
 export { useTopic } from './queries';
