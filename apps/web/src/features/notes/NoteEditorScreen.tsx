@@ -168,7 +168,7 @@ function NoteForm({ decks, note }: { readonly decks: readonly Deck[]; readonly n
         <label className="flex min-h-11 items-center gap-3">
           <input
             type="checkbox"
-            className="size-5"
+            className="size-5 shrink-0"
             checked={reverse}
             onChange={(event) => {
               setReverse(event.target.checked);
