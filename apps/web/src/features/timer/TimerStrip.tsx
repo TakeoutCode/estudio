@@ -1,8 +1,9 @@
-import { TIMER_PRESETS, type TimerMode } from '@estudio/shared';
+import { TIMER_PRESETS, TIMER_RANGES, type TimerMode } from '@estudio/shared';
 import { activeMs, isPauseExpired, remainingMs, type TimerBlockRecord } from '@estudio/srs';
 import { type SubmitEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { updateStudyConfig } from '@/features/settings';
+import { NumberField } from '@/ui/NumberField';
 import { dispatchTimer, recordManualMinutes, type TimerAction, type TimerResult } from './commands';
 import { formatClock } from './format';
 import type { TimerView } from './queries';
@@ -214,6 +215,15 @@ function Notice({ text, children }: { readonly text: string; readonly children?:
   );
 }
 
+/** `null` = lo escrito está fuera del rango de R7. */
+interface Rhythm {
+  readonly focusMin: number | null;
+  readonly restMin: number | null;
+}
+
+const isPreset = (preset: (typeof TIMER_PRESETS)[number], rhythm: Rhythm) =>
+  preset.focusMin === rhythm.focusMin && preset.shortBreakMin === rhythm.restMin;
+
 interface StartChoice {
   readonly mode: TimerMode;
   readonly focusMin: number;
@@ -238,12 +248,17 @@ function TimerStart({
 }) {
   const { t } = useTranslation();
   const [mode, setMode] = useState(initialMode);
-  const [rhythm, setRhythm] = useState({ focusMin: initialFocus, restMin: initialRest });
+  const [rhythm, setRhythm] = useState<Rhythm>({ focusMin: initialFocus, restMin: initialRest });
+  // R7: un ritmo que no es preset abre directo en "Otro".
+  const [custom, setCustom] = useState(() => !TIMER_PRESETS.some((p) => isPreset(p, rhythm)));
   const [busy, setBusy] = useState(false);
+  const { focusMin, restMin } = rhythm;
+  const ready = focusMin !== null && restMin !== null;
   const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (focusMin === null || restMin === null) return;
     setBusy(true);
-    void onStart({ mode, ...rhythm }).finally(() => {
+    void onStart({ mode, focusMin, restMin }).finally(() => {
       setBusy(false);
     });
   };
@@ -275,7 +290,7 @@ function TimerStart({
         <legend className="mb-2 font-semibold">{t('timer.rhythmLabel')}</legend>
         <div className="grid grid-cols-3 gap-2">
           {TIMER_PRESETS.map((preset) => {
-            const selected = preset.focusMin === rhythm.focusMin && preset.shortBreakMin === rhythm.restMin;
+            const selected = !custom && isPreset(preset, rhythm);
             return (
               <button
                 key={preset.id}
@@ -283,6 +298,7 @@ function TimerStart({
                 aria-pressed={selected}
                 className={`${choice} ${selected ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
                 onClick={() => {
+                  setCustom(false);
                   setRhythm({ focusMin: preset.focusMin, restMin: preset.shortBreakMin });
                 }}
               >
@@ -290,12 +306,44 @@ function TimerStart({
               </button>
             );
           })}
+          <button
+            type="button"
+            aria-pressed={custom}
+            className={`${choice} ${custom ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
+            onClick={() => {
+              setCustom(true);
+            }}
+          >
+            {t('timer.custom')}
+          </button>
         </div>
+        {custom ? (
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label={t('timer.customFocus')}
+              defaultValue={focusMin ?? initialFocus}
+              min={TIMER_RANGES.focusMin.min}
+              max={TIMER_RANGES.focusMin.max}
+              onChange={(value) => {
+                setRhythm((prev) => ({ ...prev, focusMin: value }));
+              }}
+            />
+            <NumberField
+              label={t('timer.customRest')}
+              defaultValue={restMin ?? initialRest}
+              min={TIMER_RANGES.shortBreakMin.min}
+              max={TIMER_RANGES.shortBreakMin.max}
+              onChange={(value) => {
+                setRhythm((prev) => ({ ...prev, restMin: value }));
+              }}
+            />
+          </div>
+        ) : null}
         <p className="m-0 text-caption text-muted">{t('timer.rhythmHint')}</p>
       </fieldset>
       <div className="flex flex-col gap-2">
-        <button type="submit" className={`${strong} min-h-14 w-full`} disabled={busy}>
-          {t('timer.startBlock', { minutes: rhythm.focusMin })}
+        <button type="submit" className={`${strong} min-h-14 w-full`} disabled={busy || !ready}>
+          {focusMin === null ? t('timer.startBlockPlain') : t('timer.startBlock', { minutes: focusMin })}
         </button>
         <button type="button" className={`${action} w-full`} onClick={onCancel}>
           {t('timer.cancel')}

@@ -4,7 +4,9 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deviceId } from '@/db/clock';
 import { db } from '@/db/schema';
+import { readStudyConfig } from '@/db/settings';
 import { createNote } from '@/features/notes';
+import { updateStudyConfig } from '@/features/settings';
 import { useStudy } from './store';
 import { StudyScreen } from './StudyScreen';
 
@@ -135,6 +137,39 @@ describe('StudyScreen · temporizador (§3)', () => {
     expect(await screen.findByText('Enfoque')).toBeTruthy();
     expect(screen.getByText('50:00')).toBeTruthy();
     expect(screen.getByText(humerus.front)).toBeTruthy();
+  });
+
+  it('R7: ritmo personalizado fuera de los presets, dentro de sus rangos', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    renderStudy();
+    await screen.findByText(humerus.front);
+    fireEvent.click(screen.getByRole('button', { name: 'Temporizador' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Otro' }));
+    expect(screen.getByRole('button', { name: 'Otro' }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.change(screen.getByLabelText('Enfoque (min)'), { target: { value: '121' } });
+    expect(screen.getByText('Escribe un número de 5 a 120.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Empezar bloque' }).hasAttribute('disabled')).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('Enfoque (min)'), { target: { value: '40' } });
+    fireEvent.change(screen.getByLabelText('Descanso (min)'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Empezar bloque de 40 min' }));
+    expect(await screen.findByText('40:00')).toBeTruthy();
+    const config = await readStudyConfig(db);
+    expect(config.timer).toMatchObject({ focusMin: 40, shortBreakMin: 8 });
+  });
+
+  it('R7: un ritmo guardado que no es preset abre en "Otro"', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    await updateStudyConfig((c) => ({ ...c, timer: { ...c.timer, focusMin: 40, shortBreakMin: 8 } }));
+    renderStudy();
+    await screen.findByText(humerus.front);
+    fireEvent.click(screen.getByRole('button', { name: 'Temporizador' }));
+    expect(screen.getByRole('button', { name: 'Otro' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByLabelText<HTMLInputElement>('Enfoque (min)').value).toBe('40');
+    fireEvent.click(screen.getByRole('button', { name: '25/5' }));
+    expect(screen.queryByLabelText('Enfoque (min)')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Empezar bloque de 25 min' })).toBeTruthy();
   });
 
   it('R13: el descanso reemplaza la tarjeta hasta "Seguir estudiando"', async () => {
