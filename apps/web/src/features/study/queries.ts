@@ -2,6 +2,7 @@ import {
   cardFaces,
   DAY_MS,
   type MinuteRange,
+  type NoteContent,
   type PlannerConfig,
   type ProfileSettings,
   type ReviewLog,
@@ -143,7 +144,9 @@ export const useSessionSignals = (sessionId: string, startedAt: number): Session
 
 export interface StudyCardView {
   readonly cardId: string;
-  readonly cardKind: 'basic';
+  /** El contenido completo: cada tipo se muestra con su propio control (LD §1). */
+  readonly content: NoteContent;
+  readonly ordinal: number;
   readonly prompt: string;
   /** Solo se monta en el DOM tras el intento (FE10, R1). */
   readonly answer: string;
@@ -158,7 +161,8 @@ export const useStudyCard = (cardId: string | null): StudyCardView | null | unde
     if (!card || note?.deletedAt !== null) return null;
     return {
       cardId,
-      cardKind: note.content.kind,
+      content: note.content,
+      ordinal: card.ordinal,
       ...cardFaces(note.content, card.ordinal),
       explanation: note.content.explanation,
     };

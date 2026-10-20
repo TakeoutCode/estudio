@@ -1,6 +1,7 @@
-import { type Confidence, newId, Rating } from '@estudio/shared';
+import { newId, type Rating } from '@estudio/shared';
 import {
   type CardState,
+  isTypedAnswerCorrect,
   needsTopicIntro,
   nextCard,
   type SessionPlan,
@@ -21,12 +22,18 @@ import {
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
-import { RatingButton } from '@/ui/RatingButton';
+import {
+  allowedRatings,
+  AttemptControls,
+  CardBody,
+  defaultObjectiveRating,
+  isSelfGraded,
+  RatingControls,
+} from './CardView';
 import { answerCard } from './commands';
 import {
   planExamReviewNow,
   planSessionNow,
-  type StudyCardView,
   useExplainedTopics,
   useQueueStates,
   useStudyCard,
@@ -37,8 +44,6 @@ import { TopicIntro } from './TopicIntro';
 import { useSessionSuggestion } from './use-session-suggestion';
 import { useStudyShortcuts } from './use-study-shortcuts';
 
-const RATINGS = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy] as const;
-const CONFIDENCES = [1, 2, 3] as const;
 const MINUTE_MS = 60_000;
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
@@ -319,24 +324,37 @@ function CurrentCard({
   readonly onAnswered: (state: CardState) => void;
 }) {
   const { t } = useTranslation();
-  const content = useStudyCard(cardId);
+  const card = useStudyCard(cardId);
   const phase = useStudy((s) => s.phase);
   const askConfidence = useStudy((s) => s.session?.askConfidence ?? false);
+  const confidence = useStudy((s) => s.confidence);
+  const attempt = useStudy((s) => s.attempt);
   const reveal = useStudy((s) => s.reveal);
+  const chooseConfidence = useStudy((s) => s.chooseConfidence);
   const markAnswered = useStudy((s) => s.markAnswered);
   const [busy, setBusy] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const [help, setHelp] = useState(false);
 
   const rate = (rating: Rating) => {
-    if (busy) return;
-    const { shownAt, confidence } = useStudy.getState();
+    if (busy || !card) return;
+    const state = useStudy.getState();
+    if (!allowedRatings(card, state.attempt).includes(rating)) return; // LD2
     setBusy(true);
     setSaveFailed(false);
     const now = Date.now();
-    answerCard({ cardId, rating, durationMs: now - shownAt, sessionId, confidence }, { now })
-      .then(({ state }) => {
-        onAnswered(state);
+    const answer =
+      state.attempt?.kind === 'typed'
+        ? { text: state.attempt.text }
+        : state.attempt?.kind === 'choice'
+          ? { option: state.attempt.option }
+          : undefined;
+    answerCard(
+      { cardId, rating, durationMs: now - state.shownAt, sessionId, confidence: state.confidence, answer },
+      { now },
+    )
+      .then(({ state: next }) => {
+        onAnswered(next);
         markAnswered();
       })
       .catch(() => {
@@ -346,18 +364,37 @@ function CurrentCard({
         setBusy(false);
       });
   };
+  // LD2: escribir u opción múltiple se califican solas, de forma determinista.
+  const typed = (text: string) => {
+    if (card?.content.kind !== 'type_answer') return;
+    reveal(null, {
+      kind: 'typed',
+      text: text.trim(),
+      correct: isTypedAnswerCorrect(text, card.content.back),
+    });
+  };
+  const choose = (option: number) => {
+    if (card?.content.kind !== 'multiple_choice') return;
+    reveal(null, { kind: 'choice', option, correct: option === card.content.correct });
+  };
+  const selfGraded = card ? isSelfGraded(card) : true;
 
   useStudyShortcuts({
     onReveal:
-      phase === 'prompt' && !askConfidence
+      phase === 'prompt' && selfGraded && !askConfidence
         ? () => {
             reveal(null);
           }
-        : null,
+        : phase === 'revealed' && attempt
+          ? () => {
+              rate(defaultObjectiveRating(attempt));
+            }
+          : null,
     onConfidence:
-      phase === 'prompt' && askConfidence
+      phase === 'prompt' && askConfidence && (selfGraded || confidence === null)
         ? (c) => {
-            reveal(c);
+            if (selfGraded) reveal(c);
+            else chooseConfidence(c);
           }
         : null,
     onRate: phase === 'revealed' ? rate : null,
@@ -366,17 +403,20 @@ function CurrentCard({
     },
   });
 
-  if (content === undefined) return null;
-  if (content === null) {
+  if (card === undefined) return null;
+  if (card === null) {
     // Borrada durante la sesión (p. ej. desde otro dispositivo): se pasa a la siguiente.
     return <SkipDeleted onSkip={markAnswered} />;
   }
   return (
     <>
-      <article className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5">
-        <p className="m-0 text-card whitespace-pre-wrap">{content.prompt}</p>
-        <div aria-live="polite">{phase === 'revealed' ? <Answer content={content} /> : null}</div>
-      </article>
+      <CardBody
+        card={card}
+        phase={phase}
+        attempt={attempt}
+        canChoose={phase === 'prompt' && (!askConfidence || confidence !== null)}
+        onChoose={choose}
+      />
       {/* Los atajos solo sirven con teclado y puntero fino (FE12); en el teléfono no estorban. */}
       <div className="hidden pointer-fine:block">
         <button
@@ -397,87 +437,28 @@ function CurrentCard({
           </ul>
         ) : null}
       </div>
-      <ActionBar>
+      <ActionBar keyboardAware={card.content.kind === 'type_answer' && phase === 'prompt'}>
         {aside}
         {saveFailed ? (
           <p role="alert" className="m-0 text-caption">
             {t('study.saveFailed')}
           </p>
         ) : null}
-        {phase === 'prompt' ? <Attempt askConfidence={askConfidence} onReveal={reveal} /> : null}
+        {phase === 'prompt' ? (
+          <AttemptControls
+            card={card}
+            askConfidence={askConfidence}
+            confidence={confidence}
+            onReveal={reveal}
+            onConfidence={chooseConfidence}
+            onTyped={typed}
+          />
+        ) : null}
         {phase === 'revealed' ? (
-          <div role="group" aria-labelledby={`rate-${cardId}`} className="flex flex-col gap-2">
-            <p id={`rate-${cardId}`} className="m-0 text-center text-caption text-muted">
-              {t('study.rate.label')}
-            </p>
-            <div className="grid grid-cols-4 gap-2">
-              {RATINGS.map((rating) => (
-                <RatingButton key={rating} rating={rating} onRate={rate} disabled={busy} />
-              ))}
-            </div>
-          </div>
+          <RatingControls card={card} attempt={attempt} busy={busy} onRate={rate} />
         ) : null}
       </ActionBar>
     </>
-  );
-}
-
-/** R1: el intento. Con `askConfidence`, elegir la confianza es lo que revela (R6). */
-function Attempt({
-  askConfidence,
-  onReveal,
-}: {
-  readonly askConfidence: boolean;
-  readonly onReveal: (confidence: Confidence | null) => void;
-}) {
-  const { t } = useTranslation();
-  if (!askConfidence) {
-    return (
-      <button
-        type="button"
-        className={primary}
-        onClick={() => {
-          onReveal(null);
-        }}
-      >
-        {t('study.reveal')}
-      </button>
-    );
-  }
-  return (
-    <div role="group" aria-labelledby="confidence-question" className="flex flex-col gap-2">
-      <p id="confidence-question" className="m-0 text-center text-caption text-muted">
-        {t('study.confidence.question')}
-      </p>
-      <div className="grid grid-cols-3 gap-2">
-        {CONFIDENCES.map((level) => (
-          <button
-            key={level}
-            type="button"
-            className={`min-h-14 rounded-(--radius-card) bg-primary/20 px-2 font-medium text-text ${focus}`}
-            onClick={() => {
-              onReveal(level);
-            }}
-          >
-            {t(`study.confidence.level${level}`)}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** R4: respuesta y explicación tras cada intento, también si acertó con poca confianza. */
-function Answer({ content }: { readonly content: StudyCardView }) {
-  const { t } = useTranslation();
-  return (
-    <section className="flex flex-col gap-2 border-t border-muted/30 pt-4">
-      <h2 className="m-0 text-caption font-normal text-muted">{t('study.answer')}</h2>
-      <p className="m-0 text-card whitespace-pre-wrap">{content.answer}</p>
-      {content.explanation ? (
-        <p className="m-0 whitespace-pre-wrap text-muted">{content.explanation}</p>
-      ) : null}
-    </section>
   );
 }
 

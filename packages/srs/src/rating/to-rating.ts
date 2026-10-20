@@ -77,3 +77,20 @@ export function fractionScore(correct: number, total: number): number {
   }
   return correct / total;
 }
+
+/** LD2: forma comparable de una respuesta escrita (mayúsculas, espacios, acentos y puntuación final). */
+export function normalizeAnswer(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[¿¡]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.,;:!?]+$/u, '')
+    .trim();
+}
+
+/** LD2: `type_answer` acierta si coincide con la respuesta tras normalizar ambas. */
+export const isTypedAnswerCorrect = (given: string, expected: string): boolean =>
+  normalizeAnswer(given) !== '' && normalizeAnswer(given) === normalizeAnswer(expected);

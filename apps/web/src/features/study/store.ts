@@ -8,6 +8,11 @@ import { create } from 'zustand';
 /** LD §4: `prompt` (intento) → `revealed` (respuesta y explicación) → calificación. */
 export type CardPhase = 'prompt' | 'revealed';
 
+/** LD2: el intento de las tarjetas con calificación automática (escribir u opción múltiple). */
+export type Attempt =
+  | { readonly kind: 'typed'; readonly text: string; readonly correct: boolean }
+  | { readonly kind: 'choice'; readonly option: number; readonly correct: boolean };
+
 export interface StudySession {
   readonly id: string;
   readonly startedAt: number;
@@ -37,6 +42,8 @@ interface StudyState {
   /** Inicio del descanso con una tarjeta en pantalla; ese tiempo no cuenta en su duración (R3). */
   readonly heldAt: number | null;
   readonly confidence: Confidence | null;
+  /** null en las tarjetas que ella califica (basic, cloze). */
+  readonly attempt: Attempt | null;
   readonly answered: number;
   readonly fatigue: FatigueState;
   /** P6: motivos para parar que ella ya vio en esta sesión; no se repiten. */
@@ -46,7 +53,9 @@ interface StudyState {
   readonly start: (session: StudySession) => void;
   readonly present: (cardId: string, now: number) => void;
   /** R1: revelar solo desde el intento. */
-  readonly reveal: (confidence: Confidence | null) => void;
+  readonly reveal: (confidence: Confidence | null, attempt?: Attempt) => void;
+  /** R6: confianza antes de escribir o elegir, sin revelar todavía. */
+  readonly chooseConfidence: (confidence: Confidence) => void;
   readonly markAnswered: () => void;
   /** Empieza un descanso (§3) con la tarjeta en pantalla. */
   readonly hold: (now: number) => void;
@@ -69,6 +78,7 @@ const idle = {
   shownAt: 0,
   heldAt: null,
   confidence: null,
+  attempt: null,
   answered: 0,
   fatigue: { inRow: 0, since: null, showing: false },
   dismissedStops: [],
@@ -81,10 +91,24 @@ export const useStudy = create<StudyState>()((set) => ({
     set({ ...idle, session });
   },
   present: (cardId, now) => {
-    set({ currentCardId: cardId, phase: 'prompt', shownAt: now, heldAt: null, confidence: null });
+    set({
+      currentCardId: cardId,
+      phase: 'prompt',
+      shownAt: now,
+      heldAt: null,
+      confidence: null,
+      attempt: null,
+    });
   },
-  reveal: (confidence) => {
-    set((s) => (s.currentCardId && s.phase === 'prompt' ? { phase: 'revealed', confidence } : s));
+  reveal: (confidence, attempt) => {
+    set((s) =>
+      s.currentCardId && s.phase === 'prompt'
+        ? { phase: 'revealed', confidence: confidence ?? s.confidence, attempt: attempt ?? null }
+        : s,
+    );
+  },
+  chooseConfidence: (confidence) => {
+    set((s) => (s.currentCardId && s.phase === 'prompt' ? { confidence } : s));
   },
   markAnswered: () => {
     set((s) => ({
@@ -92,6 +116,7 @@ export const useStudy = create<StudyState>()((set) => ({
       phase: 'prompt',
       heldAt: null,
       confidence: null,
+      attempt: null,
       answered: s.answered + 1,
     }));
   },

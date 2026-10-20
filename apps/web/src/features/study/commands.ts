@@ -22,6 +22,8 @@ export interface AnswerInput {
   readonly sessionId: string;
   /** R6: solo si se pidió antes de revelar. */
   readonly confidence: Confidence | null;
+  /** LD §4: lo que escribió o eligió, en las tarjetas con calificación automática. */
+  readonly answer?: Record<string, unknown>;
 }
 
 /**
@@ -61,6 +63,7 @@ export async function answerCard(
         confidence: input.confidence,
         sessionId: input.sessionId,
         deviceId: await deviceId(database),
+        ...(input.answer ? { answer: input.answer } : {}),
       });
       const state = createScheduler(config.fsrs).apply(before, log);
       await writeAndQueue(database, 'reviewLog', log, now);

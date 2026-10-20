@@ -1,6 +1,6 @@
 import { defaultStudyConfig, Rating } from '@estudio/shared';
 import { describe, expect, it } from 'vitest';
-import { fractionScore, sequenceScore, toRating } from './to-rating.js';
+import { fractionScore, isTypedAnswerCorrect, sequenceScore, toRating } from './to-rating.js';
 
 const cfg = defaultStudyConfig();
 
@@ -82,5 +82,25 @@ describe('puntajes de ejercicios', () => {
     expect(fractionScore(3, 4)).toBe(0.75);
     expect(() => fractionScore(5, 4)).toThrow('fraction_out_of_range');
     expect(() => fractionScore(1, 0)).toThrow('fraction_out_of_range');
+  });
+});
+
+describe('LD2: escribir la respuesta', () => {
+  it('LD2: no distingue mayúsculas, espacios, acentos ni la puntuación final', () => {
+    expect(isTypedAnswerCorrect('  nervio   AXILAR. ', 'Nervio axilar')).toBe(true);
+    expect(isTypedAnswerCorrect('musculocutaneo', 'Musculocutáneo')).toBe(true);
+    expect(isTypedAnswerCorrect('¿Trapecio?', 'trapecio')).toBe(true);
+  });
+
+  it('LD2: otra palabra o una vacía no es acierto', () => {
+    expect(isTypedAnswerCorrect('radial', 'axilar')).toBe(false);
+    expect(isTypedAnswerCorrect('   ', '')).toBe(false);
+    expect(isTypedAnswerCorrect('n. axilar', 'nervio axilar')).toBe(false); // abreviar no cuenta
+  });
+
+  it('LD2: un error es Again fijo; un acierto deja elegir, con Good por defecto', () => {
+    expect(toRating({ kind: 'objective', correct: false }, cfg)).toBe(Rating.Again);
+    expect(toRating({ kind: 'objective', correct: true }, cfg)).toBe(Rating.Good);
+    expect(toRating({ kind: 'objective', correct: true, chosen: Rating.Easy }, cfg)).toBe(Rating.Easy);
   });
 });
