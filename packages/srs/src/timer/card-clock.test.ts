@@ -90,21 +90,25 @@ describe('reloj de la tarjeta · propiedades', () => {
 
   it('con marcas en orden, la duración es el tiempo sin ninguna pausa abierta', () => {
     fc.assert(
-      fc.property(fc.array(event, { maxLength: 30 }), fc.integer({ min: 0, max: 600_000 }), (events, tail) => {
-        let clock = startCardClock(T0);
-        let time = T0;
-        const open = new Set<CardPause>();
-        let expected = 0;
-        for (const { op, reason, delayMs } of events) {
-          if (open.size === 0) expected += delayMs;
-          time += delayMs;
-          clock = apply(clock, op, reason, time);
-          if (op === 'pause') open.add(reason);
-          else open.delete(reason);
-        }
-        if (open.size === 0) expected += tail;
-        expect(cardElapsedMs(clock, time + tail)).toBe(expected);
-      }),
+      fc.property(
+        fc.array(event, { maxLength: 30 }),
+        fc.integer({ min: 0, max: 600_000 }),
+        (events, tail) => {
+          let clock = startCardClock(T0);
+          let time = T0;
+          const open = new Set<CardPause>();
+          let expected = 0;
+          for (const { op, reason, delayMs } of events) {
+            if (open.size === 0) expected += delayMs;
+            time += delayMs;
+            clock = apply(clock, op, reason, time);
+            if (op === 'pause') open.add(reason);
+            else open.delete(reason);
+          }
+          if (open.size === 0) expected += tail;
+          expect(cardElapsedMs(clock, time + tail)).toBe(expected);
+        },
+      ),
     );
   });
 
