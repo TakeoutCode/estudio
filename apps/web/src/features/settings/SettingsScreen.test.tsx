@@ -50,11 +50,14 @@ async function studied(count: number) {
   }
 }
 
-/** Lo que debería mostrar: la misma proyección, redondeada. */
-async function expectedPerDay(retention: number) {
+/** La misma proyección que usa la pantalla, sin redondear. */
+async function projectedPerDay(retention: number) {
   const [load] = projectionApi.projectLoads(await loadProjectionInput(db, T0), [retention]);
-  return Math.round(load?.reviewsPerDay ?? -1);
+  return load?.reviewsPerDay ?? -1;
 }
+
+/** Lo que debería mostrar: la misma proyección, redondeada. */
+const expectedPerDay = async (retention: number) => Math.round(await projectedPerDay(retention));
 
 const reviews = (n: number) => `${String(n)} ${n === 1 ? 'repaso' : 'repasos'} al día`;
 
@@ -82,7 +85,8 @@ describe('Ajustes · retención objetivo (R2, LD8)', () => {
     expect(up.hasAttribute('disabled')).toBe(true); // tope del rango de R2
 
     const at95 = await expectedPerDay(0.95);
-    expect(at95).toBeGreaterThan(now90);
+    // R2: más retención, más repasos. Sin redondear: con ids al azar, a veces redondean igual.
+    expect(await projectedPerDay(0.95)).toBeGreaterThan(await projectedPerDay(0.9));
     expect(await screen.findByText(`Con 95 %: ≈ ${reviews(at95)}`)).toBeTruthy();
     expect(screen.getByText(`Ahora, con 90 %: ≈ ${reviews(now90)}`)).toBeTruthy();
     expect(screen.getByText(/se recalculan con este valor/)).toBeTruthy();

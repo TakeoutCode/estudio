@@ -86,6 +86,9 @@ describe('simulacro (P7, LD13)', () => {
     const { container } = renderAt(`/exams/${examId}/mock`);
     fireEvent.click(await screen.findByRole('button', { name: 'Empezar simulacro' }));
     expect(await screen.findByText('Pregunta 1 de 3')).toBeTruthy();
+    // El simulacro baraja las preguntas: se anota cuál salió en cada paso.
+    const shown = () => fronts.find((f) => screen.queryByText(f)) ?? '';
+    const asked = [shown()];
     const next = screen.getByRole('button', { name: 'Siguiente' });
     expect(next.hasAttribute('disabled')).toBe(true); // R6: sin confianza no sigue
     for (const back of backs) expect(container.textContent).not.toContain(back); // R1
@@ -94,22 +97,25 @@ describe('simulacro (P7, LD13)', () => {
     answer('Mucha', 'El axilar');
     fireEvent.click(next);
     await screen.findByText('Pregunta 2 de 3');
+    asked.push(shown());
     answer('Algo');
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     await screen.findByText('Pregunta 3 de 3');
+    asked.push(shown());
     answer('Mucha');
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
     // Al final se revisan todas: su respuesta, la correcta, y ella marca si acertó.
     expect(await screen.findByText('Revisión 1 de 3')).toBeTruthy();
+    expect(new Set(asked).size).toBe(3);
     const marks: Record<string, boolean> = {
-      [fronts[0] ?? '']: true,
-      [fronts[1] ?? '']: true,
-      [fronts[2] ?? '']: false,
+      [asked[0] ?? '']: true,
+      [asked[1] ?? '']: true,
+      [asked[2] ?? '']: false,
     };
     for (let i = 0; i < 3; i += 1) {
       await screen.findByText(`Revisión ${String(i + 1)} de 3`);
-      const front = fronts.find((f) => screen.queryByText(f)) ?? '';
+      const front = shown();
       fireEvent.click(screen.getByRole('button', { name: marks[front] ? 'Acerté' : 'No acerté' }));
     }
 
