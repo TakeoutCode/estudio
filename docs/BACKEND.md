@@ -134,7 +134,7 @@ Solo hay FK hacia `User`. Entre entidades sincronizables no hay FK porque un lot
 // ✅ this.sync.push(user.id, body);            // user = @CurrentUser()
 ```
 
-**BE12 · DEBE** usar las cabeceras de seguridad nativas de Nest 12 (`app.useSecurityHeaders()`, mismos valores que helmet 8), `app.enableCsrfProtection({ trustedOrigins: WEB_ORIGINS })`, CORS con la lista exacta de `WEB_ORIGINS` y `credentials: true`, un límite de cuerpo (1 MB, 2 MB en `/sync/push`) y `@nestjs/throttler` global (login y registro: 5/min por IP; falta un segundo límite por correo). La cuota de IA se cuenta en la tabla `ai_usage` por día local de ella, no con throttler. *Razón:* el throttler en memoria se reinicia con cada deploy.
+**BE12 · DEBE** usar las cabeceras de seguridad nativas de Nest 12 (`app.useSecurityHeaders()`, mismos valores que helmet 8), `app.enableCsrfProtection({ trustedOrigins: WEB_ORIGINS })`, CORS con la lista exacta de `WEB_ORIGINS` y `credentials: true`, un límite de cuerpo (1 MB, 2 MB en `/sync/push`) y `@nestjs/throttler` global (login y registro: 5/min por IP y, además, 10 cada 15 min por correo con `EmailThrottleGuard`, para que repartir intentos entre IP no sirva). La cuota de IA se cuenta en la tabla `ai_usage` por día local de ella, no con throttler. *Razón:* el throttler en memoria se reinicia con cada deploy.
 
 **BE13 · DEBE** poner a los terceros detrás de puertos (`AiProvider`, `MediaSigner`, `MediaPurger`, `PushSender`), cada uno con implementación real y una falsa para pruebas, con timeouts explícitos (IA 30 s, push 10 s, Cloudinary 10 s) y reintentos solo ante 429/5xx con backoff. *Razón:* pruebas de integración sin red y sin costo.
 

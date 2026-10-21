@@ -64,6 +64,7 @@ export async function startIntegrationApp(
     { NotificationsScheduler },
     push,
     media,
+    { EmailThrottleGuard },
   ] = await Promise.all([
     import('../app.module.js'),
     import('../bootstrap.js'),
@@ -72,6 +73,7 @@ export async function startIntegrationApp(
     import('../modules/notifications/notifications.scheduler.js'),
     import('../modules/notifications/push-sender.js'),
     import('../modules/media/media-purger.js'),
+    import('../modules/auth/email-throttle.guard.js'),
   ]);
 
   const clock = options.clock ?? new FakeClock();
@@ -84,7 +86,14 @@ export async function startIntegrationApp(
     .overrideProvider(media.MediaPurger)
     .useValue(options.mediaPurger ?? noMediaPurger);
   if (options.pushSender) builder = builder.overrideProvider(push.PushSender).useValue(options.pushSender);
-  if (!options.throttle) builder = builder.overrideProvider(ThrottlerStorage).useValue(unlimitedStorage);
+  if (!options.throttle) {
+    // BE12: los dos límites (por IP y por correo) solo corren en las pruebas que los miden.
+    builder = builder
+      .overrideProvider(ThrottlerStorage)
+      .useValue(unlimitedStorage)
+      .overrideGuard(EmailThrottleGuard)
+      .useValue({ canActivate: () => true });
+  }
   const moduleRef = await builder.compile();
 
   const app = configureApp(moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false }));
