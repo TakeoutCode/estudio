@@ -13,6 +13,7 @@ import {
   type NoteContent,
   NoteContentSchema,
   NoteSchema,
+  occlusionTarget,
 } from './note.js';
 
 const meta = () => ({
@@ -45,11 +46,11 @@ describe('Note y Card (LEARNING-DESIGN §1)', () => {
     expect(NoteSchema.safeParse({ ...note(), content: { ...content, explanation: '' } }).success).toBe(true);
   });
 
-  it('exige frente y reverso con texto, y rechaza tipos que aún no existen (oclusión de imagen)', () => {
+  it('exige frente y reverso con texto, y rechaza tipos que aún no existen', () => {
     expect(NoteSchema.safeParse({ ...note(), content: { ...content, front: '   ' } }).success).toBe(false);
-    expect(
-      NoteSchema.safeParse({ ...note(), content: { ...content, kind: 'image_occlusion' } }).success,
-    ).toBe(false);
+    expect(NoteSchema.safeParse({ ...note(), content: { ...content, kind: 'open_question' } }).success).toBe(
+      false,
+    );
   });
 
   it('una básica genera 1 Card, o 2 con la inversa', () => {
@@ -133,6 +134,60 @@ describe('tipos de LD §1', () => {
       false,
     );
     expect(NoteContentSchema.safeParse({ ...mc, correct: 3 }).success).toBe(false);
+  });
+
+  const occlusion = {
+    kind: 'image_occlusion',
+    imageAssetId: newId(),
+    prompt: '¿Qué hueso del carpo es?',
+    alt: 'Mano derecha, vista palmar, con los huesos del carpo señalados',
+    mode: 'hide_all',
+    groups: [
+      { n: 3, label: 'Semilunar', rects: [{ x: 0.4, y: 0.3, w: 0.1, h: 0.05 }] },
+      {
+        n: 1,
+        label: 'Escafoides',
+        rects: [
+          { x: 0.1, y: 0.3, w: 0.1, h: 0.05 },
+          { x: 0.7, y: 0.8, w: 0.3, h: 0.2 },
+        ],
+      },
+    ],
+    explanation: 'El escafoides es el que más se fractura.',
+  } satisfies NoteContent;
+
+  it('image_occlusion (R10, LD1): una Card por etiqueta, con su número estable como ordinal', () => {
+    expect(NoteContentSchema.safeParse(occlusion).success).toBe(true);
+    expect(cardOrdinals(occlusion)).toEqual([1, 3]);
+    expect(cardFaces(occlusion, 3)).toEqual({ prompt: '¿Qué hueso del carpo es?', answer: 'Semilunar' });
+    expect(occlusionTarget(occlusion, 3)).toMatchObject({ position: 2, total: 2 });
+    expect(occlusionTarget(occlusion, 2)).toBeNull();
+  });
+
+  it('image_occlusion: exige texto, alt y al menos una etiqueta, sin números repetidos', () => {
+    expect(NoteContentSchema.safeParse({ ...occlusion, prompt: ' ' }).success).toBe(false);
+    expect(NoteContentSchema.safeParse({ ...occlusion, alt: '' }).success).toBe(false);
+    expect(NoteContentSchema.safeParse({ ...occlusion, groups: [] }).success).toBe(false);
+    const [first] = occlusion.groups;
+    expect(NoteContentSchema.safeParse({ ...occlusion, groups: [first, { ...first }] }).success).toBe(false);
+    expect(
+      NoteContentSchema.safeParse({ ...occlusion, groups: [{ ...first, label: 'x'.repeat(201) }] }).success,
+    ).toBe(false);
+  });
+
+  it('image_occlusion: cada recuadro tiene área y queda dentro de la imagen (0 a 1)', () => {
+    const withRect = (rect: Record<string, number>) => ({
+      ...occlusion,
+      groups: [{ n: 1, label: 'Escafoides', rects: [rect] }],
+    });
+    expect(NoteContentSchema.safeParse(withRect({ x: 0, y: 0, w: 1, h: 1 })).success).toBe(true);
+    expect(NoteContentSchema.safeParse(withRect({ x: 0.7, y: 0, w: 0.3000001, h: 0.5 })).success).toBe(true);
+    expect(NoteContentSchema.safeParse(withRect({ x: 0.8, y: 0, w: 0.3, h: 0.5 })).success).toBe(false);
+    expect(NoteContentSchema.safeParse(withRect({ x: 0.1, y: 0.1, w: 0, h: 0.5 })).success).toBe(false);
+    expect(NoteContentSchema.safeParse(withRect({ x: -0.1, y: 0, w: 0.2, h: 0.5 })).success).toBe(false);
+    expect(
+      NoteContentSchema.safeParse({ ...withRect({ x: 0, y: 0, w: 0.1, h: 0.1 }), mode: 'hide_some' }).success,
+    ).toBe(false);
   });
 });
 

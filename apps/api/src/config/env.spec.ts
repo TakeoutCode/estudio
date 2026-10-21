@@ -11,6 +11,7 @@ const base = {
   VAPID_PUBLIC_KEY: 'BPublica',
   VAPID_PRIVATE_KEY: 'privada',
   VAPID_SUBJECT: 'mailto:avisos@ejemplo.mx',
+  CLOUDINARY_URL: 'cloudinary://123456789012345:secreto@estudio-demo',
 };
 
 describe('EnvSchema (BACKEND BE4)', () => {
@@ -56,6 +57,20 @@ describe('EnvSchema (BACKEND BE4)', () => {
       true,
     );
     expect(EnvSchema.safeParse({ ...base, VAPID_SUBJECT: 'avisos@ejemplo.mx' }).success).toBe(false);
+  });
+
+  it('ADR-010: en producción exige CLOUDINARY_URL con clave, secreto y nube; fuera de ella es opcional', () => {
+    const without = { ...base, CLOUDINARY_URL: undefined };
+    expect(EnvSchema.safeParse(without).success).toBe(false);
+    expect(EnvSchema.safeParse({ ...without, NODE_ENV: 'development' }).success).toBe(true);
+    expect(EnvSchema.safeParse({ ...base, NODE_ENV: 'test', CLOUDINARY_URL: '' }).success).toBe(true);
+    for (const url of [
+      'https://api.cloudinary.com',
+      'cloudinary://clave@nube',
+      'cloudinary://clave:secreto@',
+    ]) {
+      expect(EnvSchema.safeParse({ ...base, CLOUDINARY_URL: url }).success).toBe(false);
+    }
   });
 
   it('rechaza una URL de base que no es Postgres', () => {

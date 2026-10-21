@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import { DeckSchema } from '../domain/deck.js';
 import { ExamSchema } from '../domain/exam.js';
+import { MediaAssetSchema } from '../domain/media.js';
 import { CardSchema, NoteSchema } from '../domain/note.js';
 import { ReviewLogSchema } from '../domain/review.js';
 import { StudySessionSchema } from '../domain/study-session.js';
@@ -20,6 +21,7 @@ export const SYNC_ROW_SCHEMAS = {
   note: NoteSchema,
   card: CardSchema,
   exam: ExamSchema,
+  mediaAsset: MediaAssetSchema,
   userSettings: UserSettingsSchema,
   selfExplanation: SelfExplanationSchema,
   studySession: StudySessionSchema,

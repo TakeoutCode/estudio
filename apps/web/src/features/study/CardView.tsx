@@ -1,6 +1,7 @@
 import { clozeSegments, type Confidence, Rating } from '@estudio/shared';
 import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { OcclusionFigure } from '@/features/media';
 import { RatingButton } from '@/ui/RatingButton';
 import type { StudyCardView } from './queries';
 import type { Attempt, CardPhase } from './store';
@@ -19,7 +20,7 @@ const primary = `inline-flex min-h-14 w-full items-center justify-center rounded
 
 /** Las que ella califica eligiendo entre los 4 botones (LD2). */
 export const isSelfGraded = (card: StudyCardView): boolean =>
-  card.content.kind === 'basic' || card.content.kind === 'cloze';
+  card.content.kind === 'basic' || card.content.kind === 'cloze' || card.content.kind === 'image_occlusion';
 
 /** La calificación por defecto de Enter tras revelar una objetiva: Again si falló, Good si acertó. */
 export const defaultObjectiveRating = (attempt: Attempt): Rating =>
@@ -38,6 +39,7 @@ export function CardBody({
   attempt,
   canChoose,
   onChoose,
+  onRevealFromImage = null,
 }: {
   readonly card: StudyCardView;
   readonly phase: CardPhase;
@@ -45,13 +47,26 @@ export function CardBody({
   /** Opción múltiple: elegir es el intento; con `askConfidence`, después de la confianza. */
   readonly canChoose: boolean;
   readonly onChoose: (option: number) => void;
+  /** Oclusión: tocar la etiqueta oculta es como "Mostrar"; `null` si hace falta la confianza. */
+  readonly onRevealFromImage?: (() => void) | null;
 }) {
   const { t } = useTranslation();
   const revealed = phase === 'revealed';
   const { content } = card;
   return (
     <article className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5">
-      {content.kind === 'cloze' ? (
+      {content.kind === 'image_occlusion' ? (
+        <>
+          <p className="m-0 text-card whitespace-pre-wrap">{content.prompt}</p>
+          <OcclusionFigure
+            content={content}
+            ordinal={card.ordinal}
+            revealed={revealed}
+            onReveal={revealed ? null : onRevealFromImage}
+            eager
+          />
+        </>
+      ) : content.kind === 'cloze' ? (
         <p className="m-0 text-card whitespace-pre-wrap">
           {clozeSegments(content.text, card.ordinal).map((segment, i) =>
             segment.kind === 'text' ? (
@@ -90,7 +105,7 @@ export function CardBody({
                 {t(attempt.correct ? 'study.objective.right' : 'study.objective.wrongChoice')}
               </p>
             ) : null}
-            {content.kind === 'basic' ? (
+            {content.kind === 'basic' || content.kind === 'image_occlusion' ? (
               <>
                 <h2 className="m-0 text-caption font-normal text-muted">{t('study.answer')}</h2>
                 <p className="m-0 text-card whitespace-pre-wrap">{card.answer}</p>

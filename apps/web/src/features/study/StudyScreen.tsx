@@ -20,6 +20,7 @@ import {
   useTimerTicker,
   useTimerView,
 } from '@/features/timer';
+import { CARD_IMAGE_WIDTH, usePrefetchCardImages } from '@/features/media';
 import { useBreakEndNotice } from '@/features/notifications';
 import { usePageVisibility } from '@/lib/use-page-visibility';
 import { ActionBar } from '@/ui/ActionBar';
@@ -169,6 +170,7 @@ function Session({
   readonly startedAt: number;
 }) {
   const ids = useMemo(() => plan.queue.map((q) => q.cardId), [plan]);
+  usePrefetchCardImages(ids, CARD_IMAGE_WIDTH); // FE7: las imágenes de la sesión, por si se va la señal
   const live = useQueueStates(ids);
   // La consulta en vivo llega un render tarde: sin esto, la tarjeta recién calificada
   // volvería a elegirse. El estado que devuelve `answerCard` ya está guardado.
@@ -480,6 +482,13 @@ function CurrentCard({
         attempt={attempt}
         canChoose={phase === 'prompt' && (!askConfidence || confidence !== null)}
         onChoose={choose}
+        onRevealFromImage={
+          phase === 'prompt' && selfGraded && !askConfidence
+            ? () => {
+                reveal(null);
+              }
+            : null
+        }
       />
       {/* Los atajos solo sirven con teclado y puntero fino (FE12); en el teléfono no estorban. */}
       <div className="hidden pointer-fine:block">

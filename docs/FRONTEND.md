@@ -7,7 +7,7 @@
 ```text
 apps/web/src/
 ├─ app/          router (React Router 8, rutas lazy), providers, layout, error boundaries
-├─ features/     study · timer · decks · notes · exercises · exams · plan · dashboard
+├─ features/     study · timer · decks · notes · media · exercises · exams · plan · dashboard
 │  │             ai-drafts · gamification · notifications · settings · backup · auth
 │  └─ <feature>/ components/ hooks/ queries.ts commands.ts store.ts index.ts
 ├─ db/           schema.ts (versiones de Dexie), alive(), hlc local, outbox
@@ -71,11 +71,13 @@ export async function renameDeck(id: DeckId, name: string) {
 // ❌ <img src={note.imageUrl} />
 // ✅ <MediaImage assetId={note.imageAssetId} width={360} alt={t('notes.imageAlt', { title })} />
 ```
-- Subida: `POST /media/signature` → `fetch` directo a Cloudinary. El audio va con `resource_type: 'video'` (así lo clasifica Cloudinary).
+- Guardar: la nota y su `MediaAsset` (con `publicId` y `version` en `null`) se escriben en la misma transacción, y los bytes quedan en `db.pendingUploads` (un `ArrayBuffer` y su tipo; no se sincroniza). Mientras están ahí, `MediaImage` muestra esa copia con una URL `blob:`.
+- Subida: en cada vuelta de sync, después del push y el pull (el asset ya está en el servidor y los repasos salen primero, R3), `uploadPendingMedia()` pide `POST /media/signature` y hace `fetch` directo a Cloudinary. Al terminar escribe `publicId` y `version` (LWW, con outbox) y borra la copia. Sin red o con un 5xx se detiene sin error; un 404 de la firma (el asset todavía no llegó) espera a la próxima vuelta sin contar intento; un 4xx de Cloudinary suma un intento. El audio va con `resource_type: 'video'` (así lo clasifica Cloudinary).
 - Grabación: `MediaRecorder` con `isTypeSupported` (en iOS da `audio/mp4`). El blob espera en `db.pendingUploads` hasta que haya red.
 - Video: archivo subido o enlace (embed con `youtube-nocookie.com`). Los enlaces no funcionan sin red y la UI lo indica.
-- Caché en tiempo de ejecución con `CacheFirst` para `res.cloudinary.com/<cloud>/` con expiración, y precarga de la media de la cola de hoy.
-- Límites en el cliente antes de pedir la firma: imagen 10 MB, audio 20 MB, video 100 MB (constantes del módulo `media`, no son umbrales de estudio).
+- Caché en tiempo de ejecución con `CacheFirst` (caché `media`) para `res.cloudinary.com`, solo respuestas CORS (`crossorigin="anonymous"`), con expiración y `purgeOnQuotaError`, y precarga de las imágenes de las tarjetas de la sesión (`usePrefetchCardImages`, hasta 40) al empezarla. Se piden pocos anchos fijos (`deliveryWidth()`: 400, 800, 1200 o 1600 px, con DPR hasta 2) para que la precarga y la tarjeta usen la misma URL.
+- Límites en el cliente antes de pedir la firma: imagen 10 MB (`IMAGE_MAX_BYTES` en `shared`, que también valida `MediaAsset.bytes`), audio 20 MB, video 100 MB. Son límites técnicos, no umbrales de estudio.
+- Sin `VITE_CLOUDINARY_CLOUD_NAME`, una imagen ya subida muestra un aviso en lugar de verse; la variable se lee al abrir la app, así que su falta no rompe el build.
 
 ## 6. Rendimiento
 

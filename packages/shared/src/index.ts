@@ -15,6 +15,7 @@ export * from './domain/review.js';
 export * from './domain/study-session.js';
 export * from './domain/deck.js';
 export * from './domain/exam.js';
+export * from './domain/media.js';
 export * from './domain/note.js';
 export * from './domain/topic.js';
 export * from './domain/user-settings.js';

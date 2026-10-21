@@ -2,6 +2,8 @@ import type {
   Card,
   Deck,
   Exam,
+  ImageMime,
+  MediaAsset,
   Mutation,
   Note,
   ReviewLog,
@@ -28,6 +30,19 @@ export interface MetaEntry {
   readonly value: unknown;
 }
 
+/**
+ * FRONTEND FE8: los bytes de una imagen que este dispositivo todavía no sube. Mientras está
+ * aquí, la imagen se ve desde esta copia; al subirse se borra y se ve desde Cloudinary. No se
+ * sincroniza: es de este dispositivo.
+ */
+export interface PendingUpload {
+  readonly assetId: string;
+  readonly data: ArrayBuffer;
+  readonly mime: ImageMime;
+  readonly createdAt: number;
+  readonly attempts: number;
+}
+
 /** Cursor del pull en `meta` (SYNC SY4). */
 export const SYNC_CURSOR_KEY = 'syncCursor';
 /** Desfase estimado con el reloj del servidor (`serverNow` del pull, SYNC SY7). */
@@ -40,6 +55,7 @@ export const TABLE_FOR = {
   note: 'notes',
   card: 'cards',
   exam: 'exams',
+  mediaAsset: 'mediaAssets',
   userSettings: 'userSettings',
   selfExplanation: 'selfExplanations',
   studySession: 'studySessions',
@@ -55,6 +71,8 @@ export class EstudioDb extends Dexie {
   notes!: EntityTable<Note, 'id'>;
   cards!: EntityTable<Card, 'id'>;
   exams!: EntityTable<Exam, 'id'>;
+  mediaAssets!: EntityTable<MediaAsset, 'id'>;
+  pendingUploads!: EntityTable<PendingUpload, 'assetId'>;
   userSettings!: EntityTable<UserSettings, 'id'>;
   selfExplanations!: EntityTable<SelfExplanation, 'id'>;
   studySessions!: EntityTable<StudySession, 'id'>;
@@ -122,6 +140,11 @@ export class EstudioDb extends Dexie {
           });
         await tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' });
       });
+    // FE8: imágenes (MediaAsset) y la cola de subida de este dispositivo. Como en v6-v9, el
+    // cursor vuelve a 0 por si otro dispositivo ya subió una imagen que esta versión saltó.
+    this.version(10)
+      .stores({ mediaAssets: 'id', pendingUploads: 'assetId' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -134,6 +157,7 @@ export const syncedTables = (database: EstudioDb) => [
   database.notes,
   database.cards,
   database.exams,
+  database.mediaAssets,
   database.userSettings,
   database.selfExplanations,
   database.studySessions,

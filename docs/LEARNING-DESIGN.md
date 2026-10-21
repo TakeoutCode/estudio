@@ -15,6 +15,10 @@ Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una 
 | `multiple_choice` | 1 (3 a 5 opciones, una correcta) | Elegir una opción | Automática (§3) |
 
 **LD1 · DEBE** acompañar cada imagen con texto y oclusión de etiquetas cuando la imagen es el contenido. **NO DEBE** ofrecerse imagen decorativa, de stock ni plantilla con ilustración (R10).
+- Una nota `image_occlusion` guarda el `MediaAsset.id` de su imagen (FRONTEND FE8), una pregunta (`prompt`, el texto de LD1), un `alt` que describe la imagen sin nombrar las etiquetas tapadas (UI-UX UX4), el modo y sus grupos. Cada grupo es una etiqueta con su nombre y de 1 a 10 recuadros en coordenadas de 0 a 1 sobre la imagen tal como se ve (con la orientación EXIF aplicada).
+- Cada grupo tiene un número `n` estable que es el `ordinal` de su `Card`, como el número de un hueco cloze. Quitar una etiqueta borra solo su Card, y los números no se reutilizan, así el historial de las otras no cambia.
+- `hide_all` (por defecto) tapa también las demás etiquetas; `hide_one` tapa solo la que se pregunta. Antes del intento, la que se pregunta va resaltada con "?" y su nombre no está en el DOM (R1); al revelar queda su borde y su nombre aparece como respuesta (R4).
+- La imagen es de ella: se elige del dispositivo (JPG, PNG, WebP, GIF o HEIC, hasta 10 MB) y no se cambia al editar la nota, porque los recuadros y el historial son de esa imagen.
 
 ## 2. Ejercicios de aplicación
 

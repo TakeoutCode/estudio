@@ -1,7 +1,10 @@
 /// <reference lib="webworker" />
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { clientsClaim } from 'workbox-core';
+import { ExpirationPlugin } from 'workbox-expiration';
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
+import { CacheFirst } from 'workbox-strategies';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -9,6 +12,20 @@ declare const self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
+
+// FRONTEND §5: cada URL de Cloudinary lleva su versión, así que no cambia; una vez vista se
+// sirve desde aquí sin red. Ante falta de espacio se libera esta caché primero (FE7), nunca
+// Dexie. Solo respuestas CORS (200): una opaca ocupa mucho más de la cuota.
+registerRoute(
+  ({ url }) => url.origin === 'https://res.cloudinary.com',
+  new CacheFirst({
+    cacheName: 'media',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [200] }),
+      new ExpirationPlugin({ maxEntries: 800, maxAgeSeconds: 365 * 24 * 60 * 60, purgeOnQuotaError: true }),
+    ],
+  }),
+);
 
 // FRONTEND FE6: la versión nueva se activa solo cuando la app lo pide (sin sesión en curso).
 self.addEventListener('message', (event: ExtendableMessageEvent) => {

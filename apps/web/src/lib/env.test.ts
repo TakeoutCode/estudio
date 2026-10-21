@@ -18,6 +18,15 @@ describe('parseWebEnv (FRONTEND FE5)', () => {
     expect(() => parseWebEnv({})).toThrow();
   });
 
+  it('FE8: la nube de Cloudinary es opcional, pero solo con letras, números, guion y guion bajo', () => {
+    const api = { VITE_API_URL: 'https://api.ejemplo.mx' };
+    expect(parseWebEnv({ ...api, VITE_CLOUDINARY_CLOUD_NAME: 'mi-nube' })).toEqual({
+      ...api,
+      VITE_CLOUDINARY_CLOUD_NAME: 'mi-nube',
+    });
+    expect(() => parseWebEnv({ ...api, VITE_CLOUDINARY_CLOUD_NAME: 'mi nube/../x' })).toThrow();
+  });
+
   it('AGENTS §5: rechaza cualquier otra VITE_*, porque terminaría en el bundle público', () => {
     expect(() => parseWebEnv({ VITE_API_URL: 'http://localhost:3000', VITE_OPENAI_API_KEY: 'sk-x' })).toThrow(
       'VITE_OPENAI_API_KEY',

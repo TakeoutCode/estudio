@@ -16,6 +16,7 @@ import { projectCards } from '@/db/projection';
 import { db as defaultDb, type EstudioDb } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { writeAndQueue } from '@/db/write';
+import { mediaTables, type StagedImage, stageImageAsset } from '@/features/media';
 import { syncScheduler } from '@/sync';
 
 interface CommandOptions {
@@ -23,7 +24,10 @@ interface CommandOptions {
   readonly now?: number;
 }
 
-/** Tablas de una escritura de notas: nota, sus Cards, su proyección, outbox y reloj (FE3). */
+/**
+ * Tablas de una escritura de notas: nota, sus Cards, su proyección, su imagen (FE8), outbox y
+ * reloj (FE3).
+ */
 export const noteTables = (database: EstudioDb) => [
   database.decks,
   database.topics,
@@ -32,6 +36,7 @@ export const noteTables = (database: EstudioDb) => [
   database.cardStates,
   database.reviewLogs,
   database.userSettings,
+  ...mediaTables(database),
   database.outbox,
   database.meta,
 ];
@@ -57,11 +62,21 @@ export type DeckChoice = { readonly id: string } | { readonly name: string };
 export type TopicChoice =
   { readonly id: string } | { readonly name: string; readonly explanation: string } | null;
 
+/**
+ * Crea la nota. `image`: la imagen que ella eligió para una oclusión (R10); se guarda con la
+ * nota y se sube después (FE8).
+ */
 export function createNote(
-  input: { readonly deck: DeckChoice; readonly content: NoteContent; readonly topic?: TopicChoice },
+  input: {
+    readonly deck: DeckChoice;
+    readonly content: NoteContent;
+    readonly topic?: TopicChoice;
+    readonly image?: StagedImage;
+  },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
 ): Promise<Note> {
   return write(database, async () => {
+    await checkImage(database, input.content, input.image, now);
     const deckId = await resolveDeck(database, input.deck, now);
     const note = NoteSchema.parse({
       id: newId(),
@@ -94,6 +109,7 @@ export function updateNote(
 ): Promise<Note> {
   return write(database, async () => {
     const current = await existing(database, id);
+    await checkImage(database, input.content, undefined, now);
     const deckId = input.deck === undefined ? current.deckId : await resolveDeck(database, input.deck, now);
     const moved = deckId !== current.deckId;
     const topicId =
@@ -200,6 +216,29 @@ async function syncCards(
     if (!wanted.has(card.ordinal) && card.deletedAt === null) await save(card, { remove: true });
   }
   await projectCards(database, touched);
+}
+
+/**
+ * FE8: una oclusión apunta a una imagen que existe aquí: la que llega con la nota (y se guarda
+ * ahora) o una ya guardada. Así la nota nunca viaja antes que su asset (BE2).
+ */
+async function checkImage(
+  database: EstudioDb,
+  content: NoteContent,
+  image: StagedImage | undefined,
+  now: number,
+): Promise<void> {
+  if (content.kind !== 'image_occlusion') {
+    if (image) throw new Error('image_without_occlusion');
+    return;
+  }
+  if (image) {
+    if (image.assetId !== content.imageAssetId) throw new Error('image_mismatch');
+    await stageImageAsset(database, image, now);
+    return;
+  }
+  const asset = await database.mediaAssets.get(content.imageAssetId);
+  if (asset?.deletedAt !== null) throw new Error('image_not_found');
 }
 
 async function resolveDeck(database: EstudioDb, choice: DeckChoice, now: number): Promise<string> {

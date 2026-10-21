@@ -7,8 +7,12 @@ const WebEnvSchema = z.object({
   VITE_API_URL: z.url({ protocol: /^https?$/ }),
   // Sin clave VAPID, Ajustes dice que este navegador no permite avisos (NOTIFICATIONS NT8).
   VITE_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
-  // Pasa a obligatoria cuando se implemente media.
-  VITE_CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
+  // FE8: para armar la URL de cada imagen subida. Sin ella, una imagen ya subida muestra un
+  // aviso en vez de romper la app (este parse corre al abrirla, no al compilar).
+  VITE_CLOUDINARY_CLOUD_NAME: z
+    .string()
+    .regex(/^[a-z0-9_-]+$/i)
+    .optional(),
 });
 
 export type WebEnv = z.output<typeof WebEnvSchema>;

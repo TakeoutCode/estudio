@@ -2,6 +2,7 @@ import {
   cardFaces,
   type Deck,
   type Exam,
+  type ImageOcclusionContent,
   type StudyConfig,
   type StudySession,
   type Topic,
@@ -135,6 +136,8 @@ export interface MockCardView {
   /** Solo se monta al revisar (R1, FE10). */
   readonly answer: string;
   readonly explanation: string;
+  /** R10: la imagen con la etiqueta que se pregunta, si es una oclusión. */
+  readonly occlusion: { readonly content: ImageOcclusionContent; readonly ordinal: number } | null;
 }
 
 export interface MockView {
@@ -168,6 +171,8 @@ export const useMockView = (examId: string | undefined): MockView | null | undef
         cards.set(card.id, {
           ...cardFaces(note.content, card.ordinal),
           explanation: note.content.explanation,
+          occlusion:
+            note.content.kind === 'image_occlusion' ? { content: note.content, ordinal: card.ordinal } : null,
         });
     }
     const topics = new Map((await db.topics.toArray()).map((t) => [t.id, t.name]));

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
 import { createDeck } from '@/features/decks';
 import { createNote } from './commands';
@@ -173,5 +173,82 @@ describe('editor de notas · tipos de LD §1', () => {
     await waitFor(async () => {
       expect((await db.notes.toArray())[0]?.content).toMatchObject({ kind: 'type_answer', back: 'Trapecio' });
     });
+  });
+});
+
+describe('editor de notas · imagen con etiquetas (R10, LD1)', () => {
+  beforeEach(() => {
+    // jsdom no decodifica imágenes ni crea URLs blob.
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(() => Promise.resolve({ width: 800, height: 600, close: vi.fn() })),
+    );
+    URL.createObjectURL = vi.fn(() => 'blob:vista-previa');
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const pick = (file: File) => {
+    fireEvent.change(screen.getByLabelText('Elegir imagen'), { target: { files: [file] } });
+  };
+
+  it('elige la imagen, tapa una etiqueta con el teclado, la nombra y guarda nota e imagen', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: 'Imagen con etiquetas' }));
+    fireEvent.change(screen.getByLabelText('Nombre del mazo nuevo'), { target: { value: 'Mano' } });
+    pick(new File([new Uint8Array([1, 2, 3])], 'carpo.png', { type: 'image/png' }));
+    expect(await screen.findByRole('group', { name: 'Imagen para tapar etiquetas' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar recuadro' }));
+    const rect = screen.getByRole('button', { name: 'Recuadro de la etiqueta 1' });
+    fireEvent.keyDown(rect, { key: 'ArrowRight' });
+    fireEvent.keyDown(rect, { key: 'ArrowDown', shiftKey: true });
+    fireEvent.change(screen.getByLabelText('Pregunta que acompaña la imagen'), {
+      target: { value: '¿Qué hueso es?' },
+    });
+    fireEvent.change(screen.getByLabelText('Descripción de la imagen'), {
+      target: { value: 'Mano derecha, vista palmar' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    // Sin nombre en la etiqueta no se guarda.
+    expect(screen.getByText(/ponle nombre a cada una/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Nombre de la etiqueta 1'), { target: { value: 'Escafoides' } });
+    fireEvent.click(screen.getByLabelText('Dejar las demás a la vista'));
+    fireEvent.click(screen.getByLabelText('Tapar también las demás'));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(async () => {
+      const [note] = await db.notes.toArray();
+      expect(note?.content).toMatchObject({
+        kind: 'image_occlusion',
+        prompt: '¿Qué hueso es?',
+        alt: 'Mano derecha, vista palmar',
+        mode: 'hide_all',
+        groups: [{ n: 1, label: 'Escafoides', rects: [{ x: 0.41, y: 0.45, w: 0.2, h: 0.11 }] }],
+      });
+      const imageAssetId = note?.content.kind === 'image_occlusion' ? note.content.imageAssetId : '';
+      expect(await db.mediaAssets.get(imageAssetId)).toMatchObject({
+        width: 800,
+        height: 600,
+        publicId: null,
+      });
+      expect(await db.pendingUploads.count()).toBe(1);
+    });
+  });
+
+  it('avisa si el formato no sirve o pasa de 10 MB, sin abrir el editor', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: 'Imagen con etiquetas' }));
+    pick(new File(['<svg/>'], 'dibujo.svg', { type: 'image/svg+xml' }));
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      expect.stringContaining('formato'),
+    );
+    pick(new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'grande.jpg', { type: 'image/jpeg' }));
+    expect(await screen.findByText(/más de 10 MB/)).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Imagen para tapar etiquetas' })).toBeNull();
   });
 });

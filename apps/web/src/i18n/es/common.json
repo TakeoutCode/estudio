@@ -138,20 +138,23 @@
       "deck": "Escribe el nombre del mazo nuevo.",
       "topic": "Escribe el nombre del tema nuevo.",
       "cloze": "Marca al menos un hueco en el texto.",
-      "choice": "Escribe la pregunta y entre 3 y 5 opciones distintas, y marca la correcta."
+      "choice": "Escribe la pregunta y entre 3 y 5 opciones distintas, y marca la correcta.",
+      "occlusion": "Elige una imagen, escribe la pregunta y la descripción, tapa al menos una etiqueta y ponle nombre a cada una."
     },
     "kindLabel": "Tipo",
     "kind": {
       "basic": "Pregunta y respuesta",
       "cloze": "Huecos",
       "type_answer": "Escribir respuesta",
-      "multiple_choice": "Opción múltiple"
+      "multiple_choice": "Opción múltiple",
+      "image_occlusion": "Imagen con etiquetas"
     },
     "kindHint": {
       "basic": "Recuerdas la respuesta, la ves y calificas cómo te fue.",
       "cloze": "Un texto con partes ocultas; cada hueco es una tarjeta.",
       "type_answer": "Escribes la respuesta y la app la compara.",
-      "multiple_choice": "Eliges una de 3 a 5 opciones."
+      "multiple_choice": "Eliges una de 3 a 5 opciones.",
+      "image_occlusion": "Tapas las etiquetas de una imagen tuya; cada una es una tarjeta."
     },
     "question": "Pregunta",
     "exactAnswer": "Respuesta (corta)",
@@ -167,7 +170,44 @@
     "removeOption": "Quitar la opción {{n}}",
     "optionsHint": "Entre 3 y 5 opciones distintas.",
     "addOption": "Agregar opción",
-    "clozeExampleWord": "texto"
+    "clozeExampleWord": "texto",
+    "occlusion": {
+      "image": "Imagen",
+      "pick": "Elegir imagen",
+      "pickAnother": "Elegir otra imagen",
+      "pickHint": "Una lámina o foto tuya con las etiquetas que quieras tapar. Hasta 10 MB.",
+      "offline": "Sin conexión · la imagen se guarda en este dispositivo y se sube cuando vuelva la señal.",
+      "imageLocked": "La imagen no se cambia al editar. Para usar otra, crea una tarjeta nueva.",
+      "problem": {
+        "type": "Ese formato no se puede usar. Elige una imagen JPG, PNG, WebP, GIF o HEIC.",
+        "size": "La imagen pesa más de 10 MB. Elige una más liviana.",
+        "read": "No se pudo abrir la imagen en este navegador. Prueba con otra."
+      },
+      "prompt": "Pregunta que acompaña la imagen",
+      "alt": "Descripción de la imagen",
+      "altHint": "La lee el lector de pantalla: di qué muestra, sin nombrar las etiquetas que tapas.",
+      "canvasLabel": "Imagen para tapar etiquetas",
+      "instructions": "Con «Dibujar» activado, arrastra sobre cada etiqueta para taparla. Arrastra un recuadro para moverlo y su esquina para agrandarlo. Con teclado: «Agregar recuadro»; las flechas lo mueven, Mayús + flechas cambian su tamaño y Suprimir lo quita.",
+      "draw": "Dibujar",
+      "addRect": "Agregar recuadro",
+      "removeRect": "Quitar recuadro",
+      "rectName": "Recuadro de la etiqueta {{position}}",
+      "target": "Lo que dibujes tapa",
+      "targetNew": "Una etiqueta nueva",
+      "targetExisting": "Otra vez la etiqueta {{position}}",
+      "groupsLegend": "Etiquetas tapadas",
+      "groupLabel": "Nombre de la etiqueta {{position}}",
+      "groupRects_one": "{{count}} recuadro",
+      "groupRects_other": "{{count}} recuadros",
+      "removeGroup": "Quitar la etiqueta {{position}}",
+      "empty": "Todavía no hay etiquetas tapadas.",
+      "count_zero": "Cada etiqueta tapada es una tarjeta.",
+      "count_one": "{{count}} etiqueta: 1 tarjeta.",
+      "count_other": "{{count}} etiquetas: {{count}} tarjetas.",
+      "mode": "Al preguntar por una etiqueta",
+      "hide_all": "Tapar también las demás",
+      "hide_one": "Dejar las demás a la vista"
+    }
   },
   "exams": {
     "title": "Exámenes",
@@ -546,5 +586,14 @@
       "off": "Desactivar",
       "failed": "No se pudo guardar tu respuesta. Intenta de nuevo."
     }
+  },
+  "media": {
+    "pendingElsewhere": "La imagen se está subiendo desde otro dispositivo. Aparece aquí cuando termine.",
+    "offline": "Sin conexión · esta imagen todavía no está guardada en este dispositivo",
+    "unavailable": "Esta imagen no se puede mostrar por ahora."
+  },
+  "occlusion": {
+    "targetHidden": "Etiqueta oculta {{position}} de {{total}}",
+    "otherHidden": "Otra etiqueta oculta"
   }
 }

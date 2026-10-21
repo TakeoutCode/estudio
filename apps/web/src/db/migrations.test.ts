@@ -44,7 +44,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(9);
+    expect(current.verno).toBe(10);
     expect(await current.decks.toArray()).toEqual([{ ...deck, pausedAt: null }]); // v9: activo
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
@@ -73,7 +73,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(9);
+    expect(current.verno).toBe(10);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
     expect(await current.reviewLogs.toArray()).toEqual([log]);
@@ -94,7 +94,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(9);
+    expect(current.verno).toBe(10);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([note]);
     current.close();
@@ -116,7 +116,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(9);
+    expect(current.verno).toBe(10);
     expect(await current.timerBlockLogs.toArray()).toEqual([{ ...block, extended: false }]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     current.close();
@@ -139,7 +139,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(9);
+    expect(current.verno).toBe(10);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([note]);
     expect(await current.outbox.toArray()).toEqual([pending]);
@@ -170,9 +170,47 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(9);
+    expect(current.verno).toBe(10);
     expect(await current.decks.toArray()).toEqual([{ ...deck, pausedAt: null }]);
     expect(await current.outbox.toArray()).toEqual([pending]); // la api completa el campo al recibirlo
+    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
+    current.close();
+  });
+
+  it('v9 → v10: aparecen las imágenes y su cola de subida (FE8); el cursor vuelve a 0; lo demás intacto', async () => {
+    const name = `migracion-${newId()}`;
+    names.push(name);
+    const v9 = openVersion1(name);
+    v9.version(2).stores({ userSettings: 'id, section' });
+    v9.version(3).stores({ notes: 'id, deckId', cards: 'id, noteId' });
+    v9.version(4).stores({ timerSessions: 'id, state', timerBlockLogs: 'id, timerSessionId, endedAt' });
+    v9.version(5).stores({});
+    v9.version(6).stores({ topics: 'id, deckId', selfExplanations: 'id, topicId' });
+    v9.version(7).stores({ exams: 'id, date' });
+    v9.version(8).stores({ studySessions: 'id, examId' });
+    v9.version(9).stores({});
+    const deck = {
+      id: newId(),
+      name: 'Carpo',
+      description: null,
+      pausedAt: null,
+      hlc: 'h',
+      updatedAt: 1,
+      deletedAt: null,
+    };
+    const pending = { mutationId: newId(), op: 'upsert', entity: 'deck', row: deck, createdAt: 1 };
+    await v9.table('decks').add(deck);
+    await v9.table('outbox').add(pending);
+    await v9.table('meta').put({ key: 'syncCursor', value: '512' });
+    v9.close();
+
+    const current = new EstudioDb(name);
+    await current.open();
+    expect(current.verno).toBe(10);
+    expect(await current.decks.toArray()).toEqual([deck]);
+    expect(await current.outbox.toArray()).toEqual([pending]);
+    expect(await current.mediaAssets.count()).toBe(0);
+    expect(await current.pendingUploads.count()).toBe(0);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     current.close();
   });

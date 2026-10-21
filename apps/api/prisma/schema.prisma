@@ -29,6 +29,7 @@ model User {
   exams                  Exam[]
   notes                  Note[]
   cards                  Card[]
+  mediaAssets            MediaAsset[]
   userSettings           UserSettings[]
   selfExplanations       SelfExplanation[]
   studySessions          StudySession[]
@@ -199,6 +200,28 @@ model Card {
   @@index([userId, serverSeq])
   @@index([userId, noteId])
   @@map("card")
+}
+
+/// FRONTEND §5, ADR-010: imagen que el cliente sube directo a Cloudinary con una firma de la API.
+/// `public_id` y `version` quedan en null hasta que termina la subida (FE8).
+model MediaAsset {
+  id        String  @id @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  kind      String
+  mime      String
+  bytes     Int
+  width     Int
+  height    Int
+  publicId  String? @map("public_id") // estudio/<userId>/<id> (QUALITY §6)
+  version   BigInt?
+  hlc       String
+  updatedAt BigInt  @map("updated_at")
+  deletedAt BigInt? @map("deleted_at")
+  serverSeq BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("media_asset")
 }
 
 /// SYNC §1: una fila por sección con id = uuidv5(userId, sección).

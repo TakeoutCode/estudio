@@ -6,7 +6,7 @@ import { type Column, ident, syncMetaColumns, upsertLwwSql } from '../sync/sql.j
 import type { ApplyStatus } from '../sync/sync-handler.js';
 
 /** Tablas que otras entidades referencian (BE2). */
-export type OwnedTable = 'deck' | 'topic' | 'note' | 'card';
+export type OwnedTable = 'deck' | 'topic' | 'note' | 'card' | 'media_asset';
 
 @Injectable()
 export class DecksRepository {

@@ -39,11 +39,12 @@ describe('UserSettings por sección (SYNC §1)', () => {
 });
 
 describe('esquemas de fila sincronizables', () => {
-  it('viajan mazos, temas, notas, tarjetas, exámenes, ajustes, autoexplicaciones, simulacros, temporizador y logs por ahora', () => {
+  it('viajan mazos, temas, notas, tarjetas, exámenes, imágenes, ajustes, autoexplicaciones, simulacros, temporizador y logs por ahora', () => {
     expect(Object.keys(SYNC_ROW_SCHEMAS).sort()).toEqual([
       'card',
       'deck',
       'exam',
+      'mediaAsset',
       'note',
       'reviewLog',
       'selfExplanation',

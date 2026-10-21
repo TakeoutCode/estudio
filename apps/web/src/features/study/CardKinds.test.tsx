@@ -1,4 +1,4 @@
-import { type NoteContent, Rating } from '@estudio/shared';
+import { newId, type NoteContent, Rating } from '@estudio/shared';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -123,6 +123,94 @@ describe('opción múltiple (LD2)', () => {
     await waitFor(async () => {
       expect(await logs()).toMatchObject([
         { cardKind: 'multiple_choice', rating: Rating.Again, answer: { option: 0 } },
+      ]);
+    });
+  });
+});
+
+describe('imagen con etiquetas (image_occlusion, R10, LD1)', () => {
+  const occlusion = (imageAssetId: string, mode: 'hide_all' | 'hide_one', labels: readonly string[]) =>
+    ({
+      kind: 'image_occlusion',
+      imageAssetId,
+      prompt: '¿Qué hueso del carpo es?',
+      alt: 'Mano derecha, vista palmar',
+      mode,
+      groups: labels.map((label, i) => ({
+        n: i + 1,
+        label,
+        rects: [{ x: 0.1 + i * 0.3, y: 0.3, w: 0.2, h: 0.1 }],
+      })),
+      explanation: 'El más lateral de la fila proximal.',
+    }) satisfies NoteContent;
+
+  const withImage = async (mode: 'hide_all' | 'hide_one', labels: readonly string[]) => {
+    const assetId = newId();
+    const image = {
+      assetId,
+      data: new Uint8Array([1, 2]).buffer,
+      mime: 'image/png' as const,
+      width: 800,
+      height: 600,
+    };
+    await createNote(
+      { deck: { name: 'Mano' }, content: occlusion(assetId, mode, labels), image },
+      { now: T0 - 1 },
+    );
+  };
+
+  beforeEach(() => {
+    // jsdom no tiene URLs blob: la imagen sin subir se muestra desde una falsa.
+    URL.createObjectURL = vi.fn(() => 'blob:copia-local');
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  it('R1: la etiqueta va tapada y su nombre no está en el DOM; tocarla revela, con explicación (R4)', async () => {
+    await withImage('hide_all', ['Escafoides']);
+    const { container } = renderStudy();
+    expect(await screen.findByRole('img', { name: 'Mano derecha, vista palmar' })).toBeTruthy();
+    const mask = screen.getByRole('button', { name: 'Etiqueta oculta 1 de 1' });
+    expect(container.textContent).not.toContain('Escafoides');
+    fireEvent.click(mask);
+    expect(screen.getByText('Escafoides')).toBeTruthy();
+    expect(screen.getByText('El más lateral de la fila proximal.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Etiqueta oculta 1 de 1' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await waitFor(async () => {
+      expect(await logs()).toMatchObject([{ cardKind: 'image_occlusion', rating: Rating.Good }]);
+    });
+  });
+
+  it('hide_all tapa también las otras etiquetas sin nombrarlas; hide_one las deja a la vista', async () => {
+    await withImage('hide_all', ['Escafoides', 'Semilunar']);
+    const first = renderStudy();
+    await screen.findByRole('button', { name: /Etiqueta oculta \d de 2/ });
+    expect(screen.getAllByRole('img', { name: 'Otra etiqueta oculta' })).toHaveLength(1);
+    expect(first.container.textContent).not.toMatch(/Escafoides|Semilunar/);
+    first.unmount();
+    await db.delete({ disableAutoOpen: false });
+    useStudy.getState().end();
+
+    await withImage('hide_one', ['Escafoides', 'Semilunar']);
+    renderStudy();
+    await screen.findByRole('button', { name: /Etiqueta oculta \d de 2/ });
+    expect(screen.queryAllByRole('img', { name: 'Otra etiqueta oculta' })).toHaveLength(0);
+  });
+
+  it('R6: con confianza en repasos, la etiqueta no es un botón; elegir la confianza revela', async () => {
+    await withImage('hide_all', ['Escafoides']);
+    const { container } = renderStudy();
+    await screen.findByRole('button', { name: 'Etiqueta oculta 1 de 1' });
+    useStudy.setState((s) => ({ session: s.session ? { ...s.session, askConfidence: true } : null }));
+    expect(await screen.findByRole('img', { name: 'Etiqueta oculta 1 de 1' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Etiqueta oculta 1 de 1' })).toBeNull();
+    expect(container.textContent).not.toContain('Escafoides');
+    fireEvent.click(screen.getByRole('button', { name: 'Mucha' }));
+    expect(screen.getByText('Escafoides')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Fácil' }));
+    await waitFor(async () => {
+      expect(await logs()).toMatchObject([
+        { cardKind: 'image_occlusion', rating: Rating.Easy, confidence: 3 },
       ]);
     });
   });

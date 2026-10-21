@@ -10,12 +10,30 @@ import {
 import { type SubmitEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
+import { OcclusionFigure } from '@/features/media';
 import { usePageVisibility } from '@/lib/use-page-visibility';
 import { EmptyState } from '@/ui/EmptyState';
 import { answerMockItem, gradeMockItem, NoMockQuestionsError, startMock } from './commands';
 import { type MockCardView, type MockView, useMockView } from './queries';
 
 const CONFIDENCES = [1, 2, 3] as const;
+
+/** La pregunta; en una oclusión, con su imagen (R10). Antes de revisar, la etiqueta va tapada (R1). */
+function MockPrompt({ card, revealed }: { readonly card: MockCardView; readonly revealed: boolean }) {
+  return (
+    <>
+      <p className="m-0 text-card whitespace-pre-wrap">{card.prompt}</p>
+      {card.occlusion ? (
+        <OcclusionFigure
+          content={card.occlusion.content}
+          ordinal={card.occlusion.ordinal}
+          revealed={revealed}
+          eager
+        />
+      ) : null}
+    </>
+  );
+}
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
@@ -150,8 +168,8 @@ function AskStep({
   return (
     <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
       <p className="m-0 text-caption text-muted">{t('mock.progress', { done: index + 1, total })}</p>
-      <article className="rounded-(--radius-card) bg-surface p-5">
-        <p className="m-0 text-card whitespace-pre-wrap">{card.prompt}</p>
+      <article className="flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5">
+        <MockPrompt card={card} revealed={false} />
       </article>
       <div className="flex flex-col gap-1">
         <label htmlFor={`${ids}-answer`}>{t('mock.answer')}</label>
@@ -235,7 +253,7 @@ function GradeStep({
         {t(review ? 'mock.reviewProgress' : 'mock.progress', { done: index + 1, total })}
       </p>
       <article className="flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5" aria-live="polite">
-        <p className="m-0 text-card whitespace-pre-wrap">{card.prompt}</p>
+        <MockPrompt card={card} revealed />
         <section className="flex flex-col gap-1 border-t border-muted/30 pt-3">
           <h2 className="m-0 text-caption font-normal text-muted">{t('mock.yourAnswer')}</h2>
           <p className="m-0 whitespace-pre-wrap">{item.answer ?? t('mock.noAnswer')}</p>

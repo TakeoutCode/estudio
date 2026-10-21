@@ -20,6 +20,9 @@ const csv = <T extends z.ZodType<unknown, string>>(item: T) =>
     )
     .pipe(z.array(item).min(1));
 
+/** `cloudinary://<api_key>:<api_secret>@<cloud_name>`, como la da el panel de Cloudinary. */
+export const CLOUDINARY_URL = /^cloudinary:\/\/([^:@\s]+):([^@\s]+)@([a-z0-9_-]+)$/i;
+
 /** Variable opcional: vacía en el .env cuenta como ausente. */
 const optional = (schema: z.ZodString) =>
   z
@@ -44,6 +47,10 @@ export const EnvSchema = z
     VAPID_PUBLIC_KEY: optional(z.string().min(1)),
     VAPID_PRIVATE_KEY: optional(z.string().min(1)),
     VAPID_SUBJECT: optional(z.string().startsWith('mailto:')),
+    // ADR-010, ARC8: `cloudinary://<api_key>:<api_secret>@<cloud_name>`; el secreto solo vive
+    // aquí. Fuera de producción es opcional y, sin ella, la firma responde 503 y las imágenes
+    // esperan sin subirse en el dispositivo que las tiene.
+    CLOUDINARY_URL: optional(z.string().regex(CLOUDINARY_URL, 'cloudinary_url_format')),
   })
   .refine(
     (env) =>
@@ -52,7 +59,11 @@ export const EnvSchema = z
         env.VAPID_PRIVATE_KEY !== undefined &&
         env.VAPID_SUBJECT !== undefined),
     { path: ['VAPID_PUBLIC_KEY'], message: 'vapid_required_in_production' },
-  );
+  )
+  .refine((env) => env.NODE_ENV !== 'production' || env.CLOUDINARY_URL !== undefined, {
+    path: ['CLOUDINARY_URL'],
+    message: 'cloudinary_required_in_production',
+  });
 
 export type Env = z.output<typeof EnvSchema>;
 

@@ -47,7 +47,8 @@
 
 **UX4 · DEBE** cumplir WCAG 2.2 AA en ambos temas (contraste 4.5:1 en texto y 3:1 en controles), sin violaciones de axe en CI. *Razón:* también estudia con cansancio, poca luz o el texto agrandado.
 - `lang="es"`, foco visible y orden de tabulación lógico. El resultado de revelar se anuncia con `aria-live="polite"`.
-- Oclusión: cada máscara es un botón con nombre accesible ("Etiqueta oculta 3 de 7"), y la imagen tiene un `alt` que describe la estructura sin dar la respuesta.
+- Oclusión: la máscara que se pregunta tiene nombre accesible ("Etiqueta oculta 3 de 7") y es un botón que revela, igual que "Mostrar"; cuando hay que elegir la confianza antes (R6) se anuncia como imagen y no revela. Las demás se anuncian como "Otra etiqueta oculta", sin su nombre. La imagen tiene un `alt` que describe la estructura sin dar la respuesta.
+- Editor de oclusión: dibujar con el dedo solo con "Dibujar" activado (si no, la página se desplaza normal); cada recuadro es un botón que se mueve con las flechas, cambia de tamaño con Mayús + flechas y se quita con Suprimir, y "Agregar recuadro" sirve sin puntero.
 - El color nunca es la única señal (calificación = color + texto). Todo funciona con texto al 200 %.
 - Con `prefers-reduced-motion`, las celebraciones y transiciones se quitan.
 

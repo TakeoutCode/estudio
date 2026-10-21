@@ -2,22 +2,36 @@ import {
   clozeNumbers,
   type Deck,
   EXPLANATION_MAX_LENGTH,
+  type ImageMime,
+  newId,
   type Note,
   NoteContentSchema,
+  type OcclusionGroup,
   TOPIC_EXPLANATION_MAX_LENGTH,
 } from '@estudio/shared';
-import { type RefObject, type SubmitEvent, useId, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  type RefObject,
+  type SubmitEvent,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { checkImageFile, isImageMime, readImageSize } from '@/lib/media';
+import { useOnline } from '@/lib/use-online';
 import { createNote, type DeckChoice, deleteNote, type TopicChoice, updateNote } from './commands';
+import { type EditorPicture, OcclusionEditor } from './OcclusionEditor';
 import { useDecks, useNote, useTopics } from './queries';
 
 const NEW_DECK = 'new';
 const NO_TOPIC = '';
 const NEW_TOPIC = 'new';
 
-/** LD §1: los tipos que se crean aquí (la oclusión de imagen necesita subir media). */
-const KINDS = ['basic', 'cloze', 'type_answer', 'multiple_choice'] as const;
+/** LD §1: los tipos que se crean aquí. */
+const KINDS = ['basic', 'cloze', 'type_answer', 'multiple_choice', 'image_occlusion'] as const;
 type Kind = (typeof KINDS)[number];
 const MIN_OPTIONS = 3;
 const MAX_OPTIONS = 5;
@@ -46,6 +60,16 @@ export function NoteEditorScreen() {
 }
 
 type Status = 'idle' | 'saved' | 'updated' | 'invalid' | 'deckMissing' | 'topicMissing' | 'failed';
+
+/** La imagen que ella acaba de elegir para una oclusión: se guarda con la nota (FE8). */
+interface PickedImage {
+  readonly assetId: string;
+  readonly file: File;
+  readonly mime: ImageMime;
+  readonly url: string;
+  readonly width: number;
+  readonly height: number;
+}
 
 function NoteForm({
   decks,
@@ -78,6 +102,12 @@ function NoteForm({
   const [correct, setCorrect] = useState<number | null>(
     initial?.kind === 'multiple_choice' ? initial.correct : null,
   );
+  const occlusion = initial?.kind === 'image_occlusion' ? initial : null;
+  const [prompt, setPrompt] = useState(occlusion?.prompt ?? '');
+  const [alt, setAlt] = useState(occlusion?.alt ?? '');
+  const [mode, setMode] = useState(occlusion?.mode ?? 'hide_all');
+  const [groups, setGroups] = useState<OcclusionGroup[]>(occlusion ? [...occlusion.groups] : []);
+  const [picked, setPicked] = useState<PickedImage | null>(null);
   const [explanation, setExplanation] = useState(initial?.explanation ?? '');
   // LD5, P4: el tema es opcional y pertenece al mazo.
   const [topicId, setTopicId] = useState(note?.topicId ?? NO_TOPIC);
@@ -96,6 +126,16 @@ function NoteForm({
         return { kind, text: clozeText, explanation };
       case 'type_answer':
         return { kind, front, back, explanation };
+      case 'image_occlusion':
+        return {
+          kind,
+          imageAssetId: occlusion?.imageAssetId ?? picked?.assetId ?? '',
+          prompt,
+          alt,
+          mode,
+          groups,
+          explanation,
+        };
       case 'multiple_choice': {
         // Las opciones vacías no cuentan; la correcta conserva su lugar entre las que quedan.
         const kept = options.map((text, i) => ({ text: text.trim(), i })).filter((o) => o.text !== '');
@@ -117,6 +157,10 @@ function NoteForm({
     setQuestion('');
     setOptions(Array.from({ length: MIN_OPTIONS }, () => ''));
     setCorrect(null);
+    setPrompt('');
+    setAlt('');
+    setGroups([]);
+    setPicked(null);
     setExplanation('');
   };
 
@@ -156,7 +200,18 @@ function NoteForm({
         setTopicExplanation('');
         setStatus('updated');
       } else {
-        const created = await createNote({ deck, content: content.data, topic });
+        // Los bytes se leen antes de la transacción: dentro de ella, esperar al archivo la cerraría.
+        const image =
+          content.data.kind === 'image_occlusion' && picked
+            ? {
+                assetId: picked.assetId,
+                data: await picked.file.arrayBuffer(),
+                mime: picked.mime,
+                width: picked.width,
+                height: picked.height,
+              }
+            : undefined;
+        const created = await createNote({ deck, content: content.data, topic, image });
         // La siguiente nota va al mismo mazo, tema y tipo; el texto se limpia para escribirla.
         setDeckId(created.deckId);
         setTopicId(created.topicId ?? NO_TOPIC);
@@ -178,6 +233,7 @@ function NoteForm({
     type_answer: t('notes.error.required'),
     cloze: t('notes.error.cloze'),
     multiple_choice: t('notes.error.choice'),
+    image_occlusion: t('notes.error.occlusion'),
   }[kind];
   const message = {
     idle: null,
@@ -373,6 +429,73 @@ function NoteForm({
         {kind === 'cloze' ? (
           <ClozeField ids={ids} value={clozeText} onChange={setClozeText} inputRef={firstRef} />
         ) : null}
+        {kind === 'image_occlusion' ? (
+          <>
+            <ImageField
+              picked={picked}
+              locked={occlusion !== null}
+              onPick={(image) => {
+                setPicked(image);
+                setGroups([]); // otra imagen: los recuadros anteriores ya no corresponden
+                setStatus('idle');
+              }}
+            />
+            <label className="flex flex-col gap-1">
+              <span>{t('notes.occlusion.prompt')}</span>
+              <textarea
+                ref={firstRef}
+                className={field}
+                rows={2}
+                maxLength={500}
+                value={prompt}
+                onChange={(event) => {
+                  setPrompt(event.target.value);
+                }}
+              />
+            </label>
+            <div className="flex flex-col gap-1">
+              <label htmlFor={`${ids}-alt`}>{t('notes.occlusion.alt')}</label>
+              <textarea
+                id={`${ids}-alt`}
+                className={field}
+                rows={2}
+                maxLength={300}
+                aria-describedby={`${ids}-alt-hint`}
+                value={alt}
+                onChange={(event) => {
+                  setAlt(event.target.value);
+                }}
+              />
+              <span id={`${ids}-alt-hint`} className="text-caption text-muted">
+                {t('notes.occlusion.altHint')}
+              </span>
+            </div>
+            {occlusion || picked ? (
+              <OcclusionEditor
+                picture={editorPicture(occlusion?.imageAssetId ?? null, alt, picked)}
+                groups={groups}
+                onGroups={setGroups}
+              />
+            ) : null}
+            <fieldset className="m-0 flex flex-col gap-1 border-0 p-0">
+              <legend className="mb-1">{t('notes.occlusion.mode')}</legend>
+              {(['hide_all', 'hide_one'] as const).map((value) => (
+                <label key={value} className="flex min-h-11 items-center gap-3">
+                  <input
+                    type="radio"
+                    name={`${ids}-mode`}
+                    className="size-5 shrink-0 accent-primary"
+                    checked={mode === value}
+                    onChange={() => {
+                      setMode(value);
+                    }}
+                  />
+                  <span>{t(`notes.occlusion.${value}`)}</span>
+                </label>
+              ))}
+            </fieldset>
+          </>
+        ) : null}
         {kind === 'multiple_choice' ? (
           <>
             <label className="flex flex-col gap-1">
@@ -433,6 +556,95 @@ function NoteForm({
         <DeleteNote onDelete={() => deleteNote(note.id).then(() => navigate(returnTo?.to ?? '/'))} />
       ) : null}
     </>
+  );
+}
+
+/** La imagen ya guardada de la nota o, en una nueva, la que ella acaba de elegir. */
+function editorPicture(assetId: string | null, alt: string, picked: PickedImage | null): EditorPicture {
+  if (assetId) return { kind: 'asset', assetId, alt };
+  return { kind: 'file', url: picked?.url ?? '', width: picked?.width ?? 1, height: picked?.height ?? 1 };
+}
+
+/**
+ * R10, LD1: la imagen de una oclusión, propia de ella (sin imágenes de stock ni plantillas). Se
+ * revisa formato y tamaño aquí (FE §5) y se guarda con la nota; sin red se sube después (FE7).
+ * Al editar no se cambia: los recuadros y el historial son de esa imagen.
+ */
+function ImageField({
+  picked,
+  locked,
+  onPick,
+}: {
+  readonly picked: PickedImage | null;
+  readonly locked: boolean;
+  readonly onPick: (image: PickedImage) => void;
+}) {
+  const { t } = useTranslation();
+  const id = useId();
+  const online = useOnline();
+  const [problem, setProblem] = useState<'type' | 'size' | 'read' | null>(null);
+  const url = picked?.url ?? null;
+  // La vista previa es una URL `blob:`: se libera al cambiar de imagen o salir.
+  useEffect(
+    () => () => {
+      if (url) URL.revokeObjectURL(url);
+    },
+    [url],
+  );
+  if (locked) return <p className="m-0 text-caption text-muted">{t('notes.occlusion.imageLocked')}</p>;
+
+  const choose = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = ''; // elegir la misma de nuevo vuelve a revisarla
+    if (!file) return;
+    const check = checkImageFile(file);
+    if (check || !isImageMime(file.type)) {
+      setProblem(check ?? 'type');
+      return;
+    }
+    try {
+      const size = await readImageSize(file);
+      setProblem(null);
+      onPick({ assetId: newId(), file, mime: file.type, url: URL.createObjectURL(file), ...size });
+    } catch {
+      setProblem('read'); // p. ej. HEIC en un navegador que no lo abre
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span>{t('notes.occlusion.image')}</span>
+      <label
+        htmlFor={id}
+        className={`${choiceButton} inline-flex cursor-pointer items-center self-start border-muted/40 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary`}
+      >
+        {t(picked ? 'notes.occlusion.pickAnother' : 'notes.occlusion.pick')}
+      </label>
+      <input
+        id={id}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/heic"
+        className="sr-only"
+        aria-describedby={`${id}-hint`}
+        onChange={(event) => {
+          void choose(event);
+        }}
+      />
+      <span id={`${id}-hint`} className="text-caption text-muted">
+        {t('notes.occlusion.pickHint')}
+      </span>
+      {problem ? (
+        <p role="alert" className="m-0 text-caption">
+          {t(`notes.occlusion.problem.${problem}`)}
+        </p>
+      ) : null}
+      {picked && !online ? (
+        <p role="status" className="m-0 text-caption text-muted">
+          {t('notes.occlusion.offline')}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

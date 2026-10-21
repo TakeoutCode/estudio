@@ -66,12 +66,66 @@ export const MultipleChoiceContentSchema = z
   .strict()
   .refine((c) => c.correct < c.options.length, { path: ['correct'], message: 'correct_out_of_range' });
 
+/** Coordenada normalizada sobre la imagen tal como se ve: 0 es el borde izquierdo o superior. */
+const unit = () => z.number().min(0).max(1);
+
+/** Tolerancia de redondeo: con 4 decimales, `x + w` puede pasar de 1 por muy poco. */
+const EDGE_TOLERANCE = 1e-6;
+
+/** Un recuadro que tapa una etiqueta de la imagen. */
+export const OcclusionRectSchema = z
+  .object({ x: unit(), y: unit(), w: unit().positive(), h: unit().positive() })
+  .strict()
+  .refine((r) => r.x + r.w <= 1 + EDGE_TOLERANCE && r.y + r.h <= 1 + EDGE_TOLERANCE, 'rect_outside_image');
+export type OcclusionRect = z.infer<typeof OcclusionRectSchema>;
+
+export const OCCLUSION_MAX_GROUPS = 60;
+
+/**
+ * Una etiqueta y los recuadros que la tapan (a veces aparece en dos lugares). `n` es su número
+ * estable, como el de un hueco cloze: es el `ordinal` de su Card, así que quitar otra etiqueta
+ * no cambia de qué Card es el historial.
+ */
+export const OcclusionGroupSchema = z
+  .object({
+    n: z.number().int().min(1).max(999),
+    label: text(200),
+    rects: z.array(OcclusionRectSchema).min(1).max(10),
+  })
+  .strict();
+export type OcclusionGroup = z.infer<typeof OcclusionGroupSchema>;
+
+/**
+ * `image_occlusion` (R10, LD1): imagen con texto y etiquetas ocultas; una Card por etiqueta, que
+ * ella califica. `hide_all` tapa también las demás etiquetas; `hide_one`, solo la que se pregunta.
+ */
+export const ImageOcclusionContentSchema = z
+  .object({
+    kind: z.literal('image_occlusion'),
+    /** FE8: el asset, nunca una URL. */
+    imageAssetId: z.uuid(),
+    /** LD1: el texto que acompaña la imagen ("¿Qué hueso del carpo es?"). */
+    prompt: text(500),
+    /** UX4: describe la estructura sin dar ninguna respuesta. */
+    alt: text(300),
+    mode: z.enum(['hide_one', 'hide_all']),
+    groups: z
+      .array(OcclusionGroupSchema)
+      .min(1)
+      .max(OCCLUSION_MAX_GROUPS)
+      .refine((groups) => new Set(groups.map((g) => g.n)).size === groups.length, 'duplicate_group'),
+    explanation: explanation(),
+  })
+  .strict();
+export type ImageOcclusionContent = z.infer<typeof ImageOcclusionContentSchema>;
+
 /** Cada tipo de LD §1 define sus Cards (`cardOrdinals`) y su `toRating()` (LD2). */
 export const NoteContentSchema = z.discriminatedUnion('kind', [
   BasicContentSchema,
   ClozeContentSchema,
   TypeAnswerContentSchema,
   MultipleChoiceContentSchema,
+  ImageOcclusionContentSchema,
 ]);
 export type NoteContent = z.infer<typeof NoteContentSchema>;
 
@@ -96,17 +150,33 @@ export const CardSchema = SyncMetaSchema.extend({
 }).strict();
 export type Card = z.infer<typeof CardSchema>;
 
-/** Cards que genera cada contenido (LD §1): lados en `basic`, números de hueco en `cloze`. */
+/**
+ * Cards que genera cada contenido (LD §1): lados en `basic`, números de hueco en `cloze` y de
+ * etiqueta en `image_occlusion`.
+ */
 export function cardOrdinals(content: NoteContent): number[] {
   switch (content.kind) {
     case 'basic':
       return content.reverse ? [0, 1] : [0];
     case 'cloze':
       return clozeNumbers(content.text);
+    case 'image_occlusion':
+      return content.groups.map((g) => g.n).sort((a, b) => a - b);
     case 'type_answer':
     case 'multiple_choice':
       return [0];
   }
+}
+
+/** La etiqueta que pregunta la Card `ordinal`, y su posición entre todas ("3 de 7", UX4). */
+export function occlusionTarget(
+  content: ImageOcclusionContent,
+  ordinal: number,
+): { readonly group: OcclusionGroup; readonly position: number; readonly total: number } | null {
+  const sorted = [...content.groups].sort((a, b) => a.n - b.n);
+  const index = sorted.findIndex((g) => g.n === ordinal);
+  const group = sorted[index];
+  return group ? { group, position: index + 1, total: sorted.length } : null;
 }
 
 export type ClozeSegment =
@@ -151,6 +221,9 @@ export function cardFaces(content: NoteContent, ordinal: number): { prompt: stri
     }
     case 'type_answer':
       return { prompt: content.front, answer: content.back };
+    case 'image_occlusion':
+      // La imagen la dibuja cada vista; como texto quedan su pregunta y la etiqueta oculta.
+      return { prompt: content.prompt, answer: occlusionTarget(content, ordinal)?.group.label ?? '' };
     case 'multiple_choice': {
       const options = content.options.map((o, i) => `${LETTERS[i] ?? '?'}) ${o}`);
       return {

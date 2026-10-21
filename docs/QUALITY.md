@@ -74,9 +74,9 @@ Despliegue: Vercel crea un preview por PR. Railway despliega desde `main` con `p
 - Login limitado a 5 por minuto.
 - Un `userId` en el cuerpo se ignora.
 - El trigger impide `UPDATE` y `DELETE` en `review_log`.
-- La firma de Cloudinary fija `folder = estudio/<userId>`.
+- La firma de Cloudinary fija `public_id = estudio/<userId>/<assetId>` y los formatos de imagen; no firma un asset de otra cuenta, borrado o que no llegó por push, y el handler rechaza un `MediaAsset` con otro `public_id` (`media.int.spec.ts`).
 
-En la web, cabeceras de Vercel: `Content-Security-Policy` con `default-src 'self'; img-src 'self' blob: data: https://res.cloudinary.com; media-src 'self' blob: https://res.cloudinary.com; connect-src 'self' https://api.<dominio> https://api.cloudinary.com; frame-src https://www.youtube-nocookie.com`, además de `Referrer-Policy: strict-origin-when-cross-origin` y `Permissions-Policy` (micrófono solo `self`). Renovate actualiza dependencias semanalmente.
+En la web, cabeceras de Vercel: `Content-Security-Policy` con `default-src 'self'; img-src 'self' blob: data: https://res.cloudinary.com; media-src 'self' blob: https://res.cloudinary.com; connect-src 'self' https://api.<dominio> https://api.cloudinary.com https://res.cloudinary.com; frame-src https://www.youtube-nocookie.com` (`res.cloudinary.com` en `connect-src` porque el service worker descarga las imágenes para guardarlas, FRONTEND §5), además de `Referrer-Policy: strict-origin-when-cross-origin` y `Permissions-Policy` (micrófono solo `self`). Renovate actualiza dependencias semanalmente.
 
 ## 7. Privacidad
 

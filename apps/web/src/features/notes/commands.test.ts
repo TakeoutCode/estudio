@@ -1,4 +1,4 @@
-import { cardIdFor, MutationSchema, Rating } from '@estudio/shared';
+import { cardIdFor, MutationSchema, newId, type NoteContent, Rating } from '@estudio/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/schema';
 import { createDeck, deleteDeck } from '@/features/decks';
@@ -185,5 +185,86 @@ describe('temas de las notas (LD5, P4)', () => {
       { now: T0 + MIN },
     );
     expect(await db.topics.get(moved.topicId ?? '')).toMatchObject({ deckId: elbow.id, name: 'Epicóndilo' });
+  });
+});
+
+describe('notas de oclusión con su imagen (R10, FE8)', () => {
+  const occlusion = (imageAssetId: string) =>
+    ({
+      kind: 'image_occlusion',
+      imageAssetId,
+      prompt: '¿Qué hueso del carpo es?',
+      alt: 'Mano derecha, vista palmar',
+      mode: 'hide_all',
+      groups: [
+        { n: 1, label: 'Escafoides', rects: [{ x: 0.1, y: 0.3, w: 0.2, h: 0.1 }] },
+        { n: 3, label: 'Semilunar', rects: [{ x: 0.4, y: 0.3, w: 0.2, h: 0.1 }] },
+      ],
+      explanation: '',
+    }) satisfies NoteContent;
+  const image = (assetId: string) => ({
+    assetId,
+    data: new Uint8Array([1, 2, 3]).buffer,
+    mime: 'image/png' as const,
+    width: 800,
+    height: 600,
+  });
+
+  it('la imagen se guarda con la nota y viaja antes que ella; una Card por etiqueta, con su número', async () => {
+    const assetId = newId();
+    const note = await createNote(
+      { deck: { name: 'Mano' }, content: occlusion(assetId), image: image(assetId) },
+      { now: T0 },
+    );
+    expect(await db.mediaAssets.get(assetId)).toMatchObject({ publicId: null, bytes: 3, width: 800 });
+    expect(await db.pendingUploads.get(assetId)).toMatchObject({ mime: 'image/png', attempts: 0 });
+    expect((await db.cards.where('noteId').equals(note.id).toArray()).map((c) => c.ordinal).sort()).toEqual([
+      1, 3,
+    ]);
+    expect(await outboxEntities()).toEqual(['mediaAsset', 'deck', 'note', 'card', 'card']);
+  });
+
+  it('sin su imagen, o con otra, no escribe nada', async () => {
+    const assetId = newId();
+    await expect(createNote({ deck: { name: 'Mano' }, content: occlusion(assetId) })).rejects.toThrow(
+      'image_not_found',
+    );
+    await expect(
+      createNote({ deck: { name: 'Mano' }, content: occlusion(assetId), image: image(newId()) }),
+    ).rejects.toThrow('image_mismatch');
+    await expect(createNote({ deck: { name: 'Mano' }, content, image: image(assetId) })).rejects.toThrow(
+      'image_without_occlusion',
+    );
+    expect(await db.mediaAssets.count()).toBe(0);
+    expect(await db.pendingUploads.count()).toBe(0);
+    expect(await db.outbox.count()).toBe(0);
+  });
+
+  it('editar las etiquetas conserva la imagen; quitar una borra su Card y agregar otra la crea', async () => {
+    const assetId = newId();
+    const note = await createNote(
+      { deck: { name: 'Mano' }, content: occlusion(assetId), image: image(assetId) },
+      { now: T0 },
+    );
+    const kept = { n: 1, label: 'Escafoides', rects: [{ x: 0.1, y: 0.3, w: 0.2, h: 0.1 }] };
+    await updateNote(
+      note.id,
+      {
+        content: {
+          ...occlusion(assetId),
+          groups: [kept, { n: 4, label: 'Piramidal', rects: [{ x: 0.7, y: 0.3, w: 0.2, h: 0.1 }] }],
+        },
+      },
+      { now: T0 + MIN },
+    );
+    const cards = await db.cards.where('noteId').equals(note.id).toArray();
+    expect(
+      cards
+        .filter((c) => c.deletedAt === null)
+        .map((c) => c.ordinal)
+        .sort(),
+    ).toEqual([1, 4]);
+    expect(cards.find((c) => c.ordinal === 3)?.deletedAt).toBe(T0 + MIN);
+    expect(await db.mediaAssets.count()).toBe(1);
   });
 });

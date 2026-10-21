@@ -1,7 +1,8 @@
 import { PullResponseSchema, PushResponseSchema } from '@estudio/shared';
 import { db } from '@/db/schema';
 import { authorizedApi, useAuth } from '@/features/auth';
-import { syncOnce, type SyncTransport } from './engine';
+import { httpMediaTransport, uploadPendingMedia } from '@/features/media';
+import { pushOutbox, syncOnce, type SyncTransport } from './engine';
 import { ensureProjection } from './projection';
 import { SYNC_TIMING, SyncScheduler } from './scheduler';
 import { useSyncStatus } from './status';
@@ -27,6 +28,9 @@ const exclusive = (task: () => Promise<void>): Promise<void> =>
 const syncAndProject = async () => {
   const report = await syncOnce(db, httpTransport);
   if (report.pulled > 0) void ensureProjection();
+  // FE8: las imágenes van después de los repasos (R3) y de que su asset llegó por push; lo que
+  // termina de subirse se envía en la misma vuelta.
+  if ((await uploadPendingMedia(db, httpMediaTransport)) > 0) await pushOutbox(db, httpTransport);
   return report;
 };
 

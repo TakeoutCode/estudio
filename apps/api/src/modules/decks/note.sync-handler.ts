@@ -18,6 +18,13 @@ export class NoteSyncHandler implements EntitySyncHandler<'note'> {
 
   async refs(userId: string, row: Note): Promise<ApiErrorCode | null> {
     if (!(await this.repo.owns('deck', userId, row.deckId))) return 'not_found';
+    // R10: la imagen de una oclusión es de ella; el asset viaja antes que la nota (outbox).
+    if (
+      row.content.kind === 'image_occlusion' &&
+      !(await this.repo.owns('media_asset', userId, row.content.imageAssetId))
+    ) {
+      return 'not_found';
+    }
     return row.topicId === null || (await this.repo.owns('topic', userId, row.topicId)) ? null : 'not_found';
   }
 

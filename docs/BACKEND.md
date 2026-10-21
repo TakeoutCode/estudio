@@ -14,7 +14,7 @@
 | `exams` | exámenes y su alcance (un simulacro es una `StudySession` con `mode: 'exam'`) | — | `Exam` |
 | `exercises` | ejercicios de aplicación | — | `Exercise` |
 | `ai` | borradores y retroalimentación, cuota diaria | `POST /ai/drafts`, `POST /ai/feedback` | `AiDraft`, `AiFeedback` |
-| `media` | firma de subida, limpieza de huérfanos en Cloudinary | `POST /media/signature` | `MediaAsset` |
+| `media` | firma de subida, limpieza de huérfanos en Cloudinary (pendiente) | `POST /media/signature` | `MediaAsset` |
 | `notifications` | suscripciones, cron, envíos programados | `POST/DELETE /push/subscriptions`, `POST /notifications/:id/opened`, `PUT/DELETE /notifications/break-end`, `GET /notifications/state`, `POST /notifications/backoff` | — |
 | `health` | ping a la base, chequeos para alertas, errores del cliente (ADR-016) | `GET /health`, `GET /health/checks/:token`, `POST /diagnostics/errors` | — |
 
@@ -78,7 +78,7 @@ export const EnvSchema = z.object({
   ALLOWED_EMAILS: z.string().transform((s) => s.split(',').map((e) => e.trim().toLowerCase())),
   OPENAI_API_KEY: z.string().min(1), OPENAI_MODEL: z.string().min(1),
   AI_DAILY_REQUESTS: z.coerce.number().int().positive(), AI_DAILY_TOKENS: z.coerce.number().int().positive(),
-  CLOUDINARY_URL: z.string().startsWith('cloudinary://'),
+  CLOUDINARY_URL: z.string().regex(CLOUDINARY_URL),             // obligatoria solo en producción (ADR-010)
   VAPID_PUBLIC_KEY: z.string().min(1), VAPID_PRIVATE_KEY: z.string().min(1), VAPID_SUBJECT: z.string().startsWith('mailto:'),
 });
 ConfigModule.forRoot({ isGlobal: true, validate: (env) => EnvSchema.parse(env) });

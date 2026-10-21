@@ -17,6 +17,7 @@ import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js';
 import { DecksModule } from './modules/decks/decks.module.js';
 import { ExamsModule } from './modules/exams/exams.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { MediaModule } from './modules/media/media.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { StudyModule } from './modules/study/study.module.js';
 import { SyncModule } from './modules/sync/sync.module.js';
@@ -80,6 +81,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     UsersModule,
     StudyModule,
     ExamsModule,
+    MediaModule,
     NotificationsModule,
   ],
   providers: [

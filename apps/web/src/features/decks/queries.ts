@@ -1,4 +1,4 @@
-import { cardFaces, clozeNumbers, type Deck, type NoteContent, type Topic } from '@estudio/shared';
+import { cardFaces, cardOrdinals, type Deck, type NoteContent, type Topic } from '@estudio/shared';
 import { type LoadSummary, loadSummary, normalizeAnswer } from '@estudio/srs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readPlannerCards } from '@/db/planner-cards';
@@ -40,20 +40,24 @@ export interface DeckDetail {
   readonly notes: readonly DeckNoteRow[];
 }
 
-const firstLabel = (content: NoteContent): string => {
-  const ordinal = content.kind === 'cloze' ? (clozeNumbers(content.text)[0] ?? 1) : 0;
-  return cardFaces(content, ordinal).prompt.split('\n')[0] ?? '';
+const firstLabel = (content: NoteContent): string =>
+  cardFaces(content, cardOrdinals(content)[0] ?? 0).prompt.split('\n')[0] ?? '';
+
+const searchParts = (content: NoteContent): readonly string[] => {
+  switch (content.kind) {
+    case 'cloze':
+      return [content.text];
+    case 'multiple_choice':
+      return [content.question, ...content.options];
+    case 'image_occlusion':
+      return [content.prompt, ...content.groups.map((g) => g.label)];
+    case 'basic':
+    case 'type_answer':
+      return [content.front, content.back];
+  }
 };
 
-const searchText = (content: NoteContent): string => {
-  const parts =
-    content.kind === 'cloze'
-      ? [content.text]
-      : content.kind === 'multiple_choice'
-        ? [content.question, ...content.options]
-        : [content.front, content.back];
-  return normalizeAnswer(parts.join(' '));
-};
+const searchText = (content: NoteContent): string => normalizeAnswer(searchParts(content).join(' '));
 
 /** Lo que se busca se compara igual que las notas: sin acentos ni mayúsculas. */
 export const matchesSearch = (row: DeckNoteRow, query: string): boolean =>
