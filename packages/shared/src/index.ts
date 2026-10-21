@@ -12,6 +12,7 @@ export * from './sync/hlc.js';
 export * from './sync/entities.js';
 export * from './sync/contracts.js';
 export * from './sync/row-schemas.js';
+export * from './domain/ai.js';
 export * from './domain/review.js';
 export * from './domain/study-session.js';
 export * from './domain/deck.js';

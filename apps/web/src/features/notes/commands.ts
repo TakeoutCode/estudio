@@ -82,6 +82,8 @@ export function createNote(
     readonly image?: StagedImage;
     /** R14: casi siempre null al crearla; el editor la ofrece tras el primer acierto. */
     readonly mnemonic?: string | null;
+    /** LD16: `ai` solo al aceptar un borrador que ella revisó. */
+    readonly origin?: 'manual' | 'ai';
   },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
 ): Promise<Note> {
@@ -93,7 +95,7 @@ export function createNote(
       deckId,
       topicId: await resolveTopic(database, input.topic ?? null, deckId, now),
       content: input.content,
-      origin: 'manual',
+      origin: input.origin ?? 'manual',
       tagIds: await resolveTags(database, input.tags ?? [], now),
       mnemonic: input.mnemonic ?? null,
       deletedAt: null,

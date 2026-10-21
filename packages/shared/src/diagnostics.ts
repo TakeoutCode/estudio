@@ -40,6 +40,7 @@ export const HealthCheckNameSchema = z.enum([
   'sync_push_slow',
   'cron_stale',
   'web_push_gone',
+  'ai_budget',
 ]);
 export type HealthCheckName = z.infer<typeof HealthCheckNameSchema>;
 

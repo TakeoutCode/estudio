@@ -1062,5 +1062,52 @@
     "hint": "Un apoyo que creas tú ahora que ya la entiendes, por ejemplo un acróstico para una lista en orden. Aparece solo después de responder: no reemplaza recordar.",
     "reformulate": "Esta tarjeta se te olvida seguido. Además de cambiar la explicación, puede ayudar agregar una imagen, explicarla con tus palabras o escribir una mnemotecnia.",
     "shown": "Tu mnemotecnia"
+  },
+  "ai": {
+    "fromDeck": "Crear borradores con IA desde un texto",
+    "title": "Borradores con IA",
+    "backToDeck": "Volver al mazo",
+    "privacy": "Tu texto se envía a OpenAI solo para proponer borradores, y no queda guardado allá. No pegues datos de pacientes. La IA puede equivocarse: revisa cada borrador antes de aceptarlo.",
+    "sourceLabel": "Pega un fragmento de tus apuntes",
+    "sourceCount": "{{count}} de {{max}} caracteres",
+    "generate": "Generar borradores",
+    "generating": "Generando…",
+    "needsConnection": "Requiere conexión.",
+    "done_one": "Listo: {{count}} borrador para revisar.",
+    "done_other": "Listo: {{count}} borradores para revisar.",
+    "none": "No salieron borradores de este texto. Prueba con otro fragmento.",
+    "discarded_one": "{{count}} venía incompleto y se descartó.",
+    "discarded_other": "{{count}} venían incompletos y se descartaron.",
+    "quota": "Ya usaste la IA de hoy. Disponible de nuevo a las 00:00.",
+    "offline": "Requiere conexión. Tu texto sigue aquí.",
+    "failed": "No se pudo generar el borrador. Tu texto sigue aquí.",
+    "pending_one": "{{count}} borrador por revisar",
+    "pending_other": "{{count}} borradores por revisar",
+    "reviewHint": "Edita lo que haga falta. Solo lo que aceptes se vuelve tarjeta; lo demás no se estudia.",
+    "accepted_one": "Ya aceptaste {{count}} borrador en este mazo.",
+    "accepted_other": "Ya aceptaste {{count}} borradores en este mazo.",
+    "kind": {
+      "basic": "Pregunta y respuesta",
+      "cloze": "Con huecos",
+      "multiple_choice": "Opción múltiple"
+    },
+    "unsupported": "Sin respaldo en tu texto",
+    "quote": "Según tu texto: «{{quote}}»",
+    "field": {
+      "question": "Pregunta",
+      "answer": "Respuesta",
+      "clozeText": "Texto con huecos {{c1::…}}",
+      "hidden": "Lo que se oculta",
+      "correct": "Respuesta correcta",
+      "options": "Opciones (incluye la correcta)",
+      "option": "Opción {{n}}",
+      "explanation": "Explicación breve"
+    },
+    "accept": "Aceptar",
+    "save": "Guardar cambios",
+    "reject": "Descartar",
+    "editFirst": "Esta cita no aparece tal cual en tu texto: revisa y edita el borrador antes de aceptarlo.",
+    "invalid": "Así no forma una tarjeta válida: revisa los huecos {{c1::…}} o que la respuesta correcta esté entre las opciones.",
+    "saveFailed": "No se pudo guardar. Intenta de nuevo."
   }
 }

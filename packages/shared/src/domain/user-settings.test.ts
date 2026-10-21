@@ -40,8 +40,9 @@ describe('UserSettings por sección (SYNC §1)', () => {
 });
 
 describe('esquemas de fila sincronizables', () => {
-  it('viajan mazos, temas, notas, tarjetas, exámenes, grupos de contraste, imágenes, ajustes, autoexplicaciones, simulacros, temporizador, sueño, etiquetas, premios, canjes y logs por ahora', () => {
+  it('viajan mazos, temas, notas, tarjetas, exámenes, grupos de contraste, imágenes, ajustes, autoexplicaciones, simulacros, temporizador, sueño, etiquetas, premios, canjes, borradores de IA y logs por ahora', () => {
     expect(Object.keys(SYNC_ROW_SCHEMAS).sort()).toEqual([
+      'aiDraft',
       'card',
       'contrastGroup',
       'deck',
@@ -64,7 +65,8 @@ describe('esquemas de fila sincronizables', () => {
     expect(isSyncedEntity('topic')).toBe(true);
     expect(isSyncedEntity('exam')).toBe(true);
     expect(isSyncedEntity('studySession')).toBe(true);
-    expect(isSyncedEntity('aiDraft')).toBe(false);
+    expect(isSyncedEntity('aiDraft')).toBe(true);
+    expect(isSyncedEntity('aiFeedback')).toBe(false);
     expect('exercise' in ENTITY_STRATEGY).toBe(false); // LD §2: los ejercicios son notas
   });
 });

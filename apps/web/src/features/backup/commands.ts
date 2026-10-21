@@ -61,6 +61,7 @@ const ORDER = [
   'topic',
   'tag',
   'note',
+  'aiDraft',
   'card',
   'contrastGroup',
   'exam',
@@ -158,6 +159,15 @@ export async function importBackup(
                 ...(await stamp()),
               });
               counts.notes += 1;
+            }
+            break;
+          case 'aiDraft':
+            // LD16: el borrador va con su mazo; si su nota aceptada no vino, queda sin ella.
+            for (const draft of entities.aiDraft) {
+              const deckId = ids.ref(draft.deckId);
+              if (!deckId) continue;
+              const noteId = draft.noteId === null ? null : ids.ref(draft.noteId);
+              await write('aiDraft', { ...draft, id: ids.own(draft.id), deckId, noteId, ...(await stamp()) });
             }
             break;
           case 'card':

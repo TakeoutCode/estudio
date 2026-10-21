@@ -18,6 +18,10 @@ export const HEALTH_LIMITS = {
   /** Los avisos son pocos al día: la tasa de 410 se mira en 24 h. */
   webPushWindowMs: 24 * 60 * 60_000,
   webPushMinSamples: 5,
+  /** QA8: el gasto de IA del día pasa del 80 % de la cuota. */
+  aiBudgetShare: 0.8,
+  /** Una medición de más de un día ya no dice nada del día de hoy. */
+  aiBudgetMaxAgeMs: 24 * 60 * 60_000,
 } as const;
 
 interface PushSample {
@@ -40,6 +44,7 @@ export class HealthMetrics {
   private readonly pushes: PushSample[] = [];
   private readonly deliveries: DeliverySample[] = [];
   private lastCronTick: number | null = null;
+  private aiBudget: { readonly at: number; readonly share: number } | null = null;
   private readonly startedAt: number;
 
   constructor(clock: Clock) {
@@ -63,6 +68,11 @@ export class HealthMetrics {
     prune(this.deliveries, at - HEALTH_LIMITS.webPushWindowMs);
   }
 
+  /** La parte de la cuota diaria de IA que ya se usó (0-1+), medida tras cada pedido (LD17). */
+  recordAiBudget(at: number, share: number): void {
+    this.aiBudget = { at, share };
+  }
+
   failing(now: number): HealthCheckName[] {
     const failing: HealthCheckName[] = [];
     const pushes = this.pushes.filter((p) => p.at > now - HEALTH_LIMITS.windowMs);
@@ -77,6 +87,10 @@ export class HealthMetrics {
     if (deliveries.length >= HEALTH_LIMITS.webPushMinSamples) {
       const gone = deliveries.filter((d) => d.gone).length;
       if (gone / deliveries.length > HEALTH_LIMITS.webPushGoneShare) failing.push('web_push_gone');
+    }
+    const ai = this.aiBudget;
+    if (ai && now - ai.at < HEALTH_LIMITS.aiBudgetMaxAgeMs && ai.share > HEALTH_LIMITS.aiBudgetShare) {
+      failing.push('ai_budget');
     }
     return failing;
   }

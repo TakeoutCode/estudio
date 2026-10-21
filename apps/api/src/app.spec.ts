@@ -101,6 +101,17 @@ describe('app (integración HTTP, sin base)', () => {
     expect(invalid.body).toMatchObject({ code: 'validation_failed' });
   });
 
+  it('LD17: sin OPENAI_API_KEY, POST /ai/drafts responde 503 y la captura manual sigue', async () => {
+    const { token } = await tokens.issueAccess(newId());
+    const res = await request(app.getHttpServer())
+      .post('/ai/drafts')
+      .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
+      .set('Authorization', 'Bearer ' + token)
+      .send({ sourceText: 'El deltoides está inervado por el nervio axilar.' })
+      .expect(503);
+    expect(res.body).toMatchObject({ code: 'unavailable' });
+  });
+
   it('ARC6: sin cabecera de contrato responde 426', async () => {
     const res = await request(app.getHttpServer()).get('/probe').expect(426);
     expect(res.body).toMatchObject({ code: 'contract_outdated' });

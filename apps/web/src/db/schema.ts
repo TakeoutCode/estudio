@@ -1,4 +1,5 @@
 import type {
+  AiDraft,
   ApiErrorCode,
   Card,
   ContrastGroup,
@@ -73,6 +74,7 @@ export const TABLE_FOR = {
   timerSession: 'timerSessions',
   sleepLog: 'sleepLogs',
   reward: 'rewards',
+  aiDraft: 'aiDrafts',
   reviewLog: 'reviewLogs',
   timerBlockLog: 'timerBlockLogs',
   rewardRedemption: 'rewardRedemptions',
@@ -99,6 +101,7 @@ export class EstudioDb extends Dexie {
   sleepLogs!: EntityTable<SleepLog, 'id'>;
   rewards!: EntityTable<Reward, 'id'>;
   rewardRedemptions!: EntityTable<RewardRedemption, 'id'>;
+  aiDrafts!: EntityTable<AiDraft, 'id'>;
   cardStates!: EntityTable<CardState, 'cardId'>;
   outbox!: EntityTable<OutboxEntry, 'mutationId'>;
   meta!: EntityTable<MetaEntry, 'key'>;
@@ -206,6 +209,11 @@ export class EstudioDb extends Dexie {
             note.mnemonic ??= null;
           }),
       );
+    // LD16: borradores de la IA por mazo; como en v6-v14, el cursor vuelve a 0 por si otro
+    // dispositivo ya guardó alguno que esta versión saltó.
+    this.version(17)
+      .stores({ aiDrafts: 'id, deckId, status' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -230,6 +238,7 @@ export const syncedTables = (database: EstudioDb) => [
   database.sleepLogs,
   database.rewards,
   database.rewardRedemptions,
+  database.aiDrafts,
   database.cardStates,
   database.meta,
 ];

@@ -69,4 +69,15 @@ describe('QA8: chequeos de salud', () => {
     m.recordPushDelivery(T0 + 20, true);
     expect(m.failing(T0 + MIN)).toEqual(['web_push_gone']);
   });
+
+  it('el gasto de IA del día pasa del 80 % de la cuota (y una medición vieja no cuenta)', () => {
+    const m = metrics();
+    m.recordCronTick(T0);
+    m.recordAiBudget(T0, 0.8);
+    expect(m.failing(T0 + MIN)).toEqual([]);
+    m.recordAiBudget(T0 + MIN, 0.81);
+    expect(m.failing(T0 + 2 * MIN)).toEqual(['ai_budget']);
+    m.recordCronTick(T0 + HEALTH_LIMITS.aiBudgetMaxAgeMs + MIN);
+    expect(m.failing(T0 + HEALTH_LIMITS.aiBudgetMaxAgeMs + 2 * MIN)).toEqual([]);
+  });
 });

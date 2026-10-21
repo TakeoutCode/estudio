@@ -174,6 +174,7 @@ async function resetForFullResync(database: EstudioDb): Promise<void> {
         database.sleepLogs,
         database.rewards,
         database.rewardRedemptions,
+        database.aiDrafts,
         database.cardStates,
       ].map((table) => table.clear()),
     );

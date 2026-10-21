@@ -132,6 +132,11 @@ export const router = createBrowserRouter([
             lazy: async () => ({ Component: (await import('@/features/decks')).DeckScreen }),
           },
           {
+            // LEARNING-DESIGN §8: borradores con IA para un mazo, que ella revisa.
+            path: 'decks/:deckId/ia',
+            lazy: async () => ({ Component: (await import('@/features/ai-drafts')).AiDraftsScreen }),
+          },
+          {
             path: 'tags',
             lazy: async () => ({ Component: (await import('@/features/decks')).TagsScreen }),
           },

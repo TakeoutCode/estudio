@@ -137,6 +137,8 @@ export const AiOpenFeedbackSchema = z.object({
 
 **LD16 · DEBE** guardar todo lo generado como `AiDraft` (`draft` → `accepted` | `rejected`). Ella lo ve completo y lo edita antes de aceptarlo; aceptarlo crea la `Note` con `origin: 'ai'`. Un borrador cuyo `sourceQuote` no aparece en el texto de entrada se marca "Sin respaldo en tu texto" y no se acepta sin editarlo. **NO DEBE** haber aceptación automática. *Razón:* la IA puede inventar anatomía.
 
+Implementado hasta ahora: los borradores de notas. Desde un mazo, "Crear borradores con IA desde un texto" (`/decks/:id/ia`) manda su texto a `POST /ai/drafts` y guarda cada borrador como `AiDraft` de ese mazo. La cita se compara literal, ignorando solo espacios y mayúsculas (`isQuoteInSource`); aceptar crea la nota y su `AiDraft` queda `accepted` con el `noteId`, en una sola transacción; descartar lo deja `rejected`, sin borrarlo. La pantalla avisa que no pegue datos de pacientes y que el texto no queda guardado en OpenAI (`store: false`). Distractores, casos clínicos y la retroalimentación de respuestas abiertas quedan para las siguientes etapas.
+
 El mazo de desarrollo de `pnpm db:seed` ("Huesos del esqueleto") tampoco pasó por su revisión, y entra con `origin: 'manual'` aunque no lo escribió ella. Por eso el seeder no corre con `NODE_ENV=production`: en su cuenta real, toda `Note` la escribió o la aceptó ella.
 
 **LD17 · DEBE** manejar errores y costos así. *Razón:* cuidar el costo y que ella no pierda su texto.

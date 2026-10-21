@@ -13,7 +13,7 @@
 | `study` | repasos, sesiones, temporizador, autoexplicaciones, premios, sueño | — | `ReviewLog`, `StudySession`, `TimerSession`, `TimerBlockLog`, `SelfExplanation`, `Reward`, `RewardRedemption`, `SleepLog` |
 | `exams` | exámenes y su alcance (un simulacro es una `StudySession` con `mode: 'exam'`) | — | `Exam` |
 | `exercises` | ejercicios de aplicación: son notas (LD §2) y viajan con el handler `Note` de `decks`; el módulo queda para lo que no es sync (borradores de casos clínicos con IA) | — | — |
-| `ai` | borradores y retroalimentación, cuota diaria | `POST /ai/drafts`, `POST /ai/feedback` | `AiDraft`, `AiFeedback` |
+| `ai` | borradores y retroalimentación, cuota diaria (`ai_usage`) | `POST /ai/drafts`; `POST /ai/feedback` (pendiente) | `AiDraft`; `AiFeedback` (pendiente) |
 | `media` | firma de subida, limpieza de huérfanos en Cloudinary (pendiente) | `POST /media/signature` | `MediaAsset` |
 | `notifications` | suscripciones, cron, envíos programados | `POST/DELETE /push/subscriptions`, `POST /notifications/:id/opened`, `PUT/DELETE /notifications/break-end`, `GET /notifications/state`, `POST /notifications/backoff` | — |
 | `health` | ping a la base, chequeos para alertas, errores del cliente (ADR-016) | `GET /health`, `GET /health/checks/:token`, `POST /diagnostics/errors` | — |
@@ -83,6 +83,8 @@ export const EnvSchema = z.object({
 });
 ConfigModule.forRoot({ isGlobal: true, validate: (env) => EnvSchema.parse(env) });
 ```
+`OPENAI_API_KEY` y `OPENAI_MODEL` son opcionales en todo entorno y van juntas: la IA es opcional (LEARNING-DESIGN §8) y, sin ellas, `/ai/*` responde 503. `AI_DAILY_REQUESTS` y `AI_DAILY_TOKENS` tienen valores iniciales (30 y 200 000) y se ajustan según el presupuesto (QUALITY §10). `CLOUDINARY_URL`, las claves VAPID y `HEALTH_CHECK_TOKEN` son obligatorias solo en producción.
+
 Fuera de `src/config/` leen `process.env` solo `src/test/`, que fija el entorno antes de importar `ConfigModule`, y los scripts que corre la CLI de Prisma sin Nest (`prisma.config.ts`, `prisma/seed.ts`); el override de `eslint.config.js` los nombra. `SEED_EMAIL` la lee solo el seeder y no va en `EnvSchema`.
 
 **BE5 · DEBE** lanzar `DomainError(code)` en los services y traducirlo en un filtro global a `application/problem+json` con un `code` estable de `ApiErrorCode` (shared), más `requestId`, sin stack en producción. *Razón:* el cliente traduce `code` a una clave i18n (AGENTS AG5); el texto del servidor nunca llega a la UI.

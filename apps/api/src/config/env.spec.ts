@@ -82,6 +82,18 @@ describe('EnvSchema (BACKEND BE4)', () => {
     expect(EnvSchema.safeParse({ ...base, HEALTH_CHECK_TOKEN: 'corto' }).success).toBe(false);
   });
 
+  it('LD17: la IA es opcional; clave y modelo van juntos y la cuota tiene valores iniciales', () => {
+    const parsed = EnvSchema.parse(base);
+    expect(parsed).toMatchObject({ AI_DAILY_REQUESTS: 30, AI_DAILY_TOKENS: 200_000 });
+    expect(parsed.OPENAI_API_KEY).toBeUndefined();
+    expect(EnvSchema.safeParse({ ...base, OPENAI_API_KEY: 'sk-x', OPENAI_MODEL: 'modelo' }).success).toBe(
+      true,
+    );
+    expect(EnvSchema.safeParse({ ...base, OPENAI_API_KEY: 'sk-x' }).success).toBe(false);
+    expect(EnvSchema.safeParse({ ...base, OPENAI_MODEL: 'modelo' }).success).toBe(false);
+    expect(EnvSchema.safeParse({ ...base, AI_DAILY_REQUESTS: '0' }).success).toBe(false);
+  });
+
   it('rechaza una URL de base que no es Postgres', () => {
     expect(EnvSchema.safeParse({ ...base, DATABASE_URL: 'mysql://u:p@h/db' }).success).toBe(false);
   });

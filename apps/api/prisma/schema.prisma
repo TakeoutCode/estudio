@@ -41,6 +41,8 @@ model User {
   sleepLogs              SleepLog[]
   rewards                Reward[]
   rewardRedemptions      RewardRedemption[]
+  aiDrafts               AiDraft[]
+  aiUsage                AiUsage[]
   pushSubscriptions      PushSubscription[]
   notificationEvents     NotificationEvent[]
   scheduledNotifications ScheduledNotification[]
@@ -384,6 +386,49 @@ model RewardRedemption {
 
   @@index([userId, serverSeq])
   @@map("reward_redemption")
+}
+
+/// LEARNING-DESIGN LD16: un borrador de nota generado por la IA, que ella revisa (LWW). Aceptarlo
+/// crea la nota con origin 'ai' y guarda su id.
+model AiDraft {
+  id        String  @id @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  kind      String
+  deckId    String  @map("deck_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  draft     Json
+  supported Boolean
+  edited    Boolean
+  status    String
+  noteId    String? @map("note_id") @db.Uuid
+  createdAt BigInt  @map("created_at")
+  hlc       String
+  updatedAt BigInt  @map("updated_at")
+  deletedAt BigInt? @map("deleted_at")
+  serverSeq BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("ai_draft")
+}
+
+/// LD17 y BE6: un intento con la IA, para la cuota diaria y la revisión de costos. Nunca guarda
+/// el texto de ella ni lo que respondió el modelo. Solo servidor (no se sincroniza).
+model AiUsage {
+  id           String   @id @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  localDate    String   @map("local_date") // YYYY-MM-DD, día local de ella (AG6)
+  task         String
+  attempt      Int      @db.SmallInt
+  model        String
+  status       String
+  inputTokens  Int      @map("input_tokens")
+  outputTokens Int      @map("output_tokens")
+  latencyMs    Int      @map("latency_ms")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, localDate])
+  @@map("ai_usage")
 }
 
 /// R3: solo inserción (trigger review_log_append_only en la migración).

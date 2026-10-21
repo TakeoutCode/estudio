@@ -54,6 +54,13 @@ export const EnvSchema = z
     // QUALITY QA8: secreto de la ruta que consulta el monitor de disponibilidad. Fuera de
     // producción es opcional y, sin él, GET /health/checks/:token responde 404.
     HEALTH_CHECK_TOKEN: optional(z.string().min(32)),
+    // LEARNING-DESIGN §8 y ADR-011: la IA es opcional en todo entorno (la captura manual
+    // siempre existe). Sin clave, /ai/* responde 503 y la web lo dice sin culpa.
+    OPENAI_API_KEY: optional(z.string().min(1)),
+    OPENAI_MODEL: optional(z.string().min(1)),
+    // LD17: cuota diaria por usuario, por día local de ella. Parámetros de costo, no de estudio.
+    AI_DAILY_REQUESTS: z.coerce.number().int().positive().default(30),
+    AI_DAILY_TOKENS: z.coerce.number().int().positive().default(200_000),
   })
   .refine(
     (env) =>
@@ -70,6 +77,10 @@ export const EnvSchema = z
   .refine((env) => env.NODE_ENV !== 'production' || env.HEALTH_CHECK_TOKEN !== undefined, {
     path: ['HEALTH_CHECK_TOKEN'],
     message: 'health_check_token_required_in_production',
+  })
+  .refine((env) => (env.OPENAI_API_KEY === undefined) === (env.OPENAI_MODEL === undefined), {
+    path: ['OPENAI_MODEL'],
+    message: 'openai_key_and_model_together',
   });
 
 export type Env = z.output<typeof EnvSchema>;

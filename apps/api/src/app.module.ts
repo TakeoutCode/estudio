@@ -12,6 +12,7 @@ import { ContractGuard } from './common/contract.guard.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { AppConfig } from './config/app-config.js';
 import { AppConfigModule } from './config/config.module.js';
+import { AiModule } from './modules/ai/ai.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js';
 import { DecksModule } from './modules/decks/decks.module.js';
@@ -82,6 +83,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     StudyModule,
     ExamsModule,
     MediaModule,
+    AiModule,
     NotificationsModule,
   ],
   providers: [

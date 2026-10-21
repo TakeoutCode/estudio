@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { AiDraftSchema } from '../domain/ai.js';
 import { ContrastGroupSchema } from '../domain/contrast.js';
 import { DeckSchema } from '../domain/deck.js';
 import { ExamSchema } from '../domain/exam.js';
@@ -34,6 +35,7 @@ export const SYNC_ROW_SCHEMAS = {
   timerSession: TimerSessionSchema,
   sleepLog: SleepLogSchema,
   reward: RewardSchema,
+  aiDraft: AiDraftSchema,
   reviewLog: ReviewLogSchema,
   timerBlockLog: TimerBlockLogSchema,
   rewardRedemption: RewardRedemptionSchema,

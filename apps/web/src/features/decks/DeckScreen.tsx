@@ -72,6 +72,10 @@ function DeckView({ detail: { deck, load, topics, tags, notes } }: { readonly de
           {t('decks.edit')}
         </button>
         {editing ? <DeckEditForm id={editId} deck={deck} noteCount={notes.length} /> : null}
+        {/* LD14: opcional; la captura manual sigue abajo, en la barra de acciones. */}
+        <Link className={textLink} to={`/decks/${deck.id}/ia`}>
+          {t('ai.fromDeck')}
+        </Link>
       </div>
       <TopicList topics={topics} />
       <NoteList deckId={deck.id} notes={notes} tags={tags} />
