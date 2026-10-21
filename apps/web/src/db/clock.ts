@@ -17,6 +17,18 @@ export async function deviceId(database: EstudioDb): Promise<string> {
   return id;
 }
 
+/**
+ * SY-T4, QUALITY QA7: al importar un respaldo, este dispositivo pasa a ser otro nodo del HLC.
+ * El reloj conserva su marca más alta, así nada de lo ya escrito queda por delante.
+ */
+export async function renewDeviceId(database: EstudioDb): Promise<string> {
+  const last = await currentHlc(database);
+  const id = newId();
+  await database.meta.put({ key: DEVICE_KEY, value: id });
+  await database.meta.put({ key: HLC_KEY, value: encodeHlc({ ...last, node: id }) });
+  return id;
+}
+
 async function currentHlc(database: EstudioDb) {
   const stored = z.string().safeParse((await database.meta.get(HLC_KEY))?.value);
   return stored.success ? decodeHlc(stored.data) : initialHlc(await deviceId(database));

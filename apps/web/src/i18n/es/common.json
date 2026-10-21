@@ -612,5 +612,33 @@
         "generic": "No se pudo borrar la cuenta. Tus datos siguen igual; intenta de nuevo."
       }
     }
+  },
+  "backup": {
+    "title": "Respaldo",
+    "body": "Descarga una copia de tus tarjetas, repasos, exámenes y ajustes. Funciona sin conexión; guárdala fuera del teléfono.",
+    "pendingImages_one": "{{count}} imagen todavía no se sube: el respaldo guarda su tarjeta, pero no la imagen. Con conexión se sube sola.",
+    "pendingImages_other": "{{count}} imágenes todavía no se suben: el respaldo guarda sus tarjetas, pero no las imágenes. Con conexión se suben solas.",
+    "download": "Descargar respaldo",
+    "spreadsheets": "Descargar planillas (CSV)",
+    "spreadsheetsHint": "Para abrir en Excel o Sheets. Para restaurar, usa el respaldo.",
+    "import": "Importar un respaldo",
+    "importHint": "Lo que trae el respaldo reemplaza su versión actual; lo que no está en él se queda.",
+    "confirm": {
+      "title": "Respaldo del {{date}}",
+      "counts": "Tarjetas: {{notes}} · Repasos: {{reviews}} · Exámenes: {{exams}}",
+      "otherAccount": "Es de otra cuenta: se copia con identificadores nuevos y sus imágenes no se pueden traer.",
+      "go": "Importar",
+      "busy": "Importando…",
+      "cancel": "Cancelar"
+    },
+    "done": "Listo: se importaron {{notes}} tarjetas y {{reviews}} repasos. Se envían al servidor cuando haya conexión.",
+    "doneImagesMissing_one": "{{count}} imagen no se pudo recuperar.",
+    "doneImagesMissing_other": "{{count}} imágenes no se pudieron recuperar.",
+    "error": {
+      "invalid": "Este archivo no es un respaldo de Estudio o está dañado.",
+      "newer": "Este respaldo es de una versión más nueva de la app. Actualízala e intenta de nuevo.",
+      "failed": "No se pudo importar. Lo que tenías sigue igual.",
+      "export": "No se pudo preparar la descarga. Intenta de nuevo."
+    }
   }
 }

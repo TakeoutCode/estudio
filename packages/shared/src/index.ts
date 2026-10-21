@@ -14,6 +14,7 @@ export * from './sync/row-schemas.js';
 export * from './domain/review.js';
 export * from './domain/study-session.js';
 export * from './domain/deck.js';
+export * from './domain/backup.js';
 export * from './domain/exam.js';
 export * from './domain/media.js';
 export * from './domain/note.js';
