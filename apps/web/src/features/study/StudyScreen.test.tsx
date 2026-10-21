@@ -1,4 +1,4 @@
-import { cardIdFor, encodeHlc, newId, Rating, type ReviewLog } from '@estudio/shared';
+import { cardIdFor, defaultStudyConfig, encodeHlc, newId, Rating, type ReviewLog } from '@estudio/shared';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -326,6 +326,7 @@ describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
       startedAt: T0,
       plan,
       askConfidence: false,
+      ratingConfig: defaultStudyConfig(),
       scope: { kind: 'today' },
       scopeName: null,
     });

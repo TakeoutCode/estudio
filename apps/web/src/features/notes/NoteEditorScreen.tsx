@@ -2,6 +2,7 @@ import {
   clozeNumbers,
   type Deck,
   EXPLANATION_MAX_LENGTH,
+  isExerciseKind,
   type ImageMime,
   newId,
   type Note,
@@ -20,6 +21,16 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import {
+  emptyExerciseDraft,
+  type EditableExerciseKind,
+  EXERCISE_KINDS,
+  exerciseContent,
+  type ExerciseDraft,
+  exerciseDraftOf,
+  ExerciseFields,
+  isEditableExerciseKind,
+} from '@/features/exercises';
 import { checkImageFile, isImageMime, readImageSize } from '@/lib/media';
 import { useOnline } from '@/lib/use-online';
 import {
@@ -38,9 +49,14 @@ const NEW_DECK = 'new';
 const NO_TOPIC = '';
 const NEW_TOPIC = 'new';
 
-/** LD §1: los tipos que se crean aquí. */
+/** LD §1: los tipos de tarjeta que se crean aquí; los ejercicios (LD §2), con `?tipo=ejercicio`. */
 const KINDS = ['basic', 'cloze', 'type_answer', 'multiple_choice', 'image_occlusion'] as const;
-type Kind = (typeof KINDS)[number];
+type CardKind = (typeof KINDS)[number];
+type Kind = CardKind | EditableExerciseKind;
+type Mode = 'card' | 'exercise';
+
+const isEditableKind = (kind: string | undefined): kind is Kind =>
+  kind !== undefined && ((KINDS as readonly string[]).includes(kind) || isEditableExerciseKind(kind));
 const MIN_OPTIONS = 3;
 const MAX_OPTIONS = 5;
 
@@ -53,8 +69,9 @@ const choiceButton = `min-h-12 rounded-(--radius-card) border px-3 text-text ${f
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
 
 /**
- * Crear o editar una nota (LEARNING-DESIGN §1). La ruta de estudio no carga esto (FE9).
- * `?mazo=<id>`: viene de ese mazo; lo preselecciona y "Volver" regresa a él.
+ * Crear o editar una nota (LEARNING-DESIGN §1) o un ejercicio (§2), que también es una nota. La
+ * ruta de estudio no carga esto (FE9). `?mazo=<id>`: viene de ese mazo; lo preselecciona y
+ * "Volver" regresa a él. `?tipo=ejercicio`: una nota nueva de los tipos de §2.
  */
 export function NoteEditorScreen() {
   const { noteId } = useParams();
@@ -63,8 +80,23 @@ export function NoteEditorScreen() {
   const note = useNote(noteId);
   if (decks === undefined || note === undefined) return null;
   const fromDeck = decks.find((deck) => deck.id === params.get('mazo'))?.id ?? null;
+  const editorMode: Mode = note
+    ? isExerciseKind(note.content.kind)
+      ? 'exercise'
+      : 'card'
+    : params.get('tipo') === 'ejercicio'
+      ? 'exercise'
+      : 'card';
   // `key`: al pasar de una nota a otra, el formulario arranca de cero.
-  return <NoteForm key={note?.id ?? 'new'} decks={decks} note={note} fromDeck={fromDeck} />;
+  return (
+    <NoteForm
+      key={`${note?.id ?? 'new'}:${editorMode}`}
+      decks={decks}
+      note={note}
+      fromDeck={fromDeck}
+      editorMode={editorMode}
+    />
+  );
 }
 
 type Status = 'idle' | 'saved' | 'updated' | 'invalid' | 'deckMissing' | 'topicMissing' | 'failed';
@@ -83,10 +115,12 @@ function NoteForm({
   decks,
   note,
   fromDeck,
+  editorMode,
 }: {
   readonly decks: readonly Deck[];
   readonly note: Note | null;
   readonly fromDeck: string | null;
+  readonly editorMode: Mode;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -94,7 +128,10 @@ function NoteForm({
   const firstRef = useRef<HTMLTextAreaElement>(null);
   const initial = note?.content;
   const returnTo = fromDeck ? { to: `/decks/${fromDeck}`, label: t('notes.backToDeck') } : null;
-  const [kind, setKind] = useState<Kind>(initial?.kind ?? 'basic');
+  const kinds: readonly Kind[] = editorMode === 'exercise' ? EXERCISE_KINDS : KINDS;
+  const initialKind = initial?.kind;
+  const [kind, setKind] = useState<Kind>(isEditableKind(initialKind) ? initialKind : (kinds[0] ?? 'basic'));
+  const [exerciseDraft, setExerciseDraft] = useState<ExerciseDraft>(() => exerciseDraftOf(initial));
   const [deckId, setDeckId] = useState(note?.deckId ?? fromDeck ?? decks[0]?.id ?? NEW_DECK);
   const [deckName, setDeckName] = useState('');
   const [front, setFront] = useState(initial && 'front' in initial ? initial.front : '');
@@ -157,6 +194,9 @@ function NoteForm({
           explanation,
         };
       }
+      case 'true_false_justify':
+      case 'open_question':
+        return exerciseContent(kind, exerciseDraft, explanation);
     }
   };
 
@@ -171,6 +211,7 @@ function NoteForm({
     setAlt('');
     setGroups([]);
     setPicked(null);
+    setExerciseDraft(emptyExerciseDraft());
     setExplanation('');
   };
 
@@ -247,6 +288,8 @@ function NoteForm({
     cloze: t('notes.error.cloze'),
     multiple_choice: t('notes.error.choice'),
     image_occlusion: t('notes.error.occlusion'),
+    true_false_justify: t('exercises.error.true_false_justify'),
+    open_question: t('exercises.error.open_question'),
   }[kind];
   const message = {
     idle: null,
@@ -264,7 +307,11 @@ function NoteForm({
         <Link className={textLink} to={returnTo?.to ?? '/'}>
           {returnTo?.label ?? t('notes.backToToday')}
         </Link>
-        <h1 className="m-0 text-title font-semibold">{t(note ? 'notes.edit' : 'notes.new')}</h1>
+        <h1 className="m-0 text-title font-semibold">
+          {editorMode === 'exercise'
+            ? t(note ? 'exercises.edit' : 'exercises.new')
+            : t(note ? 'notes.edit' : 'notes.new')}
+        </h1>
       </header>
       <form className="flex flex-col gap-4" onSubmit={(event) => void submit(event)} noValidate>
         {note ? (
@@ -275,7 +322,7 @@ function NoteForm({
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
             <legend className="mb-1">{t('notes.kindLabel')}</legend>
             <div className="grid grid-cols-2 gap-2">
-              {KINDS.map((value) => (
+              {kinds.map((value) => (
                 <button
                   key={value}
                   type="button"
@@ -525,6 +572,17 @@ function NoteForm({
             </label>
             <OptionsField options={options} correct={correct} onChange={setOptions} onCorrect={setCorrect} />
           </>
+        ) : null}
+        {isEditableExerciseKind(kind) ? (
+          <ExerciseFields
+            kind={kind}
+            draft={exerciseDraft}
+            firstRef={firstRef}
+            onDraft={(next) => {
+              setExerciseDraft(next);
+              setStatus('idle');
+            }}
+          />
         ) : null}
 
         <label className="flex flex-col gap-1">

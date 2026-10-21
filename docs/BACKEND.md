@@ -9,10 +9,10 @@
 | `auth` | registro por lista permitida, login, refresh rotativo, logout | `POST /auth/{register,login,refresh,logout}` | — |
 | `users` | cuenta, ajustes por sección, borrado total (pide la contraseña; QUALITY QA6) | `DELETE /me` | `UserSettings` |
 | `sync` | push/pull, idempotencia, cursor, registro de handlers, proyecciones (`replay`) | `POST /sync/push`, `GET /sync/pull` | — |
-| `decks` | mazos, subtemas, etiquetas, notas, tarjetas, grupos de contraste | — | `Deck`, `Topic`, `Tag`, `Note`, `Card`, `ContrastGroup` |
+| `decks` | mazos, subtemas, etiquetas, notas (también los ejercicios), tarjetas, grupos de contraste | — | `Deck`, `Topic`, `Tag`, `Note`, `Card`, `ContrastGroup` |
 | `study` | repasos, sesiones, temporizador, autoexplicaciones, premios, sueño | — | `ReviewLog`, `StudySession`, `TimerSession`, `TimerBlockLog`, `SelfExplanation`, `Reward`, `RewardRedemption`, `SleepLog` |
 | `exams` | exámenes y su alcance (un simulacro es una `StudySession` con `mode: 'exam'`) | — | `Exam` |
-| `exercises` | ejercicios de aplicación | — | `Exercise` |
+| `exercises` | ejercicios de aplicación: son notas (LD §2) y viajan con el handler `Note` de `decks`; el módulo queda para lo que no es sync (borradores de casos clínicos con IA) | — | — |
 | `ai` | borradores y retroalimentación, cuota diaria | `POST /ai/drafts`, `POST /ai/feedback` | `AiDraft`, `AiFeedback` |
 | `media` | firma de subida, limpieza de huérfanos en Cloudinary (pendiente) | `POST /media/signature` | `MediaAsset` |
 | `notifications` | suscripciones, cron, envíos programados | `POST/DELETE /push/subscriptions`, `POST /notifications/:id/opened`, `PUT/DELETE /notifications/break-end`, `GET /notifications/state`, `POST /notifications/backoff` | — |

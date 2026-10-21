@@ -11,7 +11,6 @@ export const ENTITY_STRATEGY = {
   tag: 'lww',
   note: 'lww',
   card: 'lww',
-  exercise: 'lww',
   exam: 'lww',
   contrastGroup: 'lww',
   mediaAsset: 'lww',

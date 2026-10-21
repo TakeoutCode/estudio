@@ -17,6 +17,7 @@ export * from './domain/deck.js';
 export * from './domain/backup.js';
 export * from './domain/contrast.js';
 export * from './domain/exam.js';
+export * from './domain/exercise.js';
 export * from './domain/media.js';
 export * from './domain/note.js';
 export * from './domain/sleep.js';

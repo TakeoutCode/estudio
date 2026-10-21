@@ -183,6 +183,40 @@ describe('simulacro (P7, LD13)', () => {
     expect(await screen.findByText('Pregunta 2 de 3')).toBeTruthy();
   });
 
+  it('LD §2: los ejercicios, aunque estén empezados, todavía no entran al simulacro', async () => {
+    const exercise = await createNote(
+      {
+        deck: { name: 'Pierna' },
+        content: {
+          kind: 'open_question',
+          question: '¿Por qué cojea?',
+          key: 'Glúteo medio.',
+          explanation: '',
+        },
+        topic: { name: 'Cadera', explanation: '' },
+      },
+      { now: T0 - 10 * DAY },
+    );
+    await answerCard(
+      {
+        cardId: cardIdFor(exercise.id, 0),
+        rating: Rating.Good,
+        durationMs: 4_000,
+        sessionId: SESSION,
+        confidence: null,
+      },
+      { now: T0 - 9 * DAY },
+    );
+    const exam = await createExam({
+      title: 'Parcial 3',
+      date: T0 + 5 * DAY,
+      topicIds: [exercise.topicId ?? ''],
+    });
+    renderAt(`/exams/${exam.id}/mock`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Empezar simulacro' }));
+    expect(await screen.findByText(/Todavía no hay tarjetas empezadas/)).toBeTruthy();
+  });
+
   it('sin tarjetas empezadas de los temas lo explica', async () => {
     const other = await createNote({
       deck: { name: 'Pierna' },

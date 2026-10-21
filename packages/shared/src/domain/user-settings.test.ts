@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CredentialsSchema } from '../auth.js';
 import { newId } from '../ids.js';
+import { ENTITY_STRATEGY } from '../sync/entities.js';
 import { encodeHlc } from '../sync/hlc.js';
 import { isSyncedEntity, SYNC_ROW_SCHEMAS } from '../sync/row-schemas.js';
 import { UserSettingsSchema } from './user-settings.js';
@@ -61,7 +62,8 @@ describe('esquemas de fila sincronizables', () => {
     expect(isSyncedEntity('topic')).toBe(true);
     expect(isSyncedEntity('exam')).toBe(true);
     expect(isSyncedEntity('studySession')).toBe(true);
-    expect(isSyncedEntity('exercise')).toBe(false);
+    expect(isSyncedEntity('aiDraft')).toBe(false);
+    expect('exercise' in ENTITY_STRATEGY).toBe(false); // LD §2: los ejercicios son notas
   });
 });
 

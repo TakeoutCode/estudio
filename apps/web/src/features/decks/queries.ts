@@ -58,6 +58,10 @@ const searchParts = (content: NoteContent): readonly string[] => {
     case 'basic':
     case 'type_answer':
       return [content.front, content.back];
+    case 'true_false_justify':
+      return [content.statement, content.justification];
+    case 'open_question':
+      return [content.question, content.key];
   }
 };
 

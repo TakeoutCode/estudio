@@ -4,7 +4,7 @@
 
 ## 1. Modelo: nota y tarjeta
 
-Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una **`Card`** es la unidad que programa FSRS: una por lado, por hueco cloze, por grupo de máscaras o por pregunta de ejercicio. Cada `Card` tiene su propio estado FSRS (`cardStates`, ARC5). Un `Exercise` también genera `Card`s. Una nota se puede mover a otro mazo al editarla: sus `Card`s y su historial no cambian, y como los temas son de cada mazo, queda sin tema o con uno del mazo nuevo. Además del tema (uno, de su mazo), una nota puede tener hasta 20 **etiquetas** (`Note.tagIds`, *diseño*): son de ella, cruzan mazos y se eligen o crean en el editor; dos nombres que solo difieren en mayúsculas o acentos son la misma.
+Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una **`Card`** es la unidad que programa FSRS: una por lado, por hueco cloze, por grupo de máscaras o por pregunta de ejercicio. Cada `Card` tiene su propio estado FSRS (`cardStates`, ARC5). Los ejercicios de aplicación (§2) también son notas, con su propio editor ("Nuevo ejercicio"): viven en un mazo, con tema y etiquetas, generan sus `Card`s y se borran con el mazo como cualquier nota (*decisión del responsable, 2026-10-20*: así comparten sync, respaldo, reformular y avisos sin otra entidad). Una nota se puede mover a otro mazo al editarla: sus `Card`s y su historial no cambian, y como los temas son de cada mazo, queda sin tema o con uno del mazo nuevo. Además del tema (uno, de su mazo), una nota puede tener hasta 20 **etiquetas** (`Note.tagIds`, *diseño*): son de ella, cruzan mazos y se eligen o crean en el editor; dos nombres que solo difieren en mayúsculas o acentos son la misma.
 
 | Tipo de nota | Cards que genera | Intento (R1) | Calificación |
 |---|---|---|---|
@@ -30,6 +30,10 @@ Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una 
 | `label_image` | 1 | etiquetas correctas / total |
 | `true_false_justify` | 1 | V/F automático; ella autoevalúa la justificación |
 | `open_question` | 1 | Ella se califica tras ver la clave y, si quiere, la retroalimentación de IA |
+
+Cada tipo es un contenido de `Note` (§1) y se crea desde un mazo con "Nuevo ejercicio". Lo que ella responde queda en `ReviewLog.answer` (R3). Los simulacros (§7) todavía no incluyen ejercicios: muestran cada pregunta como texto.
+- `true_false_justify`: una afirmación, si es verdadera y una justificación de referencia. Intento (R1): elegir verdadera o falsa y escribir por qué; hasta tener ambas no se comprueba. Al revelar se ven el resultado, su justificación, la de referencia y la explicación (R4). Con el V/F errado solo queda seguir (`Again`); acertado, ella dice si su justificación la cubre (`Good`) o le faltó algo (`Hard`), con `toRating()`.
+- `open_question`: una pregunta y su clave (lo que una buena respuesta tendría que cubrir). Intento: escribir la respuesta antes de ver la clave. Luego elige entre los 4 botones; Enter no califica por ella. La retroalimentación de IA queda para cuando exista el módulo `ai` (§8).
 
 ## 3. De la respuesta a la calificación FSRS
 

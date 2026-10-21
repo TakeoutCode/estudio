@@ -60,6 +60,10 @@ function faces(content: NoteContent): readonly [string, string] {
       return [content.question, content.options[content.correct] ?? ''];
     case 'image_occlusion':
       return [content.prompt, content.groups.map((g) => g.label).join(' | ')];
+    case 'true_false_justify':
+      return [content.statement, content.justification];
+    case 'open_question':
+      return [content.question, content.key];
   }
 }
 

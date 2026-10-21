@@ -106,6 +106,28 @@
       "empty": "No hay tarjetas pendientes en este mazo. Puedes añadir nuevas o elegir otro mazo.",
       "missing": "Este mazo ya no existe; puede que se haya borrado en otro dispositivo."
     },
+    "tfj": {
+      "choose": "¿Verdadera o falsa?",
+      "true": "Verdadera",
+      "false": "Falsa",
+      "justify": "¿Por qué? Justifica con tus palabras",
+      "isTrue": "verdadera",
+      "isFalse": "falsa",
+      "right": "Correcto: la afirmación es {{value}}.",
+      "wrong": "No: la afirmación es {{value}}.",
+      "yours": "Tu justificación",
+      "reference": "Justificación de referencia",
+      "judge": "¿Tu justificación cubre la de referencia?",
+      "sufficient": "Sí, la cubre",
+      "weak": "Le faltó algo"
+    },
+    "open": {
+      "write": "Escribe tu respuesta antes de ver la clave",
+      "showKey": "Ver la clave",
+      "yours": "Tu respuesta",
+      "key": "Clave",
+      "rateLabel": "Compárala con la clave: ¿cómo te fue?"
+    },
     "tag": {
       "empty": "No hay tarjetas pendientes con esta etiqueta. Puedes añadir nuevas o elegir otra.",
       "missing": "Esta etiqueta ya no existe; puede que se haya borrado en otro dispositivo."
@@ -179,14 +201,18 @@
       "cloze": "Huecos",
       "type_answer": "Escribir respuesta",
       "multiple_choice": "Opción múltiple",
-      "image_occlusion": "Imagen con etiquetas"
+      "image_occlusion": "Imagen con etiquetas",
+      "true_false_justify": "Verdadero o falso",
+      "open_question": "Pregunta abierta"
     },
     "kindHint": {
       "basic": "Recuerdas la respuesta, la ves y calificas cómo te fue.",
       "cloze": "Un texto con partes ocultas; cada hueco es una tarjeta.",
       "type_answer": "Escribes la respuesta y la app la compara.",
       "multiple_choice": "Eliges una de 3 a 5 opciones.",
-      "image_occlusion": "Tapas las etiquetas de una imagen tuya; cada una es una tarjeta."
+      "image_occlusion": "Tapas las etiquetas de una imagen tuya; cada una es una tarjeta.",
+      "true_false_justify": "Decides si una afirmación es verdadera o falsa y lo justificas; luego la comparas con la de referencia.",
+      "open_question": "Escribes tu respuesta y, al ver la clave, calificas cómo te fue."
     },
     "question": "Pregunta",
     "exactAnswer": "Respuesta (corta)",
@@ -328,6 +354,27 @@
     "allTags": "Todas",
     "tagsLink": "Etiquetas",
     "contrastLink": "Tarjetas que se confunden"
+  },
+  "exercises": {
+    "new": "Nuevo ejercicio",
+    "edit": "Editar ejercicio",
+    "tfj": {
+      "statement": "Afirmación",
+      "isTrue": "¿Es verdadera o falsa?",
+      "true": "Verdadera",
+      "false": "Falsa",
+      "justification": "Justificación de referencia",
+      "justificationHint": "Lo que tendría que decir una buena justificación. Al estudiar, comparas la tuya con esta."
+    },
+    "open": {
+      "question": "Pregunta",
+      "key": "Clave de respuesta",
+      "keyHint": "Lo que una buena respuesta tendría que cubrir. La ves después de escribir la tuya."
+    },
+    "error": {
+      "true_false_justify": "Escribe la afirmación, elige si es verdadera o falsa y escribe la justificación de referencia.",
+      "open_question": "Escribe la pregunta y la clave de respuesta."
+    }
   },
   "tags": {
     "title": "Etiquetas",

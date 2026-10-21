@@ -1,10 +1,11 @@
 import { clozeSegments, type Confidence, Rating } from '@estudio/shared';
+import { toRating } from '@estudio/srs';
 import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { OcclusionFigure } from '@/features/media';
 import { RatingButton } from '@/ui/RatingButton';
 import type { StudyCardView } from './queries';
-import type { Attempt, CardPhase } from './store';
+import { type Attempt, type CardPhase, useStudy } from './store';
 
 // Cómo se ve y se intenta cada tipo de LEARNING-DESIGN §1. Antes del intento la respuesta no
 // está en el DOM (R1, FE10); después, siempre con su explicación (R4).
@@ -13,22 +14,33 @@ const CONFIDENCES = [1, 2, 3] as const;
 const SELF_RATINGS = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy] as const;
 /** LD2: con acierto en una objetiva se elige entre estas, con Good por defecto. */
 const CORRECT_RATINGS = [Rating.Hard, Rating.Good, Rating.Easy] as const;
+/** LD2: V/F acertado; la justificación suficiente es Good y la débil, Hard. */
+const JUSTIFIED_RATINGS = [Rating.Hard, Rating.Good] as const;
 const LETTERS = 'abcde';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
 
-/** Las que ella califica eligiendo entre los 4 botones (LD2). */
-export const isSelfGraded = (card: StudyCardView): boolean =>
+/** R1: en estas el intento es recordar y "Mostrar" (o tocar la etiqueta oculta). */
+export const revealsDirectly = (card: StudyCardView): boolean =>
   card.content.kind === 'basic' || card.content.kind === 'cloze' || card.content.kind === 'image_occlusion';
 
-/** La calificación por defecto de Enter tras revelar una objetiva: Again si falló, Good si acertó. */
-export const defaultObjectiveRating = (attempt: Attempt): Rating =>
-  attempt.correct ? Rating.Good : Rating.Again;
+/** Las que ella califica eligiendo entre los 4 botones (LD2); la abierta, tras ver la clave. */
+export const isSelfGraded = (card: StudyCardView): boolean =>
+  revealsDirectly(card) || card.content.kind === 'open_question';
+
+/**
+ * La calificación por defecto de Enter tras revelar: Again si falló, Good si acertó. `null` en la
+ * respuesta abierta, que ella califica.
+ */
+export const defaultObjectiveRating = (attempt: Attempt): Rating | null =>
+  attempt.kind === 'written' ? null : attempt.correct ? Rating.Good : Rating.Again;
 
 /** LD2: las calificaciones que se pueden elegir después del intento. */
 export function allowedRatings(card: StudyCardView, attempt: Attempt | null): readonly Rating[] {
-  if (isSelfGraded(card) || !attempt) return SELF_RATINGS;
+  if (isSelfGraded(card) || !attempt || attempt.kind === 'written') return SELF_RATINGS;
+  // V/F con justificación: acertar el V/F deja juzgar la justificación (Good o Hard).
+  if (attempt.kind === 'verdict') return attempt.correct ? JUSTIFIED_RATINGS : [Rating.Again];
   return attempt.correct ? CORRECT_RATINGS : [Rating.Again];
 }
 
@@ -105,6 +117,23 @@ export function CardBody({
                 {t(attempt.correct ? 'study.objective.right' : 'study.objective.wrongChoice')}
               </p>
             ) : null}
+            {attempt?.kind === 'verdict' && content.kind === 'true_false_justify' ? (
+              <>
+                <p className="m-0 font-semibold">
+                  {t(attempt.correct ? 'study.tfj.right' : 'study.tfj.wrong', {
+                    value: t(content.isTrue ? 'study.tfj.isTrue' : 'study.tfj.isFalse'),
+                  })}
+                </p>
+                <Labeled label={t('study.tfj.yours')} text={attempt.justification} />
+                <Labeled label={t('study.tfj.reference')} text={content.justification} strong />
+              </>
+            ) : null}
+            {attempt?.kind === 'written' && content.kind === 'open_question' ? (
+              <>
+                <Labeled label={t('study.open.yours')} text={attempt.text} />
+                <Labeled label={t('study.open.key')} text={content.key} strong />
+              </>
+            ) : null}
             {content.kind === 'basic' || content.kind === 'image_occlusion' ? (
               <>
                 <h2 className="m-0 text-caption font-normal text-muted">{t('study.answer')}</h2>
@@ -118,6 +147,24 @@ export function CardBody({
         ) : null}
       </div>
     </article>
+  );
+}
+
+/** Un texto de ella o de la clave, con su rótulo; tras el intento (R4). */
+function Labeled({
+  label,
+  text,
+  strong = false,
+}: {
+  readonly label: string;
+  readonly text: string;
+  readonly strong?: boolean;
+}) {
+  return (
+    <div className="flex flex-col">
+      <h2 className="m-0 text-caption font-normal text-muted">{label}</h2>
+      <p className={`m-0 whitespace-pre-wrap ${strong ? 'text-card' : ''}`}>{text}</p>
+    </div>
   );
 }
 
@@ -198,8 +245,9 @@ function Options({
 }
 
 /**
- * R1 y R6: el intento según el tipo. En las que ella califica, revelar (o elegir la confianza)
- * es el intento; en escribir la respuesta, "Comprobar"; en opción múltiple, elegir en la tarjeta.
+ * R1 y R6: el intento según el tipo. En las que se recuerdan, revelar (o elegir la confianza)
+ * es el intento; en escribir la respuesta, "Comprobar"; en opción múltiple, elegir en la tarjeta;
+ * en V/F, elegir y justificar; en la abierta, escribir antes de ver la clave.
  */
 export function AttemptControls({
   card,
@@ -208,6 +256,8 @@ export function AttemptControls({
   onReveal,
   onConfidence,
   onTyped,
+  onVerdict,
+  onWritten,
 }: {
   readonly card: StudyCardView;
   readonly askConfidence: boolean;
@@ -215,20 +265,24 @@ export function AttemptControls({
   readonly onReveal: (confidence: Confidence | null) => void;
   readonly onConfidence: (confidence: Confidence) => void;
   readonly onTyped: (text: string) => void;
+  readonly onVerdict: (verdict: boolean, justification: string) => void;
+  readonly onWritten: (text: string) => void;
 }) {
   const { t } = useTranslation();
-  const selfGraded = isSelfGraded(card);
-  if (askConfidence && (selfGraded || confidence === null)) {
+  const direct = revealsDirectly(card);
+  if (askConfidence && (direct || confidence === null)) {
     return (
       <ConfidencePicker
         onPick={(level) => {
-          if (selfGraded) onReveal(level);
+          if (direct) onReveal(level);
           else onConfidence(level);
         }}
       />
     );
   }
   if (card.content.kind === 'type_answer') return <TypedAttempt onSubmit={onTyped} />;
+  if (card.content.kind === 'true_false_justify') return <VerdictAttempt onSubmit={onVerdict} />;
+  if (card.content.kind === 'open_question') return <WrittenAttempt onSubmit={onWritten} />;
   if (card.content.kind === 'multiple_choice') {
     return <p className="m-0 text-center text-caption text-muted">{t('study.objective.choose')}</p>;
   }
@@ -305,6 +359,92 @@ function TypedAttempt({ onSubmit }: { readonly onSubmit: (text: string) => void 
   );
 }
 
+const textArea = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-body ${focus}`;
+
+/**
+ * LD §2: elegir verdadero o falso y justificar; las dos cosas son el intento (R1). Comprobar
+ * espera a que haya ambas.
+ */
+function VerdictAttempt({
+  onSubmit,
+}: {
+  readonly onSubmit: (verdict: boolean, justification: string) => void;
+}) {
+  const { t } = useTranslation();
+  const id = useId();
+  const [verdict, setVerdict] = useState<boolean | null>(null);
+  const [justification, setJustification] = useState('');
+  const ready = verdict !== null && justification.trim() !== '';
+  const submit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (verdict !== null && ready) onSubmit(verdict, justification.trim());
+  };
+  return (
+    <form className="flex flex-col gap-2" onSubmit={submit} noValidate>
+      <div role="group" aria-label={t('study.tfj.choose')} className="grid grid-cols-2 gap-2">
+        {([true, false] as const).map((value) => (
+          <button
+            key={String(value)}
+            type="button"
+            aria-pressed={verdict === value}
+            className={`min-h-12 rounded-(--radius-card) border px-3 font-medium ${verdict === value ? 'border-primary bg-primary/20 text-text' : 'border-muted/40 text-primary'} ${focus}`}
+            onClick={() => {
+              setVerdict(value);
+            }}
+          >
+            {t(value ? 'study.tfj.true' : 'study.tfj.false')}
+          </button>
+        ))}
+      </div>
+      <label htmlFor={id} className="text-caption text-muted">
+        {t('study.tfj.justify')}
+      </label>
+      <textarea
+        id={id}
+        className={textArea}
+        rows={2}
+        value={justification}
+        onChange={(event) => {
+          setJustification(event.target.value);
+        }}
+      />
+      <button type="submit" className={primary} disabled={!ready}>
+        {t('study.objective.check')}
+      </button>
+    </form>
+  );
+}
+
+/** LD §2: la respuesta abierta se escribe antes de ver la clave (R1). */
+function WrittenAttempt({ onSubmit }: { readonly onSubmit: (text: string) => void }) {
+  const { t } = useTranslation();
+  const id = useId();
+  const [text, setText] = useState('');
+  const submit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (text.trim() !== '') onSubmit(text.trim());
+  };
+  return (
+    <form className="flex flex-col gap-2" onSubmit={submit} noValidate>
+      <label htmlFor={id} className="text-caption text-muted">
+        {t('study.open.write')}
+      </label>
+      <textarea
+        id={id}
+        className={textArea}
+        rows={3}
+        value={text}
+        onChange={(event) => {
+          setText(event.target.value);
+        }}
+      />
+      <button type="submit" className={primary} disabled={text.trim() === ''}>
+        {t('study.open.showKey')}
+      </button>
+    </form>
+  );
+}
+
 /** LD2: los botones de calificación que corresponden al tipo y al intento. */
 export function RatingControls({
   card,
@@ -319,7 +459,43 @@ export function RatingControls({
 }) {
   const { t } = useTranslation();
   const id = useId();
+  const ratingConfig = useStudy((s) => s.session?.ratingConfig);
   const ratings = allowedRatings(card, attempt);
+  if (attempt?.kind === 'verdict' && attempt.correct && ratingConfig) {
+    // LD2: con el V/F acertado, ella juzga su justificación frente a la de referencia.
+    const judge = (justification: 'sufficient' | 'weak') => {
+      onRate(toRating({ kind: 'true_false_justify', verdictCorrect: true, justification }, ratingConfig));
+    };
+    return (
+      <div role="group" aria-labelledby={id} className="flex flex-col gap-2">
+        <p id={id} className="m-0 text-center text-caption text-muted">
+          {t('study.tfj.judge')}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            className={`min-h-14 rounded-(--radius-card) bg-primary/20 px-2 font-medium text-text disabled:opacity-60 ${focus}`}
+            disabled={busy}
+            onClick={() => {
+              judge('weak');
+            }}
+          >
+            {t('study.tfj.weak')}
+          </button>
+          <button
+            type="button"
+            className={`min-h-14 rounded-(--radius-card) bg-primary px-2 font-medium text-primary-contrast disabled:opacity-60 ${focus}`}
+            disabled={busy}
+            onClick={() => {
+              judge('sufficient');
+            }}
+          >
+            {t('study.tfj.sufficient')}
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (ratings.length === 1) {
     // LD2: un error en una objetiva es Again fijo; solo queda seguir.
     return (
@@ -338,7 +514,13 @@ export function RatingControls({
   return (
     <div role="group" aria-labelledby={id} className="flex flex-col gap-2">
       <p id={id} className="m-0 text-center text-caption text-muted">
-        {t(isSelfGraded(card) ? 'study.rate.label' : 'study.objective.rateLabel')}
+        {t(
+          card.content.kind === 'open_question'
+            ? 'study.open.rateLabel'
+            : isSelfGraded(card)
+              ? 'study.rate.label'
+              : 'study.objective.rateLabel',
+        )}
       </p>
       <div className={`grid gap-2 ${ratings.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
         {ratings.map((rating) => (

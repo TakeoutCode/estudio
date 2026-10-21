@@ -2,6 +2,7 @@ import {
   type Confidence,
   type Exam,
   ExamSchema,
+  isExerciseKind,
   newId,
   ReviewLogSchema,
   type StudySession,
@@ -123,7 +124,12 @@ export async function startMock(
     const exam = await existing(database, examId);
     const config = await readStudyConfig(database);
     const others = (await alive(database.exams.toCollection()).toArray()).filter((e) => e.id !== exam.id);
-    const notes = new Map((await alive(database.notes.toCollection()).toArray()).map((n) => [n.id, n]));
+    // Los ejercicios (LD §2) todavía no entran: el simulacro muestra cada pregunta como texto.
+    const notes = new Map(
+      (await alive(database.notes.toCollection()).toArray())
+        .filter((n) => !isExerciseKind(n.content.kind))
+        .map((n) => [n.id, n]),
+    );
     const cards = (await alive(database.cards.toCollection()).toArray()).filter((c) => notes.has(c.noteId));
     const states = await database.cardStates.bulkGet(cards.map((c) => c.id));
     const id = newId();

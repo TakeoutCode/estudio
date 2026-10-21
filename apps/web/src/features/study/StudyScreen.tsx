@@ -1,4 +1,4 @@
-import { newId, type Rating } from '@estudio/shared';
+import { type CardKind, newId, type Rating } from '@estudio/shared';
 import {
   cardElapsedMs,
   type CardState,
@@ -32,8 +32,8 @@ import {
   AttemptControls,
   CardBody,
   defaultObjectiveRating,
-  isSelfGraded,
   RatingControls,
+  revealsDirectly,
 } from './CardView';
 import { answerCard } from './commands';
 import {
@@ -45,7 +45,7 @@ import {
   useQueueStates,
   useStudyCard,
 } from './queries';
-import { scopeKey, type StudyScope, useStudy } from './store';
+import { type Attempt, scopeKey, type StudyScope, useStudy } from './store';
 import { SuggestionPanel } from './SuggestionPanel';
 import { TopicIntro } from './TopicIntro';
 import { useSessionSuggestion } from './use-session-suggestion';
@@ -105,6 +105,7 @@ export function StudyScreen() {
             startedAt: Date.now(),
             plan,
             askConfidence: config.review.askConfidence,
+            ratingConfig: { exam: config.exam, exercise: config.exercise },
             scope,
             scopeName,
           });
@@ -454,12 +455,7 @@ function CurrentCard({
     setBusy(true);
     setSaveFailed(false);
     const now = Date.now();
-    const answer =
-      state.attempt?.kind === 'typed'
-        ? { text: state.attempt.text }
-        : state.attempt?.kind === 'choice'
-          ? { option: state.attempt.option }
-          : undefined;
+    const answer = answerOf(state.attempt);
     answerCard(
       {
         cardId,
@@ -496,23 +492,33 @@ function CurrentCard({
     if (card?.content.kind !== 'multiple_choice') return;
     reveal(null, { kind: 'choice', option, correct: option === card.content.correct });
   };
-  const selfGraded = card ? isSelfGraded(card) : true;
+  // LD2: el V/F se califica solo; la justificación la juzga ella después.
+  const verdict = (value: boolean, justification: string) => {
+    if (card?.content.kind !== 'true_false_justify') return;
+    reveal(null, { kind: 'verdict', verdict: value, justification, correct: value === card.content.isTrue });
+  };
+  const written = (text: string) => {
+    if (card?.content.kind !== 'open_question') return;
+    reveal(null, { kind: 'written', text });
+  };
+  const direct = card ? revealsDirectly(card) : true;
+  const fallback = attempt ? defaultObjectiveRating(attempt) : null;
 
   useStudyShortcuts({
     onReveal:
-      phase === 'prompt' && selfGraded && !askConfidence
+      phase === 'prompt' && direct && !askConfidence
         ? () => {
             reveal(null);
           }
-        : phase === 'revealed' && attempt
+        : phase === 'revealed' && fallback !== null
           ? () => {
-              rate(defaultObjectiveRating(attempt));
+              rate(fallback);
             }
           : null,
     onConfidence:
-      phase === 'prompt' && askConfidence && (selfGraded || confidence === null)
+      phase === 'prompt' && askConfidence && (direct || confidence === null)
         ? (c) => {
-            if (selfGraded) reveal(c);
+            if (direct) reveal(c);
             else chooseConfidence(c);
           }
         : null,
@@ -536,7 +542,7 @@ function CurrentCard({
         canChoose={phase === 'prompt' && (!askConfidence || confidence !== null)}
         onChoose={choose}
         onRevealFromImage={
-          phase === 'prompt' && selfGraded && !askConfidence
+          phase === 'prompt' && direct && !askConfidence
             ? () => {
                 reveal(null);
               }
@@ -563,7 +569,7 @@ function CurrentCard({
           </ul>
         ) : null}
       </div>
-      <ActionBar keyboardAware={card.content.kind === 'type_answer' && phase === 'prompt'}>
+      <ActionBar keyboardAware={writesAnswer(card.content.kind) && phase === 'prompt'}>
         {aside}
         {saveFailed ? (
           <p role="alert" className="m-0 text-caption">
@@ -578,6 +584,8 @@ function CurrentCard({
             onReveal={reveal}
             onConfidence={chooseConfidence}
             onTyped={typed}
+            onVerdict={verdict}
+            onWritten={written}
           />
         ) : null}
         {phase === 'revealed' ? (
@@ -587,6 +595,25 @@ function CurrentCard({
     </>
   );
 }
+
+/** R3: lo que respondió va en el ReviewLog, para optimizar FSRS y ver su historial. */
+function answerOf(attempt: Attempt | null): Record<string, unknown> | undefined {
+  switch (attempt?.kind) {
+    case 'typed':
+    case 'written':
+      return { text: attempt.text };
+    case 'choice':
+      return { option: attempt.option };
+    case 'verdict':
+      return { verdict: attempt.verdict, justification: attempt.justification };
+    case undefined:
+      return undefined;
+  }
+}
+
+/** UX2: con el teclado abierto, el campo y su botón siguen a la vista (`visualViewport`). */
+const writesAnswer = (kind: CardKind): boolean =>
+  kind === 'type_answer' || kind === 'true_false_justify' || kind === 'open_question';
 
 function SkipDeleted({ onSkip }: { readonly onSkip: () => void }) {
   useEffect(() => {

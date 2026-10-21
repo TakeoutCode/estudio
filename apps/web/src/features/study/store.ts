@@ -2,6 +2,7 @@ import type { Confidence } from '@estudio/shared';
 import {
   type CardClock,
   type CardPause,
+  type RatingConfig,
   pauseCardClock,
   resumeCardClock,
   type SessionPlan,
@@ -16,10 +17,20 @@ import { create } from 'zustand';
 /** LD §4: `prompt` (intento) → `revealed` (respuesta y explicación) → calificación. */
 export type CardPhase = 'prompt' | 'revealed';
 
-/** LD2: el intento de las tarjetas con calificación automática (escribir u opción múltiple). */
+/**
+ * LD2: el intento que se registra antes de revelar cuando no basta con "Mostrar": escribir u
+ * opción múltiple (se califican solas), V/F con justificación y la respuesta abierta.
+ */
 export type Attempt =
   | { readonly kind: 'typed'; readonly text: string; readonly correct: boolean }
-  | { readonly kind: 'choice'; readonly option: number; readonly correct: boolean };
+  | { readonly kind: 'choice'; readonly option: number; readonly correct: boolean }
+  | {
+      readonly kind: 'verdict';
+      readonly verdict: boolean;
+      readonly justification: string;
+      readonly correct: boolean;
+    }
+  | { readonly kind: 'written'; readonly text: string };
 
 /**
  * Qué se estudia: Hoy mezcla todos los mazos (R9, P4); `deck` aplica el plan a un solo mazo
@@ -48,6 +59,8 @@ export interface StudySession {
   readonly plan: SessionPlan;
   /** R6, LD6: pedir confianza antes de revelar (`review.askConfidence`). */
   readonly askConfidence: boolean;
+  /** LD2: lo que `toRating()` necesita de la configuración, fijo al empezar como la cola. */
+  readonly ratingConfig: RatingConfig;
   readonly scope: StudyScope;
   /** Nombre del mazo o la etiqueta del alcance, para el título. */
   readonly scopeName: string | null;

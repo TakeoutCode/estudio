@@ -81,9 +81,26 @@ function DeckView({ detail: { deck, load, topics, tags, notes } }: { readonly de
             {t('decks.studyThis')}
           </Link>
         ) : null}
-        <Link className={load.due + load.fresh > 0 ? secondary : primary} to={`/notes/new?mazo=${deck.id}`}>
-          {t('today.addCard')}
-        </Link>
+        {/* LD §2: los ejercicios de aplicación son notas del mazo, con su propio editor. */}
+        {load.due + load.fresh > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            <Link className={secondary} to={`/notes/new?mazo=${deck.id}`}>
+              {t('today.addCard')}
+            </Link>
+            <Link className={secondary} to={`/notes/new?mazo=${deck.id}&tipo=ejercicio`}>
+              {t('exercises.new')}
+            </Link>
+          </div>
+        ) : (
+          <>
+            <Link className={primary} to={`/notes/new?mazo=${deck.id}`}>
+              {t('today.addCard')}
+            </Link>
+            <Link className={secondary} to={`/notes/new?mazo=${deck.id}&tipo=ejercicio`}>
+              {t('exercises.new')}
+            </Link>
+          </>
+        )}
       </ActionBar>
     </>
   );

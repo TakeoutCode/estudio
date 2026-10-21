@@ -286,3 +286,61 @@ describe('editor de notas · etiquetas', () => {
     expect(screen.getByRole('button', { name: 'Quitar la etiqueta Mano' })).toBeTruthy();
   });
 });
+
+describe('editor de notas · ejercicios (?tipo=ejercicio, LD §2)', () => {
+  const renderExercise = (path = '/notes/new?tipo=ejercicio') =>
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/notes/new" element={<NoteEditorScreen />} />
+          <Route path="/notes/:noteId" element={<NoteEditorScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+  it('ofrece los tipos de ejercicio; V/F pide la afirmación, el valor y la justificación', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    await createDeck({ name: 'Hombro' });
+    renderExercise();
+    expect(await screen.findByRole('heading', { name: 'Nuevo ejercicio' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Verdadero o falso' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Pregunta abierta' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Huecos' })).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Afirmación'), {
+      target: { value: 'El radial inerva el deltoides.' },
+    });
+    fireEvent.change(screen.getByLabelText('Justificación de referencia'), {
+      target: { value: 'Es el axilar.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(await screen.findByText(/elige si es verdadera o falsa/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Falsa' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect((await db.notes.toArray()).map((n) => n.content)).toEqual([
+        {
+          kind: 'true_false_justify',
+          statement: 'El radial inerva el deltoides.',
+          isTrue: false,
+          justification: 'Es el axilar.',
+          explanation: '',
+        },
+      ]);
+    });
+  });
+
+  it('un ejercicio guardado se abre en su editor, con sus campos', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    const note = await createNote({
+      deck: { name: 'Hombro' },
+      content: { kind: 'open_question', question: '¿Por qué?', key: 'Por el axilar.', explanation: '' },
+    });
+    renderExercise(`/notes/${note.id}`);
+    expect(await screen.findByRole('heading', { name: 'Editar ejercicio' })).toBeTruthy();
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Clave de respuesta').value).toBe('Por el axilar.');
+  });
+});

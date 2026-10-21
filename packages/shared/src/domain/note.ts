@@ -1,15 +1,15 @@
 import { v5 as uuidv5 } from 'uuid';
 import { z } from 'zod';
 import { SyncMetaSchema } from '../sync/contracts.js';
+import { EXPLANATION_MAX_LENGTH, explanation, text } from './content-parts.js';
+import { OpenQuestionContentSchema, TrueFalseJustifyContentSchema } from './exercise.js';
 import { NoteTagIdsSchema } from './tag.js';
 
 // Notas y tarjetas (LEARNING-DESIGN §1). Una `Note` es el contenido que ella crea (en la UI,
-// "tarjeta"); una `Card` es lo que programa FSRS, una por lado o hueco. Ambas son LWW.
+// "tarjeta" o, si es de aplicación, "ejercicio", LD §2); una `Card` es lo que programa FSRS,
+// una por lado, hueco o pregunta. Ambas son LWW.
 
-/** LD4: la explicación breve que se muestra tras cada intento (R4). */
-export const EXPLANATION_MAX_LENGTH = 400;
-
-const text = (max: number) => z.string().trim().min(1).max(max);
+export { EXPLANATION_MAX_LENGTH };
 
 /** `basic`: pregunta y respuesta; con `reverse`, también la tarjeta inversa (LD §1). */
 export const BasicContentSchema = z
@@ -17,12 +17,10 @@ export const BasicContentSchema = z
     kind: z.literal('basic'),
     front: text(2000),
     back: text(2000),
-    explanation: z.string().trim().max(EXPLANATION_MAX_LENGTH),
+    explanation: explanation(),
     reverse: z.boolean(),
   })
   .strict();
-
-const explanation = () => z.string().trim().max(EXPLANATION_MAX_LENGTH);
 
 /** `{{c1::respuesta}}` o `{{c1::respuesta::pista}}` (LD §1: una Card por cada número). */
 const CLOZE = /\{\{c(\d{1,2})::(.+?)(?:::(.*?))?\}\}/g;
@@ -127,6 +125,9 @@ export const NoteContentSchema = z.discriminatedUnion('kind', [
   TypeAnswerContentSchema,
   MultipleChoiceContentSchema,
   ImageOcclusionContentSchema,
+  // Ejercicios de aplicación (LD §2).
+  TrueFalseJustifyContentSchema,
+  OpenQuestionContentSchema,
 ]);
 export type NoteContent = z.infer<typeof NoteContentSchema>;
 
@@ -167,6 +168,8 @@ export function cardOrdinals(content: NoteContent): number[] {
       return content.groups.map((g) => g.n).sort((a, b) => a - b);
     case 'type_answer':
     case 'multiple_choice':
+    case 'true_false_justify':
+    case 'open_question':
       return [0];
   }
 }
@@ -234,6 +237,11 @@ export function cardFaces(content: NoteContent, ordinal: number): { prompt: stri
         answer: options[content.correct] ?? '',
       };
     }
+    case 'true_false_justify':
+      // Verdadero o falso lo dice cada vista con su texto (AG5); aquí, la justificación.
+      return { prompt: content.statement, answer: content.justification };
+    case 'open_question':
+      return { prompt: content.question, answer: content.key };
   }
 }
 
