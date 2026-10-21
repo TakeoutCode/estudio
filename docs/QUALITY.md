@@ -38,7 +38,7 @@ it('P2: 0 nuevas si vencidas > factor × capacidad (usa la config)', () => {
   expect(plan(input, cfgWith({ overdueFactorForZeroNew: 3 })).newCount).toBeGreaterThan(0);
 });
 ```
-También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medianas de su historial), P3 (ventana de 3 días y `leechLapses`), P4 (ninguna racha de más de 5 del mismo tema), P5, P6 (sugerir, nunca bloquear), P7 (mapeo de confianza y `affectsScheduling`) y P8 (reparto de 3 a 7 días en orden de retrievability). Para `replay()`: el mismo log en cualquier orden de llegada da el mismo estado.
+También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medianas de su historial), P3 (ventana de 3 días y `leechLapses`), P4 (ninguna racha de más de 5 del mismo tema, salvo un set de contraste, LD10), P5, P6 (sugerir, nunca bloquear), P7 (mapeo de confianza y `affectsScheduling`) y P8 (reparto de 3 a 7 días en orden de retrievability). Para `replay()`: el mismo log en cualquier orden de llegada da el mismo estado.
 
 ## 4. Reglas de producto con prueba automática
 

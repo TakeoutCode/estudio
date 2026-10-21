@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { ContrastGroupSchema } from '../domain/contrast.js';
 import { DeckSchema } from '../domain/deck.js';
 import { ExamSchema } from '../domain/exam.js';
 import { MediaAssetSchema } from '../domain/media.js';
@@ -21,6 +22,7 @@ export const SYNC_ROW_SCHEMAS = {
   note: NoteSchema,
   card: CardSchema,
   exam: ExamSchema,
+  contrastGroup: ContrastGroupSchema,
   mediaAsset: MediaAssetSchema,
   userSettings: UserSettingsSchema,
   selfExplanation: SelfExplanationSchema,

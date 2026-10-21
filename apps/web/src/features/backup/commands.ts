@@ -1,6 +1,7 @@
 import {
   type Backup,
   cardIdFor,
+  CONTRAST_MEMBERS,
   newId,
   type Note,
   settingsRowId,
@@ -59,6 +60,7 @@ const ORDER = [
   'topic',
   'note',
   'card',
+  'contrastGroup',
   'exam',
   'studySession',
   'selfExplanation',
@@ -157,6 +159,14 @@ export async function importBackup(
               await write('card', { ...card, id, noteId, ...(await stamp()) });
               touchedCards.push(id);
               counts.cards += 1;
+            }
+            break;
+          case 'contrastGroup':
+            // LD10: el brazo y la semilla del sorteo viajan con el grupo.
+            for (const group of entities.contrastGroup) {
+              const noteIds = group.noteIds.flatMap((n) => ids.ref(n) ?? []);
+              if (noteIds.length < CONTRAST_MEMBERS.min) continue;
+              await write('contrastGroup', { ...group, id: ids.own(group.id), noteIds, ...(await stamp()) });
             }
             break;
           case 'exam':

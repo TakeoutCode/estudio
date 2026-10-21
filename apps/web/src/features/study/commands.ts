@@ -24,6 +24,8 @@ export interface AnswerInput {
   readonly confidence: Confidence | null;
   /** LD §4: lo que escribió o eligió, en las tarjetas con calificación automática. */
   readonly answer?: Record<string, unknown>;
+  /** LD10: se respondió dentro de un set de contraste; un repaso se guarda como `contrast`. */
+  readonly contrast?: boolean;
 }
 
 /**
@@ -59,7 +61,10 @@ export async function answerCard(
         reviewedAt: now,
         rating: input.rating,
         durationMs: Math.max(0, Math.round(input.durationMs)),
-        type: reviewTypeFor(before.phase),
+        type:
+          input.contrast && reviewTypeFor(before.phase) === 'review'
+            ? 'contrast'
+            : reviewTypeFor(before.phase),
         confidence: input.confidence,
         sessionId: input.sessionId,
         deviceId: await deviceId(database),

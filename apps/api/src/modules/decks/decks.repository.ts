@@ -1,4 +1,4 @@
-import type { Card, Deck, Note, Topic } from '@estudio/shared';
+import type { Card, ContrastGroup, Deck, Note, Topic } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
@@ -65,6 +65,18 @@ export class DecksRepository {
       { name: 'created_at', value: card.createdAt, cast: 'bigint' },
       { name: 'lapse_baseline', value: card.lapseBaseline, cast: 'integer' },
       ...syncMetaColumns(card),
+    ]);
+  }
+
+  upsertContrastGroupLww(userId: string, group: ContrastGroup): Promise<ApplyStatus> {
+    return this.upsert('contrast_group', [
+      { name: 'id', value: group.id, cast: 'uuid' },
+      { name: 'user_id', value: userId, cast: 'uuid' },
+      { name: 'name', value: group.name },
+      { name: 'note_ids', value: JSON.stringify(group.noteIds), cast: 'jsonb' },
+      { name: 'ab_seed', value: group.abSeed, cast: 'bigint' },
+      { name: 'ab_arm', value: group.abArm },
+      ...syncMetaColumns(group),
     ]);
   }
 

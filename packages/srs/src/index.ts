@@ -7,6 +7,7 @@ export * from './metrics/breaks.js';
 export * from './metrics/weekly.js';
 export * from './notifications/decide.js';
 export * from './notifications/reminders.js';
+export * from './planner/contrast.js';
 export * from './planner/history.js';
 export * from './planner/queue.js';
 export * from './planner/review-load.js';

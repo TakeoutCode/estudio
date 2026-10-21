@@ -29,6 +29,7 @@ model User {
   exams                  Exam[]
   notes                  Note[]
   cards                  Card[]
+  contrastGroups         ContrastGroup[]
   mediaAssets            MediaAsset[]
   userSettings           UserSettings[]
   selfExplanations       SelfExplanation[]
@@ -200,6 +201,25 @@ model Card {
   @@index([userId, serverSeq])
   @@index([userId, noteId])
   @@map("card")
+}
+
+/// STUDY-METHODS R9, P4; LEARNING-DESIGN LD10: notas que se confunden. El brazo del A/B se sortea
+/// al crearse y no cambia.
+model ContrastGroup {
+  id        String  @id @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  name      String
+  noteIds   Json    @map("note_ids") // uuid[] como JSON; cada una la valida el handler (BE2)
+  abSeed    BigInt  @map("ab_seed")
+  abArm     String  @map("ab_arm")
+  hlc       String
+  updatedAt BigInt  @map("updated_at")
+  deletedAt BigInt? @map("deleted_at")
+  serverSeq BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("contrast_group")
 }
 
 /// FRONTEND §5, ADR-010: imagen que el cliente sube directo a Cloudinary con una firma de la API.

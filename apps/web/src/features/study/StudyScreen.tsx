@@ -20,6 +20,7 @@ import {
   useTimerTicker,
   useTimerView,
 } from '@/features/timer';
+import { useContrastNames } from '@/features/contrast';
 import { CARD_IMAGE_WIDTH, usePrefetchCardImages } from '@/features/media';
 import { useBreakEndNotice } from '@/features/notifications';
 import { usePageVisibility } from '@/lib/use-page-visibility';
@@ -169,6 +170,7 @@ function Session({
   readonly sessionId: string;
   readonly startedAt: number;
 }) {
+  const { t } = useTranslation();
   const ids = useMemo(() => plan.queue.map((q) => q.cardId), [plan]);
   usePrefetchCardImages(ids, CARD_IMAGE_WIDTH); // FE7: las imágenes de la sesión, por si se va la señal
   const live = useQueueStates(ids);
@@ -293,6 +295,21 @@ function Session({
       />
     ) : null;
 
+  // LD10: la primera vez que se presenta en la sesión, la tarjeta va dentro de su set.
+  const contrastNames = useContrastNames();
+  const currentItem = currentCardId ? plan.queue.find((q) => q.cardId === currentCardId) : undefined;
+  const setId = currentItem?.contrastGroupId;
+  const firstTime = currentCardId !== null && (states?.get(currentCardId)?.lastReview ?? -1) < startedAt;
+  const setItems = setId ? plan.queue.filter((q) => q.contrastGroupId === setId) : [];
+  const contrastSet =
+    setId && firstTime
+      ? {
+          name: contrastNames?.get(setId) ?? '',
+          position: setItems.findIndex((q) => q.cardId === currentCardId) + 1,
+          total: setItems.length,
+        }
+      : null;
+
   if (!step) return null;
   return (
     <>
@@ -324,10 +341,20 @@ function Session({
           }}
         />
       ) : null}
+      {!onBreak && step.kind === 'card' && currentCardId && contrastSet ? (
+        <Banner>
+          {t('study.contrast.banner', {
+            name: contrastSet.name,
+            position: contrastSet.position,
+            total: contrastSet.total,
+          })}
+        </Banner>
+      ) : null}
       {!onBreak && step.kind === 'card' && currentCardId ? (
         <CurrentCard
           cardId={currentCardId}
           sessionId={sessionId}
+          contrast={contrastSet !== null}
           aside={aside}
           onAnswered={(state) => {
             // Responder es seguir: el aviso en pantalla no se repite.
@@ -373,11 +400,14 @@ function PlanNotices({ plan }: { readonly plan: SessionPlan }) {
 function CurrentCard({
   cardId,
   sessionId,
+  contrast,
   aside,
   onAnswered,
 }: {
   readonly cardId: string;
   readonly sessionId: string;
+  /** LD10: la tarjeta va dentro de un set de contraste. */
+  readonly contrast: boolean;
   /** Sugerencia de P5 o P6, sobre las acciones. */
   readonly aside: ReactNode;
   readonly onAnswered: (state: CardState) => void;
@@ -416,6 +446,7 @@ function CurrentCard({
         sessionId,
         confidence: state.confidence,
         answer,
+        contrast,
       },
       { now },
     )

@@ -11,6 +11,12 @@ import {
 
 const SECOND_MS = 1_000;
 
+/**
+ * Repaso de una tarjeta ya aprendida: el normal y el que se hace dentro de un set de contraste
+ * (LD10). Cuentan igual para los tiempos (P1), la retención (P3, §5) y FSRS.
+ */
+export const isLearnedReview = (type: ReviewLog['type']): boolean => type === 'review' || type === 'contrast';
+
 /** §5: la retención real cuenta Good y Easy como recordadas. */
 export const isRecalled = (rating: Rating): boolean => rating >= Rating.Good;
 
@@ -31,12 +37,12 @@ export interface SessionTiming {
 }
 
 /**
- * P1: tiempos medianos de su historial. Un repaso es un log `review`; una nueva es la suma
+ * P1: tiempos medianos de su historial. Un repaso es un log `review` o `contrast`; una nueva es la suma
  * de los logs `learn` de cada tarjeta (todos sus pasos de aprendizaje). Con menos de
  * `timingMinSamples` muestras se usan los tiempos de arranque.
  */
 export function sessionTiming(logs: readonly ReviewLog[], cfg: PlannerConfig): SessionTiming {
-  const reviews = logs.filter((log) => log.type === 'review').map((log) => log.durationMs);
+  const reviews = logs.filter((log) => isLearnedReview(log.type)).map((log) => log.durationMs);
   const learnByCard = new Map<string, number>();
   for (const log of logs) {
     if (log.type === 'learn')
@@ -70,7 +76,7 @@ export interface RetentionStatus {
 }
 
 /**
- * P3: retención de repasos de tarjetas ya aprendidas (logs `review`) por ventanas de días
+ * P3: retención de repasos de tarjetas ya aprendidas (logs `review` y `contrast`) por ventanas de días
  * locales. Un día sin repasos suficientes no cuenta como bajo.
  */
 export function retentionStatus(
@@ -85,7 +91,7 @@ export function retentionStatus(
   const since = now - (windowDays + persistDays + 1) * DAY_MS;
   const byDay = new Map<number, { reviews: number; recalled: number }>();
   for (const log of logs) {
-    if (log.type !== 'review' || log.reviewedAt < since || log.reviewedAt > now) continue;
+    if (!isLearnedReview(log.type) || log.reviewedAt < since || log.reviewedAt > now) continue;
     const day = localDayNumber(log.reviewedAt, timeZone);
     const bucket = byDay.get(day) ?? { reviews: 0, recalled: 0 };
     bucket.reviews += 1;

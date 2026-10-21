@@ -156,6 +156,7 @@ async function resetForFullResync(database: EstudioDb): Promise<void> {
         database.notes,
         database.cards,
         database.exams,
+        database.contrastGroups,
         database.mediaAssets, // pendingUploads se queda: son bytes de este dispositivo sin subir
         database.userSettings,
         database.selfExplanations,

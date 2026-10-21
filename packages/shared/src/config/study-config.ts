@@ -124,6 +124,13 @@ export const ExerciseConfigSchema = z
   })
   .refine((c) => c.hardMinScore <= c.goodMinScore, { path: ['hardMinScore'], message: 'hard_gt_good' });
 
+/** R9, P4, LD10: sets de contraste y su A/B. */
+export const ContrastConfigSchema = z.object({
+  maxSetSize: int(2, 12).default(5), // P4, LD10 · diseño · sin evidencia: tarjetas seguidas de un set (como reviewMaxSameTopicRun)
+  retentionMinDays: int(1, 60).default(7), // LD10: el A/B compara la retención a 7 días o más
+  minReviewsPerArm: int(5, 500).default(30), // LD10, UX9 · diseño · sin evidencia: repasos por brazo antes de comparar
+});
+
 export const StudyConfigSchema = z.object({
   fsrs: FsrsConfigSchema.prefault({}),
   planner: PlannerConfigSchema.prefault({}),
@@ -132,6 +139,7 @@ export const StudyConfigSchema = z.object({
   review: ReviewConfigSchema.prefault({}),
   exam: ExamConfigSchema.prefault({}),
   exercise: ExerciseConfigSchema.prefault({}),
+  contrast: ContrastConfigSchema.prefault({}),
 });
 
 export type StudyConfig = z.output<typeof StudyConfigSchema>;
@@ -141,6 +149,7 @@ export type TimerConfig = StudyConfig['timer'];
 export type MetricsConfig = StudyConfig['metrics'];
 export type ExamConfig = StudyConfig['exam'];
 export type ExerciseConfig = StudyConfig['exercise'];
+export type ContrastConfig = StudyConfig['contrast'];
 
 /** Configuración con todos los valores iniciales de STUDY-METHODS. */
 export const defaultStudyConfig = (): StudyConfig => StudyConfigSchema.parse({});

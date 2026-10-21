@@ -104,6 +104,9 @@
       "next": "Seguir",
       "rateLabel": "¿Qué tan fácil fue?",
       "wrongChoice": "No era esa opción."
+    },
+    "contrast": {
+      "banner": "Set de contraste · {{name}} ({{position}} de {{total}}): se parecen; fíjate en qué las distingue."
     }
   },
   "notes": {
@@ -291,7 +294,8 @@
     "search": "Buscar en este mazo",
     "noMatches": "Ninguna tarjeta coincide con la búsqueda.",
     "matches_one": "{{count}} de {{total}} tarjetas",
-    "matches_other": "{{count}} de {{total}} tarjetas"
+    "matches_other": "{{count}} de {{total}} tarjetas",
+    "contrastLink": "Tarjetas que se confunden"
   },
   "topics": {
     "title": "Tema",
@@ -639,6 +643,59 @@
       "newer": "Este respaldo es de una versión más nueva de la app. Actualízala e intenta de nuevo.",
       "failed": "No se pudo importar. Lo que tenías sigue igual.",
       "export": "No se pudo preparar la descarga. Intenta de nuevo."
+    }
+  },
+  "contrast": {
+    "title": "Tarjetas que se confunden",
+    "backToDecks": "Volver a Mazos",
+    "back": "Volver a los grupos",
+    "intro": "Agrupa tarjetas que confundes, como los nervios craneales o músculos parecidos. Cuando aciertes cada una al menos una vez, sus repasos del día pueden ir seguidos en un set de contraste, para practicar en qué se distinguen.",
+    "evidence": "Los estudios sobre estos sets no coinciden: en unos ayudan y en otros no. Por eso la mitad de los grupos usan sets y la otra mitad se repasa mezclada como siempre, y aquí se compara tu retención.",
+    "empty": "Todavía no hay grupos. Crea uno con tarjetas que se te mezclen.",
+    "new": "Nuevo grupo",
+    "edit": "Editar grupo",
+    "newHint": "Al guardarlo, el grupo queda en uno de los dos lados de la comparación: con sets o mezclado.",
+    "armHint": {
+      "contrast": "Este grupo usa sets de contraste.",
+      "control": "Este grupo se repasa mezclado, para comparar con los que usan sets."
+    },
+    "arm": {
+      "contrast": "Con sets",
+      "control": "Mezclado"
+    },
+    "members_one": "{{count}} tarjeta",
+    "members_other": "{{count}} tarjetas",
+    "status": {
+      "tooFew": "Necesita al menos 2 tarjetas.",
+      "learning_one": "Falta el primer acierto de {{count}} tarjeta.",
+      "learning_other": "Falta el primer acierto de {{count}} tarjetas.",
+      "readySets": "Listo: sus repasos de un mismo día van seguidos.",
+      "readyControl": "Listo: sus repasos siguen mezclados."
+    },
+    "comparison": "Retención con {{days}} días o más entre repasos",
+    "armContrast_one": "Con sets: {{value}} (entre {{low}} y {{high}}), {{count}} repaso",
+    "armContrast_other": "Con sets: {{value}} (entre {{low}} y {{high}}), {{count}} repasos",
+    "armControl_one": "Mezcladas: {{value}} (entre {{low}} y {{high}}), {{count}} repaso",
+    "armControl_other": "Mezcladas: {{value}} (entre {{low}} y {{high}}), {{count}} repasos",
+    "comparisonNote": "Compara solo tus propios repasos. Si los rangos se superponen, la diferencia puede ser casualidad.",
+    "fewData": "Pocos datos todavía: hacen falta {{count}} repasos de cada lado. Van {{contrast}} con sets y {{control}} mezclados.",
+    "name": "Nombre del grupo",
+    "namePlaceholder": "Nervios craneales",
+    "selected": "Tarjetas del grupo ({{count}} de {{max}})",
+    "selectedEmpty": "Agrega al menos 2 tarjetas.",
+    "deletedNote": "Tarjeta borrada",
+    "remove": "Quitar {{label}} del grupo",
+    "add": "Agregar tarjetas",
+    "searchPlaceholder": "Buscar por pregunta o mazo",
+    "noResults": "No hay tarjetas que coincidan.",
+    "addNamed": "Agregar {{label}}",
+    "save": "Guardar grupo",
+    "delete": "Borrar grupo",
+    "deleteConfirm": "Se borrará el grupo. Sus tarjetas y sus repasos se quedan como están.",
+    "deleteYes": "Sí, borrar el grupo",
+    "missing": "Este grupo ya no existe.",
+    "error": {
+      "invalid": "Ponle un nombre y elige al menos 2 tarjetas."
     }
   }
 }

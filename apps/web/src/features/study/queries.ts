@@ -21,6 +21,7 @@ import {
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readPlannerCards } from '@/db/planner-cards';
 import { alive, db, type EstudioDb } from '@/db/schema';
+import { readContrastPlan } from '@/features/contrast';
 import { readNotificationPrefs, readProfile, readStudyConfig } from '@/db/settings';
 
 export interface PlanSnapshot {
@@ -63,6 +64,7 @@ export async function loadPlan(
         ? all.cards
         : all.cards.filter((c) => !c.deckPaused);
   const pausedDecks = all.pausedDeckIds.size;
+  const contrast = await readContrastPlan(database, plannerCards); // R9, LD10
   const plan = buildSessionQueue({
     cards: plannerCards,
     logs: await database.reviewLogs.toArray(),
@@ -71,6 +73,7 @@ export async function loadPlan(
     now,
     timeZone: profile.timeZone,
     plannedBlocks,
+    contrastGroups: contrast.groups,
   });
   const noteOf = new Map(plannerCards.map((c) => [c.state.cardId, c.noteId]));
   const leechNotes = new Set(plan.reformulate.flatMap((id) => noteOf.get(id) ?? []));

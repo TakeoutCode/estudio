@@ -1,5 +1,6 @@
 import type {
   Card,
+  ContrastGroup,
   Deck,
   Exam,
   ImageMime,
@@ -55,6 +56,7 @@ export const TABLE_FOR = {
   note: 'notes',
   card: 'cards',
   exam: 'exams',
+  contrastGroup: 'contrastGroups',
   mediaAsset: 'mediaAssets',
   userSettings: 'userSettings',
   selfExplanation: 'selfExplanations',
@@ -71,6 +73,7 @@ export class EstudioDb extends Dexie {
   notes!: EntityTable<Note, 'id'>;
   cards!: EntityTable<Card, 'id'>;
   exams!: EntityTable<Exam, 'id'>;
+  contrastGroups!: EntityTable<ContrastGroup, 'id'>;
   mediaAssets!: EntityTable<MediaAsset, 'id'>;
   pendingUploads!: EntityTable<PendingUpload, 'assetId'>;
   userSettings!: EntityTable<UserSettings, 'id'>;
@@ -145,6 +148,10 @@ export class EstudioDb extends Dexie {
     this.version(10)
       .stores({ mediaAssets: 'id', pendingUploads: 'assetId' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // R9, LD10: grupos de contraste; como en v6-v10, el cursor vuelve a 0.
+    this.version(11)
+      .stores({ contrastGroups: 'id' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -157,6 +164,7 @@ export const syncedTables = (database: EstudioDb) => [
   database.notes,
   database.cards,
   database.exams,
+  database.contrastGroups,
   database.mediaAssets,
   database.userSettings,
   database.selfExplanations,

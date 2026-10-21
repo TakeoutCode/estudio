@@ -53,6 +53,15 @@ describe('StudyConfig: valores iniciales = STUDY-METHODS', () => {
     });
   });
 
+  it('R9, P4, LD10: sets de hasta 5, A/B a 7 días y 30 repasos por brazo antes de comparar', () => {
+    expect(cfg.contrast).toEqual({ maxSetSize: 5, retentionMinDays: 7, minReviewsPerArm: 30 });
+    // Un ajuste guardado antes de esta sección se completa con los valores iniciales.
+    expect(StudyConfigSchema.parse({ planner: {} }).contrast).toEqual(cfg.contrast);
+    expect(StudyConfigSchema.safeParse({ contrast: { maxSetSize: 1 } }).success).toBe(false);
+    expect(StudyConfigSchema.safeParse({ contrast: { maxSetSize: 13 } }).success).toBe(false);
+    expect(StudyConfigSchema.safeParse({ contrast: { retentionMinDays: 0 } }).success).toBe(false);
+  });
+
   it('§3: presets 25/5, 24/6, 12/3, 50/10 y 90/20', () => {
     expect(TIMER_PRESETS.map((p) => p.id)).toEqual(['25-5', '24-6', '12-3', '50-10', '90-20']);
   });

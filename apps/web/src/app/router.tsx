@@ -77,6 +77,18 @@ export const router = createBrowserRouter([
             lazy: async () => ({ Component: (await import('@/features/exams')).ExamEditorScreen }),
           },
           {
+            path: 'contrast',
+            lazy: async () => ({ Component: (await import('@/features/contrast')).ContrastScreen }),
+          },
+          {
+            path: 'contrast/new',
+            lazy: async () => ({ Component: (await import('@/features/contrast')).ContrastEditorScreen }),
+          },
+          {
+            path: 'contrast/:groupId',
+            lazy: async () => ({ Component: (await import('@/features/contrast')).ContrastEditorScreen }),
+          },
+          {
             path: 'decks',
             lazy: async () => ({ Component: (await import('@/features/decks')).DecksScreen }),
           },

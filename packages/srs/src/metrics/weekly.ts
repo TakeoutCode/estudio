@@ -8,7 +8,7 @@ import {
   type StudyConfig,
 } from '@estudio/shared';
 import { byReviewOrder } from '../fsrs/scheduler.js';
-import { isRecalled } from '../planner/history.js';
+import { isLearnedReview, isRecalled } from '../planner/history.js';
 import { isLeech, type PlannerCard } from '../planner/queue.js';
 
 // Métricas de STUDY-METHODS §5, mostradas sin ansiedad (UI-UX UX9): por semana, contra su
@@ -96,9 +96,9 @@ export function proportion(successes: number, total: number): Proportion {
   };
 }
 
-/** §5: % de Good y Easy en repasos de tarjetas ya aprendidas (logs `review`). */
+/** §5: % de Good y Easy en repasos de tarjetas ya aprendidas (logs `review` y `contrast`). */
 export function realRetention(logs: readonly ReviewLog[]): Proportion {
-  const reviews = logs.filter((log) => log.type === 'review');
+  const reviews = logs.filter((log) => isLearnedReview(log.type));
   return proportion(reviews.filter((log) => isRecalled(log.rating)).length, reviews.length);
 }
 

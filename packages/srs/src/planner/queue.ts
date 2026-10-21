@@ -1,5 +1,11 @@
 import { localDayBounds, type PlannerConfig, type ReviewLog, type StudyConfig } from '@estudio/shared';
 import type { CardState, Scheduler } from '../fsrs/scheduler.js';
+import {
+  applyContrastSets,
+  contrastReadyAt,
+  type ContrastPlanGroup,
+  firstCorrectByCard,
+} from './contrast.js';
 import { type RetentionStatus, retentionStatus, sessionTiming, type SessionTiming } from './history.js';
 
 // Cola de la sesión (STUDY-METHODS §3 "Integración con FSRS" y §4 P1-P4, P8). La cola no
@@ -26,12 +32,16 @@ export interface SessionPlanInput {
   readonly timeZone: string;
   /** Bloques de enfoque planeados (P1); por defecto `planner.sessionBlocksDefault`. */
   readonly plannedBlocks?: number;
+  /** R9, LD10: grupos de tarjetas que se confunden; los del brazo `contrast` arman sets. */
+  readonly contrastGroups?: readonly ContrastPlanGroup[];
 }
 
 export interface QueueItem {
   readonly cardId: string;
   readonly topicId: string | null;
   readonly kind: 'review' | 'new';
+  /** LD10: va dentro del set de contraste de ese grupo; su repaso se guarda como `contrast`. */
+  readonly contrastGroupId?: string;
 }
 
 /** Por qué hoy no entran nuevas: P2 (demasiadas vencidas) o P3 (retención baja). */
@@ -102,9 +112,18 @@ export function buildSessionQueue(input: SessionPlanInput): SessionPlan {
       reviewQuota = Math.min(capacity, due.length - backlog + Math.ceil(backlog / backlogSpreadDays));
     }
   }
-  const reviews = limitTopicRuns(
-    due.slice(0, reviewQuota).map((d) => item(d.card, 'review')),
-    p.reviewMaxSameTopicRun,
+  // P4: mezcladas; los sets de contraste (LD10) van seguidos aunque sean del mismo tema.
+  const firstCorrect = firstCorrectByCard(input.logs);
+  const groups = input.contrastGroups ?? [];
+  const ready = new Set(groups.filter((g) => contrastReadyAt(g, firstCorrect) !== null).map((g) => g.id));
+  const reviews = applyContrastSets(
+    limitTopicRuns(
+      due.slice(0, reviewQuota).map((d) => item(d.card, 'review')),
+      p.reviewMaxSameTopicRun,
+    ),
+    groups,
+    ready,
+    cfg.contrast.maxSetSize,
   );
 
   // P2 y P3 bloquean las nuevas; P1 las limita al presupuesto que sobra y al tope.
