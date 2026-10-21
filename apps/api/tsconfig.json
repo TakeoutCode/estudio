@@ -5,5 +5,5 @@
     "emitDecoratorMetadata": true,
     "noEmit": true
   },
-  "include": ["src", "*.config.ts"]
+  "include": ["src", "prisma", "*.config.ts"]
 }

@@ -20,7 +20,8 @@
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @estudio/api db:migrate",
     "db:generate": "pnpm --filter @estudio/api db:generate",
-    "db:deploy": "pnpm --filter @estudio/api db:deploy"
+    "db:deploy": "pnpm --filter @estudio/api db:deploy",
+    "db:seed": "pnpm --filter @estudio/api db:seed"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

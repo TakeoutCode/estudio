@@ -28,6 +28,8 @@ src/modules/decks/
   decks.repository.ts    # el único archivo del módulo que usa Prisma
 ```
 
+`src/seed/` no es un módulo de Nest: es el mazo de desarrollo que carga `pnpm db:seed` desde `prisma/seed.ts`. Usa Prisma directo, escribe como indica SYNC §3 (Escrituras propias del servidor) y queda fuera del build (`tsconfig.build.json`).
+
 ## 2. Capas
 
 **BE1 · DEBE** seguir controller → service → repository. El controller solo traduce HTTP (pipes, guards, `@CurrentUser`), el service aplica reglas y transacciones y el repository es el único que toca Prisma. **NO DEBE** un controller inyectar `PrismaService` ni un repository lanzar `HttpException`. *Razón:* reglas que se prueban sin HTTP y sin base.
@@ -81,6 +83,7 @@ export const EnvSchema = z.object({
 });
 ConfigModule.forRoot({ isGlobal: true, validate: (env) => EnvSchema.parse(env) });
 ```
+Fuera de `src/config/` leen `process.env` solo `src/test/`, que fija el entorno antes de importar `ConfigModule`, y los scripts que corre la CLI de Prisma sin Nest (`prisma.config.ts`, `prisma/seed.ts`); el override de `eslint.config.js` los nombra. `SEED_EMAIL` la lee solo el seeder y no va en `EnvSchema`.
 
 **BE5 · DEBE** lanzar `DomainError(code)` en los services y traducirlo en un filtro global a `application/problem+json` con un `code` estable de `ApiErrorCode` (shared), más `requestId`, sin stack en producción. *Razón:* el cliente traduce `code` a una clave i18n (AGENTS AG5); el texto del servidor nunca llega a la UI.
 

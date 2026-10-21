@@ -12,7 +12,7 @@
 | Solo inserción | `ReviewLog`, `TimerBlockLog`, `RewardRedemption`, `AiFeedback` | `INSERT … ON CONFLICT (id) DO NOTHING`; un trigger impide `UPDATE` y `DELETE` |
 | Proyección (no viaja) | `cardStates`, XP y monedas, métricas | Se recalcula con `srs` a partir de las anteriores (ARC5) |
 
-Columnas comunes: `id` (UUIDv7 del cliente), `userId` (lo pone el servidor desde el JWT), `hlc`, `updatedAt` (ms, la parte de reloj del HLC), `deletedAt` (ms o null) y `serverSeq` (solo en el servidor). `UserSettings` es una fila por sección (`profile`, `study`, `notifications`, `gamification`, `ui`) con `id = uuidv5(userId, sección)`, para que editar la retención en el iPhone y la hora del recordatorio en la PC no choquen. Por la misma razón, cada `Card` tiene `id = uuidv5(noteId, ordinal)` (`cardIdFor`): dos dispositivos sin red que activan la inversa de la misma nota escriben la misma fila en lugar de duplicarla. Son las dos excepciones a AGENTS AG7.
+Columnas comunes: `id` (UUIDv7 del cliente), `userId` (lo pone el servidor desde el JWT), `hlc`, `updatedAt` (ms, la parte de reloj del HLC), `deletedAt` (ms o null) y `serverSeq` (solo en el servidor). `UserSettings` es una fila por sección (`profile`, `study`, `notifications`, `gamification`, `ui`) con `id = uuidv5(userId, sección)`, para que editar la retención en el iPhone y la hora del recordatorio en la PC no choquen. Por la misma razón, cada `Card` tiene `id = uuidv5(noteId, ordinal)` (`cardIdFor`): dos dispositivos sin red que activan la inversa de la misma nota escriben la misma fila en lugar de duplicarla. Estas dos y las filas que el servidor crea fuera de un push (§3) son las excepciones a AGENTS AG7.
 
 ## 2. Reloj lógico híbrido (HLC)
 
@@ -54,6 +54,8 @@ ON CONFLICT (id) DO UPDATE SET deck_id = EXCLUDED.deck_id, kind = EXCLUDED.kind,
 WHERE note.user_id = EXCLUDED.user_id AND note.hlc COLLATE "C" < EXCLUDED.hlc COLLATE "C"
 RETURNING server_seq;
 ```
+
+**Escrituras propias del servidor.** Cuando el servidor escribe filas sincronizables fuera de un push (hoy solo el mazo de desarrollo de `pnpm db:seed`, `apps/api/src/seed/`), sigue el paso 2: toma el mismo lock por usuario antes de pedir `nextval('sync_seq')`. Firma con un HLC de nodo nil (§2) y genera ahí los UUIDv7 de lo que crea (las `Card` siguen con `cardIdFor`). Sin el lock, dos transacciones pueden confirmar sus `server_seq` en desorden y un pull que corre entre ambas adelanta el cursor y se salta la fila menor (SY3). El seeder reserva todos los `server_seq` de una vez y los asigna mazo → temas → notas → `Card`, el orden en que llegarían si ella los creara.
 
 ## 4. Pull por cursor del servidor
 

@@ -115,6 +115,8 @@ export const AiOpenFeedbackSchema = z.object({
 
 **LD16 · DEBE** guardar todo lo generado como `AiDraft` (`draft` → `accepted` | `rejected`). Ella lo ve completo y lo edita antes de aceptarlo; aceptarlo crea la `Note` con `origin: 'ai'`. Un borrador cuyo `sourceQuote` no aparece en el texto de entrada se marca "Sin respaldo en tu texto" y no se acepta sin editarlo. **NO DEBE** haber aceptación automática. *Razón:* la IA puede inventar anatomía.
 
+El mazo de desarrollo de `pnpm db:seed` ("Huesos del esqueleto") tampoco pasó por su revisión, y entra con `origin: 'manual'` aunque no lo escribió ella. Por eso el seeder no corre con `NODE_ENV=production`: en su cuenta real, toda `Note` la escribió o la aceptó ella.
+
 **LD17 · DEBE** manejar errores y costos así. *Razón:* cuidar el costo y que ella no pierda su texto.
 - Sin red: botón deshabilitado con "Requiere conexión".
 - Cuota agotada (`429`): "Disponible de nuevo a las 00:00".

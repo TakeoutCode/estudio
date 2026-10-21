@@ -7,7 +7,7 @@
 | Nivel | Herramienta | Alcance |
 |---|---|---|
 | Unitarias | Vitest + fast-check | `srs` (replay, planificador, temporizador, calificación, notificaciones, métricas, gamificación), `shared` (esquemas, HLC) |
-| Integración api | Vitest + Testcontainers (Postgres 17) + fakes de `AiProvider`, `MediaSigner` y `PushSender` | sync, auth, cron, triggers, migraciones |
+| Integración api | Vitest + Testcontainers (Postgres 17) + fakes de `AiProvider`, `MediaSigner` y `PushSender` | sync, auth, cron, triggers, migraciones, seeder |
 | Integración web | Vitest + `fake-indexeddb` + Testing Library | comandos (entidad + outbox), migraciones de Dexie, fases de la sesión |
 | E2E | Playwright: proyecto `iphone` (`devices['iPhone 13']`, WebKit) y `desktop` (Chromium) | flujos completos sin red y entre dos contextos (dos "dispositivos") |
 

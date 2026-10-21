@@ -10,7 +10,8 @@ const directUrl = process.env.DIRECT_DATABASE_URL;
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
-  migrations: { path: 'prisma/migrations' },
+  // `pnpm db:seed`: datos de desarrollo (prisma/seed.ts); migrate no lo corre solo.
+  migrations: { path: 'prisma/migrations', seed: 'tsx prisma/seed.ts' },
   // `prisma generate` (CI, build) no necesita base; migrate sí y falla claro si falta.
   ...(directUrl ? { datasource: { url: directUrl } } : {}),
 });

@@ -25,6 +25,7 @@ Requisitos: pnpm 10 (`corepack enable`) y Docker: Postgres local en el puerto 54
 |---|---|
 | Instalar | `pnpm install` |
 | Base local | `pnpm db:up` y luego `pnpm db:migrate` |
+| Datos de desarrollo | `pnpm db:seed`: mazo "Huesos del esqueleto" (206 huesos) en la cuenta de `SEED_EMAIL` o del primer correo de `ALLOWED_EMAILS`, que ya debe estar registrada. No pisa un mazo existente y no corre con `NODE_ENV=production` (LD16) |
 | Desarrollo | `pnpm dev` (web :5180, api :3180; puertos propios para no compartir origen con otros proyectos) · uno solo: `pnpm dev --filter @estudio/web` |
 | Pruebas | `pnpm test` · un paquete: `pnpm test --filter @estudio/srs` · e2e: `pnpm test:e2e` |
 | Calidad | `pnpm lint` (ESLint + `lint:copy`) · `pnpm typecheck` |

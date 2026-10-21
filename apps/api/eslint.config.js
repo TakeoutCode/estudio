@@ -16,8 +16,9 @@ export default estudioConfig({
   ],
   overrides: [
     {
-      // src/test/ fija el entorno antes de importar ConfigModule (pruebas de integración).
-      files: ['src/config/**', 'src/test/**', '*.config.ts'],
+      // src/test/ fija el entorno antes de importar ConfigModule (pruebas de integración);
+      // prisma/seed.ts es un script de la CLI de Prisma, como prisma.config.ts.
+      files: ['src/config/**', 'src/test/**', 'prisma/**', '*.config.ts'],
       rules: { 'no-restricted-properties': 'off' },
     },
     {
