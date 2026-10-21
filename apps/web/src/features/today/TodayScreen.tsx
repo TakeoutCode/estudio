@@ -1,13 +1,18 @@
+import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useExamsOverview } from '@/features/exams';
-import { GamificationCard } from '@/features/gamification';
 import { NotificationsAtOpen } from '@/features/notifications';
 import { SleepCheckIn } from '@/features/sleep';
 import { type PlanSnapshot, useTodayPlan } from '@/features/study';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
+
+// FE9: la gamificación no entra en el JS inicial de Hoy; apagada, ni siquiera se muestra.
+const GamificationCard = lazy(async () => ({
+  default: (await import('@/features/gamification')).GamificationCard,
+}));
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast ${focus}`;
@@ -96,7 +101,9 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
         </section>
       ) : null}
       {/* UX10: la pregunta del onboarding o, si la activó, su progreso; apagada, nada. */}
-      <GamificationCard />
+      <Suspense fallback={null}>
+        <GamificationCard />
+      </Suspense>
       <ActionBar>
         {nothing ? null : (
           <Link className={primary} to="/study">

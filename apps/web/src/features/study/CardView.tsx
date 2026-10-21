@@ -8,14 +8,18 @@ import {
   Rating,
 } from '@estudio/shared';
 import { isTypedAnswerCorrect, sequenceInversions, shuffledSequence, toRating } from '@estudio/srs';
-import { type SubmitEvent, useId, useState } from 'react';
+import { lazy, type SubmitEvent, Suspense, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AiFeedbackPanel } from '@/features/ai-drafts';
 import { moved, OrderList } from '@/features/exercises';
 import { LabelFigure, OcclusionFigure } from '@/features/media';
 import { RatingButton } from '@/ui/RatingButton';
 import type { StudyCardView } from './queries';
 import { type Attempt, type CardPhase, type ExerciseWork, useStudy } from './store';
+
+// FE9: la IA (y el editor que trae) carga solo si ella revela una respuesta abierta.
+const AiFeedbackPanel = lazy(async () => ({
+  default: (await import('@/features/ai-drafts')).AiFeedbackPanel,
+}));
 
 // Cómo se ve y se intenta cada tipo de LEARNING-DESIGN §1. Antes del intento la respuesta no
 // está en el DOM (R1, FE10); después, siempre con su explicación (R4).
@@ -213,12 +217,14 @@ export function CardBody({
             ) : null}
             {/* LD14: opcional; la calificación sigue siendo de ella. */}
             {attempt?.kind === 'written' ? (
-              <AiFeedbackPanel
-                cardId={card.cardId}
-                question={card.prompt}
-                answerKey={card.answer}
-                answer={attempt.text}
-              />
+              <Suspense fallback={null}>
+                <AiFeedbackPanel
+                  cardId={card.cardId}
+                  question={card.prompt}
+                  answerKey={card.answer}
+                  answer={attempt.text}
+                />
+              </Suspense>
             ) : null}
             {attempt?.kind === 'scored' && content.kind === 'sequence' ? (
               <SequenceResult items={content.items} answer={attempt.answer} />
