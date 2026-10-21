@@ -1,5 +1,6 @@
 import type {
   AiDraft,
+  AiFeedback,
   ApiErrorCode,
   Card,
   ContrastGroup,
@@ -78,6 +79,7 @@ export const TABLE_FOR = {
   reviewLog: 'reviewLogs',
   timerBlockLog: 'timerBlockLogs',
   rewardRedemption: 'rewardRedemptions',
+  aiFeedback: 'aiFeedback',
 } as const satisfies Record<SyncedEntity, string>;
 
 /** IndexedDB es la fuente local de la UI (ARCHITECTURE ARC3). */
@@ -102,6 +104,7 @@ export class EstudioDb extends Dexie {
   rewards!: EntityTable<Reward, 'id'>;
   rewardRedemptions!: EntityTable<RewardRedemption, 'id'>;
   aiDrafts!: EntityTable<AiDraft, 'id'>;
+  aiFeedback!: EntityTable<AiFeedback, 'id'>;
   cardStates!: EntityTable<CardState, 'cardId'>;
   outbox!: EntityTable<OutboxEntry, 'mutationId'>;
   meta!: EntityTable<MetaEntry, 'key'>;
@@ -214,6 +217,10 @@ export class EstudioDb extends Dexie {
     this.version(17)
       .stores({ aiDrafts: 'id, deckId, status' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // LD14: la retroalimentación de IA de cada tarjeta (solo inserción); el cursor vuelve a 0.
+    this.version(18)
+      .stores({ aiFeedback: 'id, cardId' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -239,6 +246,7 @@ export const syncedTables = (database: EstudioDb) => [
   database.rewards,
   database.rewardRedemptions,
   database.aiDrafts,
+  database.aiFeedback,
   database.cardStates,
   database.meta,
 ];

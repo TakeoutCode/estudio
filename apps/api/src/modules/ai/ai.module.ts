@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HealthModule } from '../health/health.module.js';
 import { AiDraftSyncHandler } from './ai-draft.sync-handler.js';
+import { AiFeedbackSyncHandler } from './ai-feedback.sync-handler.js';
 import { AiProvider, OpenAiProvider } from './ai-provider.js';
 import { AiController } from './ai.controller.js';
 import { AiRepository } from './ai.repository.js';
@@ -10,6 +11,12 @@ import { AiService } from './ai.service.js';
 @Module({
   imports: [HealthModule],
   controllers: [AiController],
-  providers: [AiRepository, AiService, AiDraftSyncHandler, { provide: AiProvider, useClass: OpenAiProvider }],
+  providers: [
+    AiRepository,
+    AiService,
+    AiDraftSyncHandler,
+    AiFeedbackSyncHandler,
+    { provide: AiProvider, useClass: OpenAiProvider },
+  ],
 })
 export class AiModule {}

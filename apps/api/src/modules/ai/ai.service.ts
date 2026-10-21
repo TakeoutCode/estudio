@@ -2,6 +2,9 @@ import {
   AI_DRAFTS_MAX,
   type AiDraftRequest,
   type AiDraftResponse,
+  type AiFeedbackRequest,
+  type AiOpenFeedback,
+  AiOpenFeedbackSchema,
   type AiNoteDraft,
   AiNoteDraftSchema,
   localDateOf,
@@ -35,6 +38,22 @@ const NOTE_DRAFTS_INSTRUCTIONS = [
   'explanation: hasta 400 caracteres con el porqué, según el texto.',
   'Escribe en español neutro y sin juicios. Como máximo 20 tarjetas; prioriza los conceptos clave.',
   'Si el texto no tiene contenido para estudiar, devuelve una lista vacía.',
+].join('\n');
+
+/** LD17: 8 puntos por lista y una sugerencia caben con margen. Parámetro de costo. */
+const FEEDBACK_MAX_OUTPUT_TOKENS = 2000;
+
+const FEEDBACK_SCHEMA = strictJsonSchema(AiOpenFeedbackSchema);
+
+/** LD14, LD15: frente a su propia clave, sin nota ni puntaje; la calificación es de ella. */
+const FEEDBACK_INSTRUCTIONS = [
+  'Comparas la respuesta abierta de una estudiante de Quiropráctica con la clave que ella misma escribió.',
+  'covered: puntos de la clave que su respuesta cubre. missing: puntos de la clave que le faltan.',
+  'misconceptions: afirmaciones de su respuesta que contradicen la clave.',
+  'suggestion: una sola sugerencia breve y concreta para la próxima vez.',
+  'No pongas nota, puntaje ni calificación: la calificación es de ella.',
+  'Usa solo la pregunta y la clave como referencia; no agregues datos de otra fuente.',
+  'Escribe en español neutro, en frases breves, sin juicios ni culpa. Deja vacías las listas que no apliquen.',
 ].join('\n');
 
 /** La salida del modelo, ítem por ítem: los inválidos se descartan y se cuentan (LD17). */
@@ -76,6 +95,24 @@ export class AiService {
         maxOutputTokens: NOTE_DRAFTS_MAX_OUTPUT_TOKENS,
       },
       parseNoteDrafts,
+    );
+  }
+
+  /** LD14: retroalimentación de una respuesta abierta; no toca FSRS ni califica. */
+  async feedback(userId: string, request: AiFeedbackRequest): Promise<AiOpenFeedback> {
+    return this.run(
+      userId,
+      {
+        name: 'open_feedback',
+        instructions: FEEDBACK_INSTRUCTIONS,
+        input: `Pregunta:\n${request.question}\n\nClave:\n${request.key}\n\nSu respuesta:\n${request.answer}`,
+        schema: FEEDBACK_SCHEMA,
+        maxOutputTokens: FEEDBACK_MAX_OUTPUT_TOKENS,
+      },
+      (output) => {
+        const parsed = AiOpenFeedbackSchema.safeParse(output);
+        return parsed.success ? parsed.data : null;
+      },
     );
   }
 

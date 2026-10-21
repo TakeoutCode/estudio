@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { AiDraftSchema } from '../domain/ai.js';
+import { AiDraftSchema, AiFeedbackSchema } from '../domain/ai.js';
 import { ContrastGroupSchema } from '../domain/contrast.js';
 import { DeckSchema } from '../domain/deck.js';
 import { ExamSchema } from '../domain/exam.js';
@@ -39,6 +39,7 @@ export const SYNC_ROW_SCHEMAS = {
   reviewLog: ReviewLogSchema,
   timerBlockLog: TimerBlockLogSchema,
   rewardRedemption: RewardRedemptionSchema,
+  aiFeedback: AiFeedbackSchema,
 } as const satisfies Partial<Record<EntityName, z.ZodType>>;
 
 export type SyncedEntity = keyof typeof SYNC_ROW_SCHEMAS;

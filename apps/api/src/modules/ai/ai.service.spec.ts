@@ -145,3 +145,34 @@ describe('LD14-LD17: borradores de notas', () => {
     expect(high.metrics.failing(NOW)).toEqual(['ai_budget']);
   });
 });
+
+describe('LD14: retroalimentación de respuestas abiertas', () => {
+  const feedback = {
+    covered: ['Nombra el nervio axilar'],
+    missing: ['Falta de qué fascículo sale'],
+    misconceptions: [],
+    suggestion: 'Agrega el origen en el plexo braquial.',
+  };
+  const request = {
+    question: '¿Qué inerva el axilar?',
+    key: 'Deltoides y redondo menor',
+    answer: 'El deltoides',
+  };
+
+  it('manda pregunta, clave y respuesta; devuelve la retroalimentación validada, sin puntaje', async () => {
+    const { service, run, repo } = setup([ok(feedback)]);
+    expect(await service.feedback(USER, request)).toEqual(feedback);
+    const task = run.mock.calls[0]?.[0];
+    expect(task?.name).toBe('open_feedback');
+    expect(task?.input).toContain('Deltoides y redondo menor');
+    expect(task?.input).toContain('El deltoides');
+    expect(task?.instructions).toMatch(/No pongas nota/);
+    expect(repo.usage.map((u) => u.task)).toEqual(['open_feedback']);
+  });
+
+  it('una salida con puntaje o de otra forma no pasa (LD15): se reintenta y luego 503', async () => {
+    const { service, repo } = setup([ok({ ...feedback, score: 7 }), ok({ nada: true })]);
+    expect(await code(service.feedback(USER, request))).toBe('unavailable');
+    expect(repo.usage.map((u) => u.status)).toEqual(['invalid', 'invalid']);
+  });
+});

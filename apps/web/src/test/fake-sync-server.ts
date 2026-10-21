@@ -48,8 +48,7 @@ export class FakeSyncServer {
       return Promise.reject(new ApiError(400, 'validation_failed'));
     const results = request.mutations.map((m): PushResult => {
       if (this.applied.has(m.mutationId)) return { mutationId: m.mutationId, status: 'duplicate' };
-      const schema = SYNC_ROW_SCHEMAS[m.entity as SyncedEntity] as
-        (typeof SYNC_ROW_SCHEMAS)[SyncedEntity] | undefined;
+      const schema = SYNC_ROW_SCHEMAS[m.entity] as (typeof SYNC_ROW_SCHEMAS)[SyncedEntity] | undefined;
       const parsed = schema?.safeParse(m.row);
       if (!parsed?.success)
         return { mutationId: m.mutationId, status: 'rejected', code: 'validation_failed' };
@@ -64,7 +63,7 @@ export class FakeSyncServer {
         return { mutationId: m.mutationId, status: 'stale' };
       }
       this.seq += 1n;
-      this.rows.set(key, { entity: m.entity as SyncedEntity, row, seq: this.seq });
+      this.rows.set(key, { entity: m.entity, row, seq: this.seq });
       return { mutationId: m.mutationId, status: 'applied' };
     });
     if (this.dropNextPushResponse) {

@@ -102,3 +102,42 @@ export type AiDraft = z.infer<typeof AiDraftSchema>;
 /** LD16: sin respaldo y sin editar no se puede aceptar. */
 export const canAcceptAiDraft = (draft: Pick<AiDraft, 'supported' | 'edited' | 'status'>): boolean =>
   draft.status === 'draft' && (draft.supported || draft.edited);
+
+/** LD15: cuántos puntos por lista; más no se lee con calma. Límite de diseño. */
+export const AI_FEEDBACK_POINTS_MAX = 8;
+const feedbackPoint = z.string().trim().min(1).max(300);
+
+/**
+ * LD15: retroalimentación de una respuesta abierta frente a su clave. Sin nota numérica: la
+ * calificación es de ella (LD14).
+ */
+export const AiOpenFeedbackSchema = z
+  .object({
+    covered: z.array(feedbackPoint).max(AI_FEEDBACK_POINTS_MAX),
+    missing: z.array(feedbackPoint).max(AI_FEEDBACK_POINTS_MAX),
+    misconceptions: z.array(feedbackPoint).max(AI_FEEDBACK_POINTS_MAX),
+    suggestion: z.string().trim().max(500),
+  })
+  .strict();
+export type AiOpenFeedback = z.infer<typeof AiOpenFeedbackSchema>;
+
+/** `POST /ai/feedback`: la pregunta (en un caso clínico, con la viñeta), su clave y lo que escribió. */
+export const AiFeedbackRequestSchema = z
+  .object({
+    question: z.string().trim().min(1).max(8000),
+    key: z.string().trim().min(1).max(2000),
+    answer: z.string().trim().min(1).max(2000),
+  })
+  .strict();
+export type AiFeedbackRequest = z.infer<typeof AiFeedbackRequestSchema>;
+
+/** La retroalimentación que pidió para una tarjeta (solo inserción, SYNC §1). */
+export const AiFeedbackSchema = z
+  .object({
+    id: z.uuid(),
+    cardId: z.uuid(),
+    requestedAt: z.number().int().nonnegative(),
+    feedback: AiOpenFeedbackSchema,
+  })
+  .strict();
+export type AiFeedback = z.infer<typeof AiFeedbackSchema>;

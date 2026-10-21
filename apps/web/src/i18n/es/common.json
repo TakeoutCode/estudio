@@ -1109,5 +1109,21 @@
     "editFirst": "Esta cita no aparece tal cual en tu texto: revisa y edita el borrador antes de aceptarlo.",
     "invalid": "Así no forma una tarjeta válida: revisa los huecos {{c1::…}} o que la respuesta correcta esté entre las opciones.",
     "saveFailed": "No se pudo guardar. Intenta de nuevo."
+  },
+  "aiFeedback": {
+    "ask": "Pedir retroalimentación con IA",
+    "asking": "Pidiendo…",
+    "title": "Retroalimentación de la IA",
+    "covered": "Cubriste",
+    "missing": "Te faltó",
+    "misconceptions": "Revisa esto",
+    "suggestion": "Para la próxima:",
+    "empty": "La IA no encontró nada que señalar frente a tu clave.",
+    "yours": "Es una opinión de la IA frente a tu clave: la calificación sigue siendo tuya.",
+    "error": {
+      "quota": "Ya usaste la IA de hoy. Disponible de nuevo a las 00:00.",
+      "offline": "Requiere conexión.",
+      "failed": "No se pudo pedir la retroalimentación. Puedes calificarte igual."
+    }
   }
 }

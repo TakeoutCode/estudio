@@ -1,8 +1,8 @@
-import { type AiDraft, newId } from '@estudio/shared';
+import { type AiDraft, type AiFeedback, newId } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
-import { syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
+import { insertAppendSql, syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
 import type { ApplyStatus } from '../sync/sync-handler.js';
 
 export interface UsageToday {
@@ -75,13 +75,29 @@ export class AiRepository {
     return rows.length > 0 ? 'applied' : 'stale';
   }
 
-  /** BE2: el mazo o la nota existen y son de ella (aunque estén borrados). */
-  async owns(table: 'deck' | 'note', userId: string, id: string): Promise<boolean> {
+  async insertFeedback(userId: string, f: AiFeedback): Promise<ApplyStatus> {
+    const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>(
+      insertAppendSql('ai_feedback', [
+        { name: 'id', value: f.id, cast: 'uuid' },
+        { name: 'user_id', value: userId, cast: 'uuid' },
+        { name: 'card_id', value: f.cardId, cast: 'uuid' },
+        { name: 'requested_at', value: f.requestedAt, cast: 'bigint' },
+        { name: 'feedback', value: JSON.stringify(f.feedback), cast: 'jsonb' },
+      ]),
+    );
+    return rows.length > 0 ? 'applied' : 'duplicate';
+  }
+
+  /** BE2: el mazo, la nota o la tarjeta existen y son de ella (aunque estén borrados). */
+  async owns(table: 'deck' | 'note' | 'card', userId: string, id: string): Promise<boolean> {
     const rows =
-      table === 'deck'
+      table === 'card'
         ? await this.tx.$queryRaw<unknown[]>`
+            SELECT 1 FROM "card" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`
+        : table === 'deck'
+          ? await this.tx.$queryRaw<unknown[]>`
             SELECT 1 FROM "deck" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`
-        : await this.tx.$queryRaw<unknown[]>`
+          : await this.tx.$queryRaw<unknown[]>`
             SELECT 1 FROM "note" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;
     return rows.length > 0;
   }

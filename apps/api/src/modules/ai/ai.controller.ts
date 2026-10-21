@@ -1,4 +1,11 @@
-import { type AiDraftRequest, AiDraftRequestSchema, type AiDraftResponse } from '@estudio/shared';
+import {
+  type AiDraftRequest,
+  AiDraftRequestSchema,
+  type AiDraftResponse,
+  type AiFeedbackRequest,
+  AiFeedbackRequestSchema,
+  type AiOpenFeedback,
+} from '@estudio/shared';
 import { Body, Controller, Header, HttpCode, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ZodPipe } from '../../common/zod.pipe.js';
@@ -23,5 +30,17 @@ export class AiController {
     @Body(new ZodPipe(AiDraftRequestSchema)) body: AiDraftRequest,
   ): Promise<AiDraftResponse> {
     return this.ai.draftNotes(user.id, body);
+  }
+
+  /** LD14: retroalimentación de su respuesta abierta frente a su clave; ella se califica. */
+  @Post('feedback')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  @Throttle(AI_CALLS)
+  feedback(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(AiFeedbackRequestSchema)) body: AiFeedbackRequest,
+  ): Promise<AiOpenFeedback> {
+    return this.ai.feedback(user.id, body);
   }
 }

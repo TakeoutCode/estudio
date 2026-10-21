@@ -73,6 +73,7 @@ const ORDER = [
   'sleepLog',
   'reward',
   'rewardRedemption',
+  'aiFeedback',
   'reviewLog',
 ] as const satisfies readonly SyncedEntity[];
 
@@ -101,7 +102,7 @@ export async function importBackup(
         return { hlc, updatedAt: hlcWall(hlc) };
       };
       const append = async (
-        entity: 'reviewLog' | 'timerBlockLog' | 'rewardRedemption',
+        entity: 'reviewLog' | 'timerBlockLog' | 'rewardRedemption' | 'aiFeedback',
         row: Readonly<Record<string, unknown>> & { readonly id: string },
       ) => {
         const table = database.table<{ id: string }, string>(TABLE_FOR[entity]);
@@ -271,6 +272,12 @@ export async function importBackup(
               const rewardId = ids.ref(redemption.rewardId);
               if (rewardId)
                 await append('rewardRedemption', { ...redemption, id: ids.own(redemption.id), rewardId });
+            }
+            break;
+          case 'aiFeedback':
+            for (const feedback of entities.aiFeedback) {
+              const cardId = ids.ref(feedback.cardId);
+              if (cardId) await append('aiFeedback', { ...feedback, id: ids.own(feedback.id), cardId });
             }
             break;
           case 'reviewLog':

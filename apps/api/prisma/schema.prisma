@@ -43,6 +43,7 @@ model User {
   rewardRedemptions      RewardRedemption[]
   aiDrafts               AiDraft[]
   aiUsage                AiUsage[]
+  aiFeedback             AiFeedback[]
   pushSubscriptions      PushSubscription[]
   notificationEvents     NotificationEvent[]
   scheduledNotifications ScheduledNotification[]
@@ -409,6 +410,21 @@ model AiDraft {
 
   @@index([userId, serverSeq])
   @@map("ai_draft")
+}
+
+/// LD14: la retroalimentación de IA que ella pidió para una respuesta abierta. Solo inserción
+/// (trigger ai_feedback_append_only en la migración); sin nota numérica.
+model AiFeedback {
+  id          String @id @db.Uuid
+  userId      String @map("user_id") @db.Uuid
+  cardId      String @map("card_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  requestedAt BigInt @map("requested_at")
+  feedback    Json
+  serverSeq   BigInt @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("ai_feedback")
 }
 
 /// LD17 y BE6: un intento con la IA, para la cuota diaria y la revisión de costos. Nunca guarda

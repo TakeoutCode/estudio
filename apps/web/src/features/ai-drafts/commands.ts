@@ -4,6 +4,10 @@ import {
   type AiDraftResponse,
   AiDraftResponseSchema,
   AiDraftSchema,
+  type AiFeedbackRequest,
+  AiFeedbackSchema,
+  type AiOpenFeedback,
+  AiOpenFeedbackSchema,
   type AiNoteDraft,
   AiNoteDraftSchema,
   canAcceptAiDraft,
@@ -133,4 +137,32 @@ export async function rejectAiDraft(
     if (row.status === 'draft') await writeDraft(database, { ...row, status: 'rejected' }, now);
   });
   syncScheduler.poke();
+}
+
+/** El pedido de retroalimentación a la API (con red); en las pruebas se reemplaza. */
+export type AiFeedbackRequester = (request: AiFeedbackRequest) => Promise<AiOpenFeedback>;
+
+const feedbackFromApi: AiFeedbackRequester = (request) =>
+  authorizedApi('/ai/feedback', { method: 'POST', body: request, schema: AiOpenFeedbackSchema });
+
+/**
+ * LD14: retroalimentación de su respuesta abierta frente a su clave. Se guarda (solo inserción)
+ * para poder volver a verla; no califica ni toca FSRS: la calificación sigue siendo de ella.
+ */
+export async function requestAiFeedback(
+  cardId: string,
+  request: AiFeedbackRequest,
+  {
+    database = defaultDb,
+    now = Date.now(),
+    ask = feedbackFromApi,
+  }: CommandOptions & { readonly ask?: AiFeedbackRequester } = {},
+): Promise<AiOpenFeedback> {
+  const feedback = await ask(request);
+  const row = AiFeedbackSchema.parse({ id: newId(), cardId, requestedAt: now, feedback });
+  await database.transaction('rw', [database.aiFeedback, database.outbox, database.meta], () =>
+    writeAndQueue(database, 'aiFeedback', row, now),
+  );
+  syncScheduler.poke();
+  return feedback;
 }

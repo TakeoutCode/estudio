@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newId } from '../ids.js';
 import { encodeHlc } from '../sync/hlc.js';
+import { ENTITY_STRATEGY } from '../sync/entities.js';
 import { SYNC_ROW_SCHEMAS } from '../sync/row-schemas.js';
 import {
   AI_INPUT_MAX_LENGTH,
@@ -8,8 +9,11 @@ import {
   aiDraftToNoteContent,
   AiDraftRequestSchema,
   AiDraftSchema,
+  AiFeedbackRequestSchema,
+  AiFeedbackSchema,
   type AiNoteDraft,
   AiNoteDraftSchema,
+  AiOpenFeedbackSchema,
   canAcceptAiDraft,
   isQuoteInSource,
 } from './ai.js';
@@ -90,5 +94,31 @@ describe('LD15: borradores de nota de la IA', () => {
     expect(canAcceptAiDraft({ ...row, edited: true })).toBe(true);
     expect(canAcceptAiDraft({ ...row, supported: true })).toBe(true);
     expect(canAcceptAiDraft({ ...row, supported: true, status: 'accepted' })).toBe(false);
+  });
+});
+
+describe('LD15: retroalimentación de respuestas abiertas', () => {
+  const feedback = {
+    covered: ['Nombra el nervio axilar'],
+    missing: ['Falta de qué fascículo sale'],
+    misconceptions: [],
+    suggestion: 'Agrega el origen en el plexo braquial.',
+  };
+
+  it('sin nota numérica ni campos de más: la calificación es de ella (LD14)', () => {
+    expect(AiOpenFeedbackSchema.safeParse(feedback).success).toBe(true);
+    expect(AiOpenFeedbackSchema.safeParse({ ...feedback, score: 0.8 }).success).toBe(false);
+    expect(AiOpenFeedbackSchema.safeParse({ ...feedback, rating: 3 }).success).toBe(false);
+    expect(AiOpenFeedbackSchema.safeParse({ ...feedback, covered: Array(9).fill('x') }).success).toBe(false);
+  });
+
+  it('el pedido lleva pregunta, clave y respuesta; se guarda como solo inserción', () => {
+    expect(AiFeedbackRequestSchema.safeParse({ question: 'q', key: 'k', answer: 'a' }).success).toBe(true);
+    expect(AiFeedbackRequestSchema.safeParse({ question: 'q', key: 'k', answer: '  ' }).success).toBe(false);
+    expect(ENTITY_STRATEGY.aiFeedback).toBe('append');
+    expect(SYNC_ROW_SCHEMAS.aiFeedback).toBe(AiFeedbackSchema);
+    expect(
+      AiFeedbackSchema.safeParse({ id: newId(), cardId: newId(), requestedAt: 1, feedback }).success,
+    ).toBe(true);
   });
 });

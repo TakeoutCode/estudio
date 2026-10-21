@@ -10,6 +10,7 @@ import {
 import { isTypedAnswerCorrect, sequenceInversions, shuffledSequence, toRating } from '@estudio/srs';
 import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AiFeedbackPanel } from '@/features/ai-drafts';
 import { moved, OrderList } from '@/features/exercises';
 import { LabelFigure, OcclusionFigure } from '@/features/media';
 import { RatingButton } from '@/ui/RatingButton';
@@ -209,6 +210,15 @@ export function CardBody({
                 <Labeled label={t('study.open.yours')} text={attempt.text} />
                 <Labeled label={t('study.open.key')} text={content.key} strong />
               </>
+            ) : null}
+            {/* LD14: opcional; la calificación sigue siendo de ella. */}
+            {attempt?.kind === 'written' ? (
+              <AiFeedbackPanel
+                cardId={card.cardId}
+                question={card.prompt}
+                answerKey={card.answer}
+                answer={attempt.text}
+              />
             ) : null}
             {attempt?.kind === 'scored' && content.kind === 'sequence' ? (
               <SequenceResult items={content.items} answer={attempt.answer} />

@@ -44,7 +44,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.decks.toArray()).toEqual([{ ...deck, pausedAt: null }]); // v9: activo
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
@@ -73,7 +73,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
     expect(await current.reviewLogs.toArray()).toEqual([log]);
@@ -94,7 +94,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([{ ...note, tagIds: [], mnemonic: null }]); // v13 y v16
     current.close();
@@ -116,7 +116,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.timerBlockLogs.toArray()).toEqual([{ ...block, extended: false }]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     current.close();
@@ -139,7 +139,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([{ ...note, tagIds: [], mnemonic: null }]); // v13 y v16
     expect(await current.outbox.toArray()).toEqual([pending]);
@@ -170,7 +170,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.decks.toArray()).toEqual([{ ...deck, pausedAt: null }]);
     expect(await current.outbox.toArray()).toEqual([pending]); // la api completa el campo al recibirlo
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
@@ -206,7 +206,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.decks.toArray()).toEqual([deck]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.mediaAssets.count()).toBe(0);
@@ -240,7 +240,7 @@ describe('migraciones de Dexie: grupos de contraste (R9, LD10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.contrastGroups.count()).toBe(0);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.pendingUploads.count()).toBe(1);
@@ -273,7 +273,7 @@ describe('migraciones de Dexie: registro de sueño (§5)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.sleepLogs.count()).toBe(0);
     expect(await current.contrastGroups.toArray()).toEqual([group]);
     expect(await current.outbox.toArray()).toEqual([pending]);
@@ -307,7 +307,7 @@ describe('migraciones de Dexie: etiquetas', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.tags.count()).toBe(0);
     expect(await current.notes.toArray()).toEqual([{ ...note, tagIds: [], mnemonic: null }]);
     expect(await current.outbox.toArray()).toEqual([pending]); // la api completa el campo al recibirlo
@@ -345,7 +345,7 @@ describe('migraciones de Dexie: premios (UX10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.rewards.count()).toBe(0);
     expect(await current.rewardRedemptions.count()).toBe(0);
     expect(await current.tags.toArray()).toEqual([tag]);
@@ -382,7 +382,7 @@ describe('migraciones de Dexie: diagnósticos (FE13)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.diagnostics.count()).toBe(0);
     expect(await current.rewards.toArray()).toEqual([reward]);
     expect(await current.outbox.toArray()).toEqual([pending]);
@@ -420,7 +420,7 @@ describe('migraciones de Dexie: mnemotecnias (R14)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.notes.toArray()).toEqual([{ ...note, mnemonic: null }]);
     expect(await current.outbox.toArray()).toEqual([pending]); // la api completa el campo al recibirlo
     // v16 no toca el cursor; la v17 (borradores de IA) sí lo vuelve a 0.
@@ -458,9 +458,48 @@ describe('migraciones de Dexie: borradores de IA (LD16)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(17);
+    expect(current.verno).toBe(18);
     expect(await current.aiDrafts.count()).toBe(0);
     expect(await current.notes.toArray()).toEqual([note]);
+    expect(await current.outbox.toArray()).toEqual([pending]);
+    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
+    current.close();
+  });
+});
+
+describe('migraciones de Dexie: retroalimentación de IA (LD14)', () => {
+  it('v17 → v18: aparece la tabla de retroalimentación; el cursor vuelve a 0; lo demás intacto', async () => {
+    const name = `migracion-${newId()}`;
+    names.push(name);
+    const v17 = openVersion1(name);
+    v17.version(2).stores({ userSettings: 'id, section' });
+    v17.version(3).stores({ notes: 'id, deckId', cards: 'id, noteId' });
+    v17.version(4).stores({ timerSessions: 'id, state', timerBlockLogs: 'id, timerSessionId, endedAt' });
+    v17.version(5).stores({});
+    v17.version(6).stores({ topics: 'id, deckId', selfExplanations: 'id, topicId' });
+    v17.version(7).stores({ exams: 'id, date' });
+    v17.version(8).stores({ studySessions: 'id, examId' });
+    v17.version(9).stores({});
+    v17.version(10).stores({ mediaAssets: 'id', pendingUploads: 'assetId' });
+    v17.version(11).stores({ contrastGroups: 'id' });
+    v17.version(12).stores({ sleepLogs: 'id, date' });
+    v17.version(13).stores({ tags: 'id', notes: 'id, deckId, *tagIds' });
+    v17.version(14).stores({ rewards: 'id', rewardRedemptions: 'id, rewardId' });
+    v17.version(15).stores({ diagnostics: 'id, occurredAt, sent, sentAt' });
+    v17.version(16).stores({});
+    v17.version(17).stores({ aiDrafts: 'id, deckId, status' });
+    const draft = { id: newId(), deckId: newId(), status: 'draft', deletedAt: null };
+    const pending = { mutationId: newId(), op: 'upsert', entity: 'aiDraft', row: draft, createdAt: 1 };
+    await v17.table('aiDrafts').add(draft);
+    await v17.table('outbox').add(pending);
+    await v17.table('meta').put({ key: 'syncCursor', value: '3000' });
+    v17.close();
+
+    const current = new EstudioDb(name);
+    await current.open();
+    expect(current.verno).toBe(18);
+    expect(await current.aiFeedback.count()).toBe(0);
+    expect(await current.aiDrafts.toArray()).toEqual([draft]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     current.close();
