@@ -12,6 +12,7 @@ const base = {
   VAPID_PRIVATE_KEY: 'privada',
   VAPID_SUBJECT: 'mailto:avisos@ejemplo.mx',
   CLOUDINARY_URL: 'cloudinary://123456789012345:secreto@estudio-demo',
+  HEALTH_CHECK_TOKEN: 't'.repeat(40),
 };
 
 describe('EnvSchema (BACKEND BE4)', () => {
@@ -71,6 +72,14 @@ describe('EnvSchema (BACKEND BE4)', () => {
     ]) {
       expect(EnvSchema.safeParse({ ...base, CLOUDINARY_URL: url }).success).toBe(false);
     }
+  });
+
+  it('QA8: en producción exige HEALTH_CHECK_TOKEN de 32 caracteres; fuera de ella es opcional', () => {
+    const without = { ...base, HEALTH_CHECK_TOKEN: undefined };
+    expect(EnvSchema.safeParse(without).success).toBe(false);
+    expect(EnvSchema.safeParse({ ...without, NODE_ENV: 'development' }).success).toBe(true);
+    expect(EnvSchema.safeParse({ ...base, NODE_ENV: 'test', HEALTH_CHECK_TOKEN: '' }).success).toBe(true);
+    expect(EnvSchema.safeParse({ ...base, HEALTH_CHECK_TOKEN: 'corto' }).success).toBe(false);
   });
 
   it('rechaza una URL de base que no es Postgres', () => {

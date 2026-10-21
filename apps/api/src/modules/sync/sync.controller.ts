@@ -6,9 +6,10 @@ import {
   PushRequestSchema,
   type PushResponse,
 } from '@estudio/shared';
-import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, UseInterceptors } from '@nestjs/common';
 import { ZodPipe } from '../../common/zod.pipe.js';
 import { type AuthUser, CurrentUser } from '../auth/current-user.js';
+import { SyncPushMetrics } from './sync-push.metrics.js';
 import { SyncService } from './sync.service.js';
 
 @Controller('sync')
@@ -17,6 +18,7 @@ export class SyncController {
 
   @Post('push')
   @HttpCode(200)
+  @UseInterceptors(SyncPushMetrics) // QA8
   push(
     @CurrentUser() user: AuthUser,
     @Body(new ZodPipe(PushRequestSchema)) body: PushRequest,

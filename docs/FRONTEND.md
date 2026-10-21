@@ -101,6 +101,8 @@ export async function renameDeck(id: DeckId, name: string) {
 **FE12 · DEBE** implementar los atajos en un único hook: `Espacio`/`Enter` revelan, `1`-`4` califican y `?` muestra la ayuda. Se ignoran con el foco en `input`, `textarea` o `contenteditable`, y ningún atajo salta el intento (R1). *Razón:* en la PC se estudia con teclado, y en "escribir respuesta" las teclas son texto.
 
 **FE13 · DEBE** capturar errores con un error boundary por ruta, `window.onerror` y `unhandledrejection`, guardarlos en `db.diagnostics` (mensaje, stack, ruta y versión de la app; nunca contenido ni respuestas) y enviarlos a `POST /diagnostics/errors` cuando haya red, hasta 20 por día. *Razón:* sin un servicio externo de errores (ADR-016), así se ven los fallos que ella encuentra sin que tenga que reportarlos.
+- Filtro (`redactErrorText` y `redactRoute` en `shared`, que la API vuelve a aplicar): todo lo citado en el mensaje o el stack se tapa (los errores de JS a veces citan el valor que falló), los ids pasan a `:id`, la ruta va sin búsqueda y un valor lanzado que no es `Error` deja solo su tipo. La versión es `CONTRACT_VERSION`.
+- `db/diagnostics.ts` guarda hasta 50 (los más viejos se van) y el mismo error en la misma ruta una vez por minuto; `sync/diagnostics.ts` los envía al final de cada vuelta de sync, y un fallo al enviarlos no cambia el estado de la sync.
 
 ## 8. Checklist de revisión
 

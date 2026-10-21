@@ -101,6 +101,9 @@ En la web, cabeceras de Vercel: `Content-Security-Policy` con `default-src 'self
 - el gasto de IA del día pasa del 80 % de la cuota;
 - el `p95` de `/sync/push` supera 1 s.
 Logs JSON de pino en Railway con `requestId`, incluidos los errores del cliente (FE13). *Razón:* con una sola usuaria, un fallo de sync o de avisos puede pasar semanas sin que nadie lo note.
+- Los nombres son `database`, `sync_push_errors`, `sync_push_slow`, `cron_stale` y `web_push_gone` (`HealthChecksSchema` en `shared`); con otro token (o sin `HEALTH_CHECK_TOKEN`, que es obligatorio solo en producción) la ruta responde 404.
+- Los contadores viven en memoria de la instancia (`HealthMetrics`, `HEALTH_LIMITS` en el módulo `health`): un push de sync falla solo con un error del servidor (5xx), no con un 4xx del cliente; push y p95 se juzgan desde 20 envíos en la hora, la tasa de 410 en 24 h y desde 5 envíos, para que con una usuaria un fallo suelto no alarme. Tras un deploy, el cron cuenta como detenido solo pasados 15 min desde el arranque.
+- El chequeo del gasto de IA se agrega con el módulo `ai`.
 
 ## 10. Checklist previo a producción
 

@@ -1,7 +1,9 @@
 import { PullResponseSchema, PushResponseSchema } from '@estudio/shared';
+import { z } from 'zod';
 import { db } from '@/db/schema';
 import { authorizedApi, useAuth } from '@/features/auth';
 import { httpMediaTransport, uploadPendingMedia } from '@/features/media';
+import { type DiagnosticsTransport, reportClientError, sendDiagnostics } from './diagnostics';
 import { pushOutbox, syncOnce, type SyncTransport } from './engine';
 import { ensureProjection } from './projection';
 import { SYNC_TIMING, SyncScheduler } from './scheduler';
@@ -15,6 +17,11 @@ const httpTransport: SyncTransport = {
   push: (request) =>
     authorizedApi('/sync/push', { method: 'POST', body: request, schema: PushResponseSchema }),
   pull: (cursor) => authorizedApi(`/sync/pull?cursor=${cursor}`, { schema: PullResponseSchema }),
+};
+
+const httpDiagnostics: DiagnosticsTransport = {
+  send: (report) =>
+    authorizedApi('/diagnostics/errors', { method: 'POST', body: report, schema: z.undefined() }),
 };
 
 const exclusive = (task: () => Promise<void>): Promise<void> =>
@@ -31,6 +38,8 @@ const syncAndProject = async () => {
   // FE8: las imágenes van después de los repasos (R3) y de que su asset llegó por push; lo que
   // termina de subirse se envía en la misma vuelta.
   if ((await uploadPendingMedia(db, httpMediaTransport)) > 0) await pushOutbox(db, httpTransport);
+  // FE13: los errores guardados, al final y sin afectar el estado de la sync.
+  await sendDiagnostics(db, httpDiagnostics, Date.now());
   return report;
 };
 
@@ -70,4 +79,23 @@ export function startSync(): void {
   syncScheduler.now();
   // Una reconstrucción que no terminó (app cerrada a mitad) se retoma al abrir.
   void ensureProjection();
+}
+
+/** FE13: un error que vio un error boundary de ruta. */
+export const reportRouteError = (error: unknown, pathname: string): void => {
+  reportClientError(db, error, pathname);
+};
+
+let capturing = false;
+
+/** FE13: errores sin atrapar y promesas rechazadas sin manejar, con la ruta donde pasaron. */
+export function captureClientErrors(): void {
+  if (capturing) return;
+  capturing = true;
+  window.addEventListener('error', (event) => {
+    reportClientError(db, (event.error as unknown) ?? event.message, window.location.pathname);
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    reportClientError(db, event.reason as unknown, window.location.pathname);
+  });
 }

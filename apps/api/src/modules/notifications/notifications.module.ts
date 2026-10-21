@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HealthModule } from '../health/health.module.js';
 import { NotificationsController } from './notifications.controller.js';
 import { NotificationsRepository } from './notifications.repository.js';
 import { NotificationsScheduler } from './notifications.scheduler.js';
@@ -7,6 +8,7 @@ import { PushSender, WebPushSender } from './push-sender.js';
 
 /** Suscripciones, cron y envíos programados (BACKEND §1, NOTIFICATIONS.md). */
 @Module({
+  imports: [HealthModule],
   controllers: [NotificationsController],
   providers: [
     NotificationsRepository,

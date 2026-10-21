@@ -30,6 +30,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { UseCls } from 'nestjs-cls';
 import { Clock } from '../../common/clock.js';
 import { DomainError } from '../../common/domain-error.js';
+import { HealthMetrics } from '../health/health-metrics.js';
 import { type NewEvent, NotificationsRepository } from './notifications.repository.js';
 import { PushSender } from './push-sender.js';
 import { type ReminderParams, reminderBody, text } from './texts.js';
@@ -70,6 +71,7 @@ export class NotificationsService {
     private readonly repo: NotificationsRepository,
     private readonly sender: PushSender,
     private readonly clock: Clock,
+    private readonly metrics: HealthMetrics,
   ) {}
 
   // ── Desde la app ────────────────────────────────────────────────────────────────
@@ -338,6 +340,7 @@ export class NotificationsService {
       for (const subscription of subscriptions) {
         const result = await this.sender.send(subscription, item.payload, { ttlSec: item.ttlSec });
         await this.repo.recordDelivery(subscription.id, result, new Date(now));
+        this.metrics.recordPushDelivery(now, result === 'gone'); // QA8: tasa de 410
         delivered ||= result === 'ok';
       }
       if (item.eventId === null) return;

@@ -51,6 +51,9 @@ export const EnvSchema = z
     // aquí. Fuera de producción es opcional y, sin ella, la firma responde 503 y las imágenes
     // esperan sin subirse en el dispositivo que las tiene.
     CLOUDINARY_URL: optional(z.string().regex(CLOUDINARY_URL, 'cloudinary_url_format')),
+    // QUALITY QA8: secreto de la ruta que consulta el monitor de disponibilidad. Fuera de
+    // producción es opcional y, sin él, GET /health/checks/:token responde 404.
+    HEALTH_CHECK_TOKEN: optional(z.string().min(32)),
   })
   .refine(
     (env) =>
@@ -63,6 +66,10 @@ export const EnvSchema = z
   .refine((env) => env.NODE_ENV !== 'production' || env.CLOUDINARY_URL !== undefined, {
     path: ['CLOUDINARY_URL'],
     message: 'cloudinary_required_in_production',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.HEALTH_CHECK_TOKEN !== undefined, {
+    path: ['HEALTH_CHECK_TOKEN'],
+    message: 'health_check_token_required_in_production',
   });
 
 export type Env = z.output<typeof EnvSchema>;

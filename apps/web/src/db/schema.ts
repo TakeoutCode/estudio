@@ -23,6 +23,7 @@ import type {
 } from '@estudio/shared';
 import type { CardState } from '@estudio/srs';
 import { type Collection, Dexie, type EntityTable } from 'dexie';
+import type { DiagnosticEntry } from './diagnostics';
 
 /** Entrada del outbox (SYNC §3). Las rechazadas se quedan, visibles en Ajustes (SY8). */
 export interface OutboxEntry extends Mutation {
@@ -88,6 +89,7 @@ export class EstudioDb extends Dexie {
   contrastGroups!: EntityTable<ContrastGroup, 'id'>;
   mediaAssets!: EntityTable<MediaAsset, 'id'>;
   pendingUploads!: EntityTable<PendingUpload, 'assetId'>;
+  diagnostics!: EntityTable<DiagnosticEntry, 'id'>;
   userSettings!: EntityTable<UserSettings, 'id'>;
   selfExplanations!: EntityTable<SelfExplanation, 'id'>;
   studySessions!: EntityTable<StudySession, 'id'>;
@@ -190,6 +192,9 @@ export class EstudioDb extends Dexie {
     this.version(14)
       .stores({ rewards: 'id', rewardRedemptions: 'id, rewardId' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // FE13: errores de este dispositivo esperando a enviarse; no se sincronizan, así que el
+    // cursor no cambia.
+    this.version(15).stores({ diagnostics: 'id, occurredAt, sent, sentAt' });
   }
 }
 

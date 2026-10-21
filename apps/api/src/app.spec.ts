@@ -1,4 +1,4 @@
-import { CONTRACT_HEADER, CONTRACT_VERSION } from '@estudio/shared';
+import { CONTRACT_HEADER, CONTRACT_VERSION, newId } from '@estudio/shared';
 import { Controller, Get, Post } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
@@ -7,10 +7,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { AppModule } from './app.module.js';
 import { configureApp } from './bootstrap.js';
 import { Public } from './modules/auth/public.js';
+import { TokenService } from './modules/auth/token.service.js';
 import { HealthRepository } from './modules/health/health.repository.js';
 import { PrismaService } from './prisma/prisma.service.js';
 
 const WEB = 'http://localhost:5180';
+const HEALTH_TOKEN = 'token-de-salud-de-pruebas-de-al-menos-32';
 
 // Pública para aislar contrato, CSRF y CORS; el access token se prueba en auth.int.spec.ts.
 @Controller('probe')
@@ -29,6 +31,7 @@ class ProbeController {
 
 describe('app (integración HTTP, sin base)', () => {
   let app: NestExpressApplication;
+  let tokens: TokenService;
   const ping = vi.fn<() => Promise<void>>();
 
   beforeAll(async () => {
@@ -40,6 +43,7 @@ describe('app (integración HTTP, sin base)', () => {
       .compile();
     app = configureApp(moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false }));
     await app.init();
+    tokens = moduleRef.get(TokenService);
   });
 
   afterAll(async () => {
@@ -59,6 +63,42 @@ describe('app (integración HTTP, sin base)', () => {
     const res = await request(app.getHttpServer()).get('/health').expect(503);
     expect(res.headers['content-type']).toContain('application/problem+json');
     expect(res.body).toMatchObject({ code: 'unavailable' });
+  });
+
+  it('QA8: GET /health/checks/:token solo con el token; 503 con los nombres de lo que falla', async () => {
+    await request(app.getHttpServer()).get('/health/checks/otro-token-de-al-menos-32-caracteres').expect(404);
+    await request(app.getHttpServer())
+      .get(`/health/checks/${HEALTH_TOKEN}`)
+      .expect(200, { status: 'ok', failing: [] });
+    ping.mockRejectedValue(new Error('connection refused'));
+    await request(app.getHttpServer())
+      .get(`/health/checks/${HEALTH_TOKEN}`)
+      .expect(503, { status: 'failing', failing: ['database'] });
+  });
+
+  it('FE13: POST /diagnostics/errors pide sesión y valida el lote', async () => {
+    const report = {
+      errors: [
+        {
+          id: newId(),
+          message: 'TypeError: x is undefined',
+          stack: null,
+          route: '/study',
+          appVersion: '19',
+          occurredAt: Date.now(),
+        },
+      ],
+    };
+    const post = () =>
+      request(app.getHttpServer()).post('/diagnostics/errors').set(CONTRACT_HEADER, String(CONTRACT_VERSION));
+    await post().send(report).expect(401);
+    const { token } = await tokens.issueAccess(newId());
+    await post().set('Authorization', `Bearer ${token}`).send(report).expect(204);
+    const invalid = await post()
+      .set('Authorization', `Bearer ${token}`)
+      .send({ errors: [{ ...report.errors[0], answer: 'el fémur' }] })
+      .expect(422);
+    expect(invalid.body).toMatchObject({ code: 'validation_failed' });
   });
 
   it('ARC6: sin cabecera de contrato responde 426', async () => {

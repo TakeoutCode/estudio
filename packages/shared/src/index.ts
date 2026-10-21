@@ -6,6 +6,7 @@ export * from './time.js';
 export * from './config/study-config.js';
 export * from './config/notification-prefs.js';
 export * from './config/gamification-config.js';
+export * from './diagnostics.js';
 export * from './notifications.js';
 export * from './sync/hlc.js';
 export * from './sync/entities.js';
