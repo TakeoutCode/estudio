@@ -5,5 +5,5 @@
     "module": "preserve",
     "moduleResolution": "bundler"
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", ".size-limit.ts"]
 }

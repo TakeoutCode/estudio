@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --manifest",
     "preview": "vite preview",
+    "size": "size-limit",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.sw.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "lint": "eslint .",
     "test": "vitest run"
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@estudio/config": "workspace:*",
+    "@size-limit/file": "14.2.0",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
@@ -47,6 +49,7 @@
     "fake-indexeddb": "6.2.6",
     "fast-check": "4.10.2",
     "jsdom": "29.1.1",
+    "size-limit": "14.2.0",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "vite": "8.3.4",

@@ -82,7 +82,7 @@ export async function renameDeck(id: DeckId, name: string) {
 ## 6. Rendimiento
 
 **FE9 · DEBE** cumplir estos presupuestos, medidos en CI con Lighthouse y `size-limit`. *Razón:* el uso principal es en iPhone, a menudo con mala señal.
-- JS inicial ≤ 170 KB gzip; la ruta de estudio carga sin el editor.
+- JS inicial ≤ 170 KB gzip; la ruta de estudio carga sin el editor. `apps/web/.size-limit.ts` mide en CI lo que se baja antes de ver Hoy (entrada, `boot` y la ruta inicial con sus importaciones estáticas, según el manifiesto de Vite). Hoy mide unos 269 kB: el límite está en 270 kB para que no crezca mientras se baja a 170 (deuda: React DOM, Dexie, zod y el catálogo i18n entran en el arranque). Lo que no hace falta para la primera pantalla va con `lazy` (la gamificación de Hoy, la IA de la sesión).
 - INP ≤ 100 ms de calificar a ver la siguiente tarjeta en un iPhone de 2020 o posterior.
 - Listas de más de 100 elementos virtualizadas (`@tanstack/react-virtual`).
 - Imágenes con `loading="lazy"`, salvo la tarjeta actual y la siguiente (que se precarga).

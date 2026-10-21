@@ -45,6 +45,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Presupuesto de JS inicial (FRONTEND FE9)
+        run: pnpm --filter @estudio/web size
+
       - name: Ningún secreto en el bundle de la web
         run: |
           if grep -rEl 'sk-[A-Za-z0-9_-]{20,}|CLOUDINARY_API_SECRET|VAPID_PRIVATE' apps/web/dist; then
