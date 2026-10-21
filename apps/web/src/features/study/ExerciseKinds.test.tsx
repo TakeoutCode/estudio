@@ -246,7 +246,7 @@ describe('relacionar columnas (matching, LD §2, LD2)', () => {
     });
   });
 
-  it('LD2: 3 de 4 (s = 0.75 < hardMinScore) es Again y dice lo que eligió', async () => {
+  it('LD2: 2 de 4 (s = 0.5 < hardMinScore) es Again y dice lo que eligió', async () => {
     await only(nerves);
     renderStudy();
     await screen.findByText('Relaciona cada músculo con su inervación.');
