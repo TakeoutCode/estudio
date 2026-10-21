@@ -27,6 +27,29 @@ export const TrueFalseJustifyContentSchema = z
   .strict();
 export type TrueFalseJustifyContent = z.infer<typeof TrueFalseJustifyContentSchema>;
 
+/** Límites de una secuencia (técnicos: lo que cabe ordenar en el teléfono). */
+export const SEQUENCE_ITEMS = { min: 3, max: 10 } as const;
+
+/**
+ * `sequence`: pasos o estructuras en su orden correcto (p. ej. capas de la piel de superficial a
+ * profunda). Se muestran mezclados y el puntaje es Kendall (LD §2).
+ */
+export const SequenceContentSchema = z
+  .object({
+    kind: z.literal('sequence'),
+    /** La consigna: qué ordenar y en qué sentido. */
+    prompt: text(500),
+    /** En el orden correcto. */
+    items: z
+      .array(text(200))
+      .min(SEQUENCE_ITEMS.min)
+      .max(SEQUENCE_ITEMS.max)
+      .refine((items) => new Set(items.map((i) => i.toLowerCase())).size === items.length, 'duplicate_item'),
+    explanation: explanation(),
+  })
+  .strict();
+export type SequenceContent = z.infer<typeof SequenceContentSchema>;
+
 /** `open_question`: escribe su respuesta y se califica al compararla con la clave (LD2). */
 export const OpenQuestionContentSchema = z
   .object({

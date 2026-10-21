@@ -1,6 +1,8 @@
+import { SEQUENCE_ITEMS } from '@estudio/shared';
 import { type RefObject, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EditableExerciseKind, ExerciseDraft } from './draft';
+import { moved, OrderList } from './OrderList';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
@@ -29,6 +31,76 @@ export function ExerciseFields({
   };
 
   switch (kind) {
+    case 'sequence':
+      return (
+        <>
+          <label className="flex flex-col gap-1">
+            <span>{t('exercises.sequence.prompt')}</span>
+            <textarea
+              ref={firstRef}
+              className={field}
+              rows={2}
+              maxLength={500}
+              placeholder={t('exercises.sequence.promptPlaceholder')}
+              value={draft.prompt}
+              onChange={(event) => {
+                set({ prompt: event.target.value });
+              }}
+            />
+          </label>
+          <fieldset className="m-0 flex flex-col gap-2 border-0 p-0" aria-describedby={`${ids}-items`}>
+            <legend className="mb-1">{t('exercises.sequence.items')}</legend>
+            <OrderList
+              rows={draft.items.map((item, i) => ({
+                key: String(i),
+                label: item.trim() === '' ? t('exercises.sequence.step', { n: i + 1 }) : item,
+                content: (
+                  <div className="flex items-center gap-1">
+                    <input
+                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-text ${focus}`}
+                      value={item}
+                      maxLength={200}
+                      aria-label={t('exercises.sequence.step', { n: i + 1 })}
+                      onChange={(event) => {
+                        set({ items: draft.items.map((x, j) => (j === i ? event.target.value : x)) });
+                      }}
+                    />
+                    {draft.items.length > SEQUENCE_ITEMS.min ? (
+                      <button
+                        type="button"
+                        className={`inline-flex size-11 shrink-0 items-center justify-center text-muted ${focus}`}
+                        aria-label={t('exercises.sequence.remove', { n: i + 1 })}
+                        onClick={() => {
+                          set({ items: draft.items.filter((_, j) => j !== i) });
+                        }}
+                      >
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    ) : null}
+                  </div>
+                ),
+              }))}
+              onMove={(index, direction) => {
+                set({ items: moved(draft.items, index, direction) });
+              }}
+            />
+            {draft.items.length < SEQUENCE_ITEMS.max ? (
+              <button
+                type="button"
+                className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`}
+                onClick={() => {
+                  set({ items: [...draft.items, ''] });
+                }}
+              >
+                {t('exercises.sequence.add')}
+              </button>
+            ) : null}
+            <p id={`${ids}-items`} className="m-0 text-caption text-muted">
+              {t('exercises.sequence.hint', { min: SEQUENCE_ITEMS.min, max: SEQUENCE_ITEMS.max })}
+            </p>
+          </fieldset>
+        </>
+      );
     case 'true_false_justify':
       return (
         <>

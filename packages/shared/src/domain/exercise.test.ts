@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newId } from '../ids.js';
 import { encodeHlc } from '../sync/hlc.js';
-import { isExerciseKind } from './exercise.js';
+import { isExerciseKind, SEQUENCE_ITEMS } from './exercise.js';
 import { cardFaces, cardOrdinals, NoteContentSchema, NoteSchema } from './note.js';
 import { CardKindSchema } from './review.js';
 
@@ -54,5 +54,28 @@ describe('ejercicios como tipos de nota (LD §2)', () => {
     expect(isExerciseKind('open_question')).toBe(true);
     expect(isExerciseKind('basic')).toBe(false);
     expect(CardKindSchema.safeParse(tfj.kind).success).toBe(true);
+  });
+});
+
+describe('secuencia (LD §2)', () => {
+  const sequence = {
+    kind: 'sequence',
+    prompt: 'Ordena las capas de la piel, de superficial a profunda.',
+    items: ['Epidermis', 'Dermis', 'Hipodermis'],
+    explanation: '',
+  } as const;
+
+  it('de 3 a 10 elementos distintos en su orden correcto; una Card', () => {
+    expect(NoteSchema.safeParse(note(sequence)).success).toBe(true);
+    expect(NoteContentSchema.safeParse({ ...sequence, items: ['Epidermis', 'Dermis'] }).success).toBe(false);
+    expect(
+      NoteContentSchema.safeParse({ ...sequence, items: ['Dermis', 'dermis', 'Hipodermis'] }).success,
+    ).toBe(false);
+    const many = Array.from({ length: SEQUENCE_ITEMS.max + 1 }, (_, i) => `Paso ${String(i)}`);
+    expect(NoteContentSchema.safeParse({ ...sequence, items: many }).success).toBe(false);
+    const parsed = NoteContentSchema.parse(sequence);
+    expect(cardOrdinals(parsed)).toEqual([0]);
+    expect(cardFaces(parsed, 0).answer).toBe('1. Epidermis\n2. Dermis\n3. Hipodermis');
+    expect(isExerciseKind('sequence')).toBe(true);
   });
 });

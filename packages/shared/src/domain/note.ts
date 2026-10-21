@@ -2,7 +2,11 @@ import { v5 as uuidv5 } from 'uuid';
 import { z } from 'zod';
 import { SyncMetaSchema } from '../sync/contracts.js';
 import { EXPLANATION_MAX_LENGTH, explanation, text } from './content-parts.js';
-import { OpenQuestionContentSchema, TrueFalseJustifyContentSchema } from './exercise.js';
+import {
+  OpenQuestionContentSchema,
+  SequenceContentSchema,
+  TrueFalseJustifyContentSchema,
+} from './exercise.js';
 import { NoteTagIdsSchema } from './tag.js';
 
 // Notas y tarjetas (LEARNING-DESIGN §1). Una `Note` es el contenido que ella crea (en la UI,
@@ -128,6 +132,7 @@ export const NoteContentSchema = z.discriminatedUnion('kind', [
   // Ejercicios de aplicación (LD §2).
   TrueFalseJustifyContentSchema,
   OpenQuestionContentSchema,
+  SequenceContentSchema,
 ]);
 export type NoteContent = z.infer<typeof NoteContentSchema>;
 
@@ -170,6 +175,7 @@ export function cardOrdinals(content: NoteContent): number[] {
     case 'multiple_choice':
     case 'true_false_justify':
     case 'open_question':
+    case 'sequence':
       return [0];
   }
 }
@@ -242,6 +248,11 @@ export function cardFaces(content: NoteContent, ordinal: number): { prompt: stri
       return { prompt: content.statement, answer: content.justification };
     case 'open_question':
       return { prompt: content.question, answer: content.key };
+    case 'sequence':
+      return {
+        prompt: content.prompt,
+        answer: content.items.map((item, i) => `${String(i + 1)}. ${item}`).join('\n'),
+      };
   }
 }
 

@@ -1,6 +1,13 @@
 import { defaultStudyConfig, Rating } from '@estudio/shared';
 import { describe, expect, it } from 'vitest';
-import { fractionScore, isTypedAnswerCorrect, sequenceScore, toRating } from './to-rating.js';
+import {
+  fractionScore,
+  isTypedAnswerCorrect,
+  sequenceInversions,
+  sequenceScore,
+  shuffledSequence,
+  toRating,
+} from './to-rating.js';
 
 const cfg = defaultStudyConfig();
 
@@ -102,5 +109,38 @@ describe('LD2: escribir la respuesta', () => {
     expect(toRating({ kind: 'objective', correct: false }, cfg)).toBe(Rating.Again);
     expect(toRating({ kind: 'objective', correct: true }, cfg)).toBe(Rating.Good);
     expect(toRating({ kind: 'objective', correct: true, chosen: Rating.Easy }, cfg)).toBe(Rating.Easy);
+  });
+});
+
+describe('secuencia en pantalla (LD §2, R1)', () => {
+  const layers = ['Epidermis', 'Dermis', 'Hipodermis', 'Fascia', 'Músculo'];
+
+  it('cuenta los pares al revés', () => {
+    expect(sequenceInversions(layers, layers)).toBe(0);
+    expect(sequenceInversions(['Dermis', 'Epidermis', 'Hipodermis', 'Fascia', 'Músculo'], layers)).toBe(1);
+    expect(sequenceInversions([...layers].reverse(), layers)).toBe(10);
+  });
+
+  it('AG3: el mismo orden con la misma semilla; nunca el correcto', () => {
+    expect(shuffledSequence(layers, 'card:session')).toEqual(shuffledSequence(layers, 'card:session'));
+    for (let i = 0; i < 50; i += 1) {
+      const shown = shuffledSequence(layers, `semilla-${String(i)}`);
+      expect([...shown].sort()).toEqual([...layers].sort());
+      expect(shown).not.toEqual(layers);
+    }
+    expect(shuffledSequence(['a', 'b'], 'x')).toEqual(['b', 'a']);
+    expect(shuffledSequence(['a'], 'x')).toEqual(['a']);
+  });
+
+  it('LD2: el puntaje lleva a la calificación con los umbrales de `exercise`', () => {
+    const almost = sequenceScore(['Dermis', 'Epidermis', 'Hipodermis', 'Fascia', 'Músculo'], layers); // 0.9
+    expect(toRating({ kind: 'scored', score: almost }, cfg)).toBe(Rating.Hard);
+    expect(
+      toRating(
+        { kind: 'scored', score: almost },
+        { ...cfg, exercise: { goodMinScore: 0.9, hardMinScore: 0.5 } },
+      ),
+    ).toBe(Rating.Good);
+    expect(toRating({ kind: 'scored', score: 1, upgradeToEasy: true }, cfg)).toBe(Rating.Easy);
   });
 });

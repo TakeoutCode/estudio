@@ -1,5 +1,5 @@
 import { type NoteContent, Rating } from '@estudio/shared';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
@@ -113,6 +113,94 @@ describe('pregunta abierta (LD §2, LD2)', () => {
       expect(await logs()).toMatchObject([
         { cardKind: 'open_question', rating: Rating.Good, answer: { text: 'Por el nervio axilar.' } },
       ]);
+    });
+  });
+});
+
+describe('ordenar (sequence, LD §2, LD2)', () => {
+  const layers: NoteContent = {
+    kind: 'sequence',
+    prompt: 'Ordena las capas de la piel, de superficial a profunda.',
+    items: ['Epidermis', 'Dermis', 'Hipodermis', 'Fascia'],
+    explanation: 'La hipodermis es tejido adiposo.',
+  };
+
+  /** El orden que se ve en el tablero. */
+  const shown = () =>
+    within(screen.getByRole('region', { name: 'Elementos para ordenar' }))
+      .getAllByRole('listitem')
+      .map((li) => li.querySelector('span:not([aria-hidden])')?.textContent ?? '');
+
+  /** Sube cada elemento hasta su lugar con los botones, como lo haría ella. */
+  const arrange = (target: readonly string[]) => {
+    target.forEach((item, i) => {
+      while (shown().indexOf(item) > i)
+        fireEvent.click(screen.getByRole('button', { name: `Subir: ${item}` }));
+    });
+  };
+
+  it('R1: empieza mezclado; ordenado del todo es Good o Fácil, y el orden queda en el log', async () => {
+    await only(layers);
+    renderStudy();
+    await screen.findByText('Ordena las capas de la piel, de superficial a profunda.');
+    expect(shown()).not.toEqual(['Epidermis', 'Dermis', 'Hipodermis', 'Fascia']);
+    expect(screen.queryByText('Orden correcto')).toBeNull();
+    arrange(['Epidermis', 'Dermis', 'Hipodermis', 'Fascia']);
+    fireEvent.click(screen.getByRole('button', { name: 'Comprobar orden' }));
+    expect(screen.getByText('Todo en orden.')).toBeTruthy();
+    expect(screen.getAllByText('en su lugar')).toHaveLength(4);
+    expect(screen.getByText('La hipodermis es tejido adiposo.')).toBeTruthy(); // R4
+    expect(screen.queryByRole('button', { name: 'Difícil' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Fácil' }));
+    await waitFor(async () => {
+      expect(await logs()).toMatchObject([
+        {
+          cardKind: 'sequence',
+          rating: Rating.Easy,
+          answer: { order: ['Epidermis', 'Dermis', 'Hipodermis', 'Fascia'] },
+        },
+      ]);
+    });
+  });
+
+  it('LD2: con un par al revés (s = 5/6, entre 0.8 y 1) es Hard y solo queda seguir', async () => {
+    await only(layers);
+    renderStudy();
+    await screen.findByText('Ordena las capas de la piel, de superficial a profunda.');
+    arrange(['Dermis', 'Epidermis', 'Hipodermis', 'Fascia']);
+    fireEvent.click(screen.getByRole('button', { name: 'Comprobar orden' }));
+    expect(screen.getByText('1 par quedó al revés.')).toBeTruthy();
+    expect(screen.getByText('lo pusiste en el 2')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir' }));
+    await waitFor(async () => {
+      expect(await logs()).toMatchObject([{ rating: Rating.Hard }]);
+    });
+  });
+});
+
+describe('ordenar · al revés', () => {
+  it('LD2: con el orden invertido (s = 0) es Again', async () => {
+    await only({
+      kind: 'sequence',
+      prompt: 'Ordena de proximal a distal.',
+      items: ['Húmero', 'Radio', 'Escafoides'],
+      explanation: '',
+    });
+    renderStudy();
+    await screen.findByText('Ordena de proximal a distal.');
+    const shown = () =>
+      within(screen.getByRole('region', { name: 'Elementos para ordenar' }))
+        .getAllByRole('listitem')
+        .map((li) => li.querySelector('span:not([aria-hidden])')?.textContent ?? '');
+    ['Escafoides', 'Radio', 'Húmero'].forEach((item, i) => {
+      while (shown().indexOf(item) > i)
+        fireEvent.click(screen.getByRole('button', { name: `Subir: ${item}` }));
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Comprobar orden' }));
+    expect(screen.getByText('3 pares quedaron al revés.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir' }));
+    await waitFor(async () => {
+      expect(await logs()).toMatchObject([{ rating: Rating.Again }]);
     });
   });
 });

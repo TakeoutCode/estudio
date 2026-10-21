@@ -1,4 +1,4 @@
-import type { Confidence } from '@estudio/shared';
+import type { Confidence, Rating } from '@estudio/shared';
 import {
   type CardClock,
   type CardPause,
@@ -30,7 +30,17 @@ export type Attempt =
       readonly justification: string;
       readonly correct: boolean;
     }
-  | { readonly kind: 'written'; readonly text: string };
+  | { readonly kind: 'written'; readonly text: string }
+  /** LD §2: ordenar, relacionar o etiquetar; `rating` sale de `toRating` con el puntaje (LD2). */
+  | {
+      readonly kind: 'scored';
+      readonly score: number;
+      readonly rating: Rating;
+      readonly answer: Readonly<Record<string, unknown>>;
+    };
+
+/** Lo que ella va armando en un ejercicio antes de comprobar (efímero, FE2). */
+export type ExerciseWork = { readonly kind: 'sequence'; readonly order: readonly string[] };
 
 /**
  * Qué se estudia: Hoy mezcla todos los mazos (R9, P4); `deck` aplica el plan a un solo mazo
@@ -89,6 +99,8 @@ interface StudyState {
   readonly confidence: Confidence | null;
   /** null en las tarjetas que ella califica (basic, cloze). */
   readonly attempt: Attempt | null;
+  /** Ordenar, relacionar o etiquetar: lo armado hasta comprobar; se descarta al pasar de tarjeta. */
+  readonly work: ExerciseWork | null;
   readonly answered: number;
   readonly fatigue: FatigueState;
   /** P6: motivos para parar que ella ya vio en esta sesión; no se repiten. */
@@ -101,6 +113,8 @@ interface StudyState {
   readonly reveal: (confidence: Confidence | null, attempt?: Attempt) => void;
   /** R6: confianza antes de escribir o elegir, sin revelar todavía. */
   readonly chooseConfidence: (confidence: Confidence) => void;
+  /** Solo antes del intento (R1): después de comprobar ya no cambia. */
+  readonly setWork: (work: ExerciseWork) => void;
   readonly markAnswered: () => void;
   /** Detiene el reloj de la tarjeta desde `at` (descanso, app oculta o fuera de la sesión). */
   readonly hold: (reason: CardPause, at: number) => void;
@@ -123,6 +137,7 @@ const idle = {
   clock: startCardClock(0),
   confidence: null,
   attempt: null,
+  work: null,
   answered: 0,
   fatigue: { inRow: 0, since: null, showing: false },
   dismissedStops: [],
@@ -141,6 +156,7 @@ export const useStudy = create<StudyState>()((set) => ({
       clock: startCardClock(now, s.clock),
       confidence: null,
       attempt: null,
+      work: null,
     }));
   },
   reveal: (confidence, attempt) => {
@@ -149,6 +165,9 @@ export const useStudy = create<StudyState>()((set) => ({
         ? { phase: 'revealed', confidence: confidence ?? s.confidence, attempt: attempt ?? null }
         : s,
     );
+  },
+  setWork: (work) => {
+    set((s) => (s.currentCardId && s.phase === 'prompt' ? { work } : s));
   },
   chooseConfidence: (confidence) => {
     set((s) => (s.currentCardId && s.phase === 'prompt' ? { confidence } : s));
@@ -159,6 +178,7 @@ export const useStudy = create<StudyState>()((set) => ({
       phase: 'prompt',
       confidence: null,
       attempt: null,
+      work: null,
       answered: s.answered + 1,
     }));
   },

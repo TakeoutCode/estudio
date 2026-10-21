@@ -3,10 +3,12 @@ import {
   cardElapsedMs,
   type CardState,
   isTypedAnswerCorrect,
+  sequenceScore,
   needsTopicIntro,
   nextCard,
   type SessionPlan,
   type TimerBlockRecord,
+  toRating,
 } from '@estudio/srs';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +36,7 @@ import {
   defaultObjectiveRating,
   RatingControls,
   revealsDirectly,
+  sequenceOrder,
 } from './CardView';
 import { answerCard } from './commands';
 import {
@@ -501,6 +504,20 @@ function CurrentCard({
     if (card?.content.kind !== 'open_question') return;
     reveal(null, { kind: 'written', text });
   };
+  // LD §2, LD2: el puntaje de Kendall pasa por `toRating` con los umbrales de `exercise`.
+  const sequence = () => {
+    const state = useStudy.getState();
+    const config = state.session?.ratingConfig;
+    if (card?.content.kind !== 'sequence' || !config) return;
+    const order = sequenceOrder(card, state.work, sessionId);
+    const score = sequenceScore(order, card.content.items);
+    reveal(null, {
+      kind: 'scored',
+      score,
+      rating: toRating({ kind: 'scored', score }, config),
+      answer: { order: [...order] },
+    });
+  };
   const direct = card ? revealsDirectly(card) : true;
   const fallback = attempt ? defaultObjectiveRating(attempt) : null;
 
@@ -586,6 +603,7 @@ function CurrentCard({
             onTyped={typed}
             onVerdict={verdict}
             onWritten={written}
+            onSequence={sequence}
           />
         ) : null}
         {phase === 'revealed' ? (
@@ -606,6 +624,8 @@ function answerOf(attempt: Attempt | null): Record<string, unknown> | undefined 
       return { option: attempt.option };
     case 'verdict':
       return { verdict: attempt.verdict, justification: attempt.justification };
+    case 'scored':
+      return { ...attempt.answer };
     case undefined:
       return undefined;
   }

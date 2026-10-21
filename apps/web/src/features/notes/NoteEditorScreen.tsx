@@ -196,6 +196,7 @@ function NoteForm({
       }
       case 'true_false_justify':
       case 'open_question':
+      case 'sequence':
         return exerciseContent(kind, exerciseDraft, explanation);
     }
   };
@@ -290,6 +291,7 @@ function NoteForm({
     image_occlusion: t('notes.error.occlusion'),
     true_false_justify: t('exercises.error.true_false_justify'),
     open_question: t('exercises.error.open_question'),
+    sequence: t('exercises.error.sequence'),
   }[kind];
   const message = {
     idle: null,

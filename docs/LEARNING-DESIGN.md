@@ -33,6 +33,7 @@ Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una 
 
 Cada tipo es un contenido de `Note` (§1) y se crea desde un mazo con "Nuevo ejercicio". Lo que ella responde queda en `ReviewLog.answer` (R3). Los simulacros (§7) todavía no incluyen ejercicios: muestran cada pregunta como texto.
 - `true_false_justify`: una afirmación, si es verdadera y una justificación de referencia. Intento (R1): elegir verdadera o falsa y escribir por qué; hasta tener ambas no se comprueba. Al revelar se ven el resultado, su justificación, la de referencia y la explicación (R4). Con el V/F errado solo queda seguir (`Again`); acertado, ella dice si su justificación la cubre (`Good`) o le faltó algo (`Hard`), con `toRating()`.
+- `sequence`: una consigna y de 3 a 10 elementos en su orden correcto. Se muestran mezclados con semilla (`shuffledSequence`, nunca ya resueltos) y se ordenan con botones "Subir" y "Bajar" de 44 px, que también sirven con teclado (UX2, UX4). Al comprobar se ven cuántos pares quedaron al revés y el orden correcto con dónde puso ella cada elemento. El puntaje de Kendall pasa por `toRating()`: completo da `Good` (o `Easy` si ella lo elige), desde `exercise.hardMinScore` da `Hard` y lo demás `Again`.
 - `open_question`: una pregunta y su clave (lo que una buena respuesta tendría que cubrir). Intento: escribir la respuesta antes de ver la clave. Luego elige entre los 4 botones; Enter no califica por ella. La retroalimentación de IA queda para cuando exista el módulo `ai` (§8).
 
 ## 3. De la respuesta a la calificación FSRS

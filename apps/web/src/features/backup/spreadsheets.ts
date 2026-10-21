@@ -64,6 +64,8 @@ function faces(content: NoteContent): readonly [string, string] {
       return [content.statement, content.justification];
     case 'open_question':
       return [content.question, content.key];
+    case 'sequence':
+      return [content.prompt, content.items.join(' → ')];
   }
 }
 

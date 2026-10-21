@@ -1,11 +1,12 @@
 import { clozeSegments, type Confidence, Rating } from '@estudio/shared';
-import { toRating } from '@estudio/srs';
+import { sequenceInversions, shuffledSequence, toRating } from '@estudio/srs';
 import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { moved, OrderList } from '@/features/exercises';
 import { OcclusionFigure } from '@/features/media';
 import { RatingButton } from '@/ui/RatingButton';
 import type { StudyCardView } from './queries';
-import { type Attempt, type CardPhase, useStudy } from './store';
+import { type Attempt, type CardPhase, type ExerciseWork, useStudy } from './store';
 
 // Cómo se ve y se intenta cada tipo de LEARNING-DESIGN §1. Antes del intento la respuesta no
 // está en el DOM (R1, FE10); después, siempre con su explicación (R4).
@@ -34,10 +35,32 @@ export const isSelfGraded = (card: StudyCardView): boolean =>
  * respuesta abierta, que ella califica.
  */
 export const defaultObjectiveRating = (attempt: Attempt): Rating | null =>
-  attempt.kind === 'written' ? null : attempt.correct ? Rating.Good : Rating.Again;
+  attempt.kind === 'written'
+    ? null
+    : attempt.kind === 'scored'
+      ? attempt.rating
+      : attempt.correct
+        ? Rating.Good
+        : Rating.Again;
+
+/** R1: el orden en pantalla; mezclado con semilla hasta que ella mueve algo. */
+export function sequenceOrder(
+  card: StudyCardView,
+  work: ExerciseWork | null,
+  sessionId: string,
+): readonly string[] {
+  if (card.content.kind !== 'sequence') return [];
+  return work?.kind === 'sequence'
+    ? work.order
+    : shuffledSequence(card.content.items, `${card.cardId}:${sessionId}`);
+}
 
 /** LD2: las calificaciones que se pueden elegir después del intento. */
 export function allowedRatings(card: StudyCardView, attempt: Attempt | null): readonly Rating[] {
+  // Con puntaje: lo que da `toRating`; con el puntaje completo también puede subir a Fácil.
+  if (attempt?.kind === 'scored') {
+    return attempt.rating === Rating.Good ? [Rating.Good, Rating.Easy] : [attempt.rating];
+  }
   if (isSelfGraded(card) || !attempt || attempt.kind === 'written') return SELF_RATINGS;
   // V/F con justificación: acertar el V/F deja juzgar la justificación (Good o Hard).
   if (attempt.kind === 'verdict') return attempt.correct ? JUSTIFIED_RATINGS : [Rating.Again];
@@ -108,6 +131,7 @@ export function CardBody({
           onChoose={onChoose}
         />
       ) : null}
+      {content.kind === 'sequence' && !revealed ? <SequenceBoard card={card} disabled={!canChoose} /> : null}
       <div aria-live="polite">
         {revealed ? (
           <section className="flex flex-col gap-2 border-t border-muted/30 pt-4">
@@ -134,6 +158,9 @@ export function CardBody({
                 <Labeled label={t('study.open.key')} text={content.key} strong />
               </>
             ) : null}
+            {attempt?.kind === 'scored' && content.kind === 'sequence' ? (
+              <SequenceResult items={content.items} answer={attempt.answer} />
+            ) : null}
             {content.kind === 'basic' || content.kind === 'image_occlusion' ? (
               <>
                 <h2 className="m-0 text-caption font-normal text-muted">{t('study.answer')}</h2>
@@ -147,6 +174,63 @@ export function CardBody({
         ) : null}
       </div>
     </article>
+  );
+}
+
+/** LD §2: ordenar antes de comprobar; lo armado vive en la sesión hasta pasar de tarjeta. */
+function SequenceBoard({ card, disabled }: { readonly card: StudyCardView; readonly disabled: boolean }) {
+  const { t } = useTranslation();
+  const work = useStudy((s) => s.work);
+  const sessionId = useStudy((s) => s.session?.id ?? '');
+  const setWork = useStudy((s) => s.setWork);
+  const order = sequenceOrder(card, work, sessionId);
+  return (
+    <section aria-label={t('study.sequence.board')} className="flex flex-col gap-2">
+      <OrderList
+        rows={order.map((item) => ({ key: item, label: item, content: <span>{item}</span> }))}
+        disabled={disabled}
+        onMove={(index, direction) => {
+          setWork({ kind: 'sequence', order: moved(order, index, direction) });
+        }}
+      />
+    </section>
+  );
+}
+
+/** R4: el orden correcto, con dónde lo puso ella; el color nunca es la única señal (UX4). */
+function SequenceResult({
+  items,
+  answer,
+}: {
+  readonly items: readonly string[];
+  readonly answer: Readonly<Record<string, unknown>>;
+}) {
+  const { t } = useTranslation();
+  const order = Array.isArray(answer.order)
+    ? answer.order.filter((x): x is string => typeof x === 'string')
+    : [];
+  const inversions = order.length === items.length ? sequenceInversions(order, items) : 0;
+  return (
+    <>
+      <p className="m-0 font-semibold">
+        {inversions === 0 ? t('study.sequence.allRight') : t('study.sequence.swapped', { count: inversions })}
+      </p>
+      <h2 className="m-0 text-caption font-normal text-muted">{t('study.sequence.correct')}</h2>
+      <ol className="m-0 flex list-none flex-col gap-1 p-0">
+        {items.map((item, i) => {
+          const placed = order.indexOf(item);
+          return (
+            <li key={item} className="flex items-baseline gap-2">
+              <span className="w-6 shrink-0 text-caption text-muted tabular-nums">{i + 1}.</span>
+              <span className="flex-1">{item}</span>
+              <span className="shrink-0 text-caption text-muted">
+                {placed === i ? t('study.sequence.inPlace') : t('study.sequence.youPut', { n: placed + 1 })}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </>
   );
 }
 
@@ -258,6 +342,7 @@ export function AttemptControls({
   onTyped,
   onVerdict,
   onWritten,
+  onSequence,
 }: {
   readonly card: StudyCardView;
   readonly askConfidence: boolean;
@@ -267,6 +352,8 @@ export function AttemptControls({
   readonly onTyped: (text: string) => void;
   readonly onVerdict: (verdict: boolean, justification: string) => void;
   readonly onWritten: (text: string) => void;
+  /** Ordenar: comprobar el orden que armó en la tarjeta. */
+  readonly onSequence: () => void;
 }) {
   const { t } = useTranslation();
   const direct = revealsDirectly(card);
@@ -283,6 +370,16 @@ export function AttemptControls({
   if (card.content.kind === 'type_answer') return <TypedAttempt onSubmit={onTyped} />;
   if (card.content.kind === 'true_false_justify') return <VerdictAttempt onSubmit={onVerdict} />;
   if (card.content.kind === 'open_question') return <WrittenAttempt onSubmit={onWritten} />;
+  if (card.content.kind === 'sequence') {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="m-0 text-center text-caption text-muted">{t('study.sequence.hint')}</p>
+        <button type="button" className={primary} onClick={onSequence}>
+          {t('study.sequence.check')}
+        </button>
+      </div>
+    );
+  }
   if (card.content.kind === 'multiple_choice') {
     return <p className="m-0 text-center text-caption text-muted">{t('study.objective.choose')}</p>;
   }
@@ -496,15 +593,17 @@ export function RatingControls({
       </div>
     );
   }
-  if (ratings.length === 1) {
-    // LD2: un error en una objetiva es Again fijo; solo queda seguir.
+  const only = ratings.length === 1 ? ratings[0] : undefined;
+  if (only !== undefined) {
+    // LD2: un error en una objetiva es Again fijo, y un puntaje parcial da su calificación; solo
+    // queda seguir.
     return (
       <button
         type="button"
         className={primary}
         disabled={busy}
         onClick={() => {
-          onRate(Rating.Again);
+          onRate(only);
         }}
       >
         {t('study.objective.next')}

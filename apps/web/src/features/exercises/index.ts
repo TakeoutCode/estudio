@@ -8,3 +8,4 @@ export {
   isEditableExerciseKind,
 } from './draft';
 export { ExerciseFields } from './ExerciseFields';
+export { moved, OrderList } from './OrderList';

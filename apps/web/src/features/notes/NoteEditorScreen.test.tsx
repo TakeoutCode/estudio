@@ -344,3 +344,35 @@ describe('editor de notas · ejercicios (?tipo=ejercicio, LD §2)', () => {
     expect(screen.getByLabelText<HTMLTextAreaElement>('Clave de respuesta').value).toBe('Por el axilar.');
   });
 });
+
+describe('editor de notas · ordenar (sequence)', () => {
+  it('escribe los elementos en orden; se reordenan con las flechas y se quitan', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    await createDeck({ name: 'Piel' });
+    render(
+      <MemoryRouter initialEntries={['/notes/new?tipo=ejercicio']}>
+        <NoteEditorScreen />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Ordenar' }));
+    fireEvent.change(screen.getByLabelText('Consigna'), { target: { value: 'De superficial a profunda.' } });
+    fireEvent.change(screen.getByLabelText('Elemento 1'), { target: { value: 'Dermis' } });
+    fireEvent.change(screen.getByLabelText('Elemento 2'), { target: { value: 'Epidermis' } });
+    fireEvent.change(screen.getByLabelText('Elemento 3'), { target: { value: 'Hipodermis' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar elemento' }));
+    fireEvent.change(screen.getByLabelText('Elemento 4'), { target: { value: 'Músculo' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Subir: Epidermis' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar el elemento 4' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect((await db.notes.toArray()).map((n) => n.content)).toEqual([
+        {
+          kind: 'sequence',
+          prompt: 'De superficial a profunda.',
+          items: ['Epidermis', 'Dermis', 'Hipodermis'],
+          explanation: '',
+        },
+      ]);
+    });
+  });
+});

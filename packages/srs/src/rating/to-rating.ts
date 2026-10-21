@@ -1,4 +1,5 @@
 import { type Confidence, type ExamConfig, type ExerciseConfig, Rating } from '@estudio/shared';
+import { unitHash } from '../util/hash.js';
 
 // De la respuesta a la calificación FSRS (LEARNING-DESIGN LD2). Determinista: la misma
 // respuesta da la misma calificación en cualquier dispositivo y al reproducir el log.
@@ -43,8 +44,8 @@ export function toRating(input: RatingInput, cfg: RatingConfig): Rating {
   }
 }
 
-/** Puntaje de una secuencia: `1 − inversiones / inversiones máximas` (Kendall, LD §2). */
-export function sequenceScore(answer: readonly string[], expected: readonly string[]): number {
+/** Pares de una secuencia que quedaron al revés respecto del orden correcto (Kendall). */
+export function sequenceInversions(answer: readonly string[], expected: readonly string[]): number {
   if (answer.length !== expected.length || new Set(answer).size !== answer.length) {
     throw new RangeError('sequence_mismatch');
   }
@@ -54,14 +55,32 @@ export function sequenceScore(answer: readonly string[], expected: readonly stri
     if (rank === undefined) throw new RangeError('sequence_mismatch');
     return rank;
   });
-  if (ranks.length < 2) return 1;
   let inversions = 0;
   for (let i = 0; i < ranks.length; i += 1) {
     for (let j = i + 1; j < ranks.length; j += 1) {
       if ((ranks[i] ?? 0) > (ranks[j] ?? 0)) inversions += 1;
     }
   }
-  return 1 - inversions / ((ranks.length * (ranks.length - 1)) / 2);
+  return inversions;
+}
+
+/** Puntaje de una secuencia: `1 − inversiones / inversiones máximas` (Kendall, LD §2). */
+export function sequenceScore(answer: readonly string[], expected: readonly string[]): number {
+  const inversions = sequenceInversions(answer, expected);
+  if (answer.length < 2) return 1;
+  return 1 - inversions / ((answer.length * (answer.length - 1)) / 2);
+}
+
+/**
+ * R1: el orden con que se muestra una secuencia, mezclado con semilla (AG3) para que se repita
+ * igual al volver a la tarjeta. Con 2 elementos o más nunca es el orden correcto.
+ */
+export function shuffledSequence(items: readonly string[], seed: string): string[] {
+  const keyed = items.map((item, i) => ({ item, key: unitHash(`${seed}:${String(i)}`) }));
+  const shuffled = keyed.sort((a, b) => a.key - b.key).map((k) => k.item);
+  const same = shuffled.every((item, i) => item === items[i]);
+  // Mostrarla ya resuelta no pediría ningún intento: se rota un lugar.
+  return same && shuffled.length > 1 ? [...shuffled.slice(1), ...shuffled.slice(0, 1)] : shuffled;
 }
 
 /** Puntaje de relacionar columnas o etiquetar imagen: aciertos / total. */

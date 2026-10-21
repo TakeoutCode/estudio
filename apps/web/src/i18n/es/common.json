@@ -128,6 +128,17 @@
       "key": "Clave",
       "rateLabel": "Compárala con la clave: ¿cómo te fue?"
     },
+    "sequence": {
+      "board": "Elementos para ordenar",
+      "hint": "Ordénalos con las flechas",
+      "check": "Comprobar orden",
+      "allRight": "Todo en orden.",
+      "swapped_one": "{{count}} par quedó al revés.",
+      "swapped_other": "{{count}} pares quedaron al revés.",
+      "correct": "Orden correcto",
+      "inPlace": "en su lugar",
+      "youPut": "lo pusiste en el {{n}}"
+    },
     "tag": {
       "empty": "No hay tarjetas pendientes con esta etiqueta. Puedes añadir nuevas o elegir otra.",
       "missing": "Esta etiqueta ya no existe; puede que se haya borrado en otro dispositivo."
@@ -203,7 +214,8 @@
       "multiple_choice": "Opción múltiple",
       "image_occlusion": "Imagen con etiquetas",
       "true_false_justify": "Verdadero o falso",
-      "open_question": "Pregunta abierta"
+      "open_question": "Pregunta abierta",
+      "sequence": "Ordenar"
     },
     "kindHint": {
       "basic": "Recuerdas la respuesta, la ves y calificas cómo te fue.",
@@ -212,7 +224,8 @@
       "multiple_choice": "Eliges una de 3 a 5 opciones.",
       "image_occlusion": "Tapas las etiquetas de una imagen tuya; cada una es una tarjeta.",
       "true_false_justify": "Decides si una afirmación es verdadera o falsa y lo justificas; luego la comparas con la de referencia.",
-      "open_question": "Escribes tu respuesta y, al ver la clave, calificas cómo te fue."
+      "open_question": "Escribes tu respuesta y, al ver la clave, calificas cómo te fue.",
+      "sequence": "Pones en orden pasos o estructuras; cuenta cuántos pares quedan al revés."
     },
     "question": "Pregunta",
     "exactAnswer": "Respuesta (corta)",
@@ -371,9 +384,23 @@
       "key": "Clave de respuesta",
       "keyHint": "Lo que una buena respuesta tendría que cubrir. La ves después de escribir la tuya."
     },
+    "sequence": {
+      "prompt": "Consigna",
+      "promptPlaceholder": "Por ejemplo: ordena las capas de la piel, de superficial a profunda",
+      "items": "Elementos en el orden correcto",
+      "step": "Elemento {{n}}",
+      "remove": "Quitar el elemento {{n}}",
+      "add": "Agregar elemento",
+      "hint": "De {{min}} a {{max}}. Al estudiar se muestran mezclados."
+    },
+    "order": {
+      "up": "Subir: {{label}}",
+      "down": "Bajar: {{label}}"
+    },
     "error": {
       "true_false_justify": "Escribe la afirmación, elige si es verdadera o falsa y escribe la justificación de referencia.",
-      "open_question": "Escribe la pregunta y la clave de respuesta."
+      "open_question": "Escribe la pregunta y la clave de respuesta.",
+      "sequence": "Escribe la consigna y de 3 a 10 elementos distintos."
     }
   },
   "tags": {
