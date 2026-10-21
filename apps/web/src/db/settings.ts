@@ -1,4 +1,6 @@
 import {
+  type GamificationConfig,
+  GamificationConfigSchema,
   type NotificationPrefs,
   NotificationPrefsSchema,
   type ProfileSettings,
@@ -33,4 +35,9 @@ export async function readNotificationPrefs(database: EstudioDb): Promise<Notifi
 
 export async function readUiSettings(database: EstudioDb): Promise<UiSettings> {
   return UiSettingsSchema.parse(await sectionData(database, 'ui'));
+}
+
+/** UX10: `enabled` es null hasta que ella responda; cuenta como apagada. */
+export async function readGamificationConfig(database: EstudioDb): Promise<GamificationConfig> {
+  return GamificationConfigSchema.parse(await sectionData(database, 'gamification'));
 }

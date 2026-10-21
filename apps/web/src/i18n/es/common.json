@@ -899,5 +899,103 @@
     "error": {
       "invalid": "Ponle un nombre y elige al menos 2 tarjetas."
     }
+  },
+  "gamification": {
+    "title": "Premios y logros",
+    "back": "Hoy",
+    "off": "Los puntos, niveles y premios están apagados. Puedes activarlos en Ajustes cuando quieras.",
+    "toSettings": "Ir a Ajustes",
+    "unavailable": "No se pudo calcular tu progreso en este dispositivo.",
+    "saveFailed": "No se pudo guardar. Intenta de nuevo.",
+    "question": {
+      "title": "¿Quieres puntos, niveles y premios?",
+      "hint": "Cada tarjeta que respondes suma la misma XP, aciertes o no, y las monedas se canjean por premios que tú defines. Es solo para ti y nada se castiga. Lo cambias cuando quieras en Ajustes.",
+      "yes": "Sí, activarlos",
+      "no": "No, gracias"
+    },
+    "level": "Nivel {{level}}",
+    "levelProgress": "Avance del nivel {{level}}",
+    "xp": "{{xp}} de {{total}} XP",
+    "coins_one": "{{count}} moneda",
+    "coins_other": "{{count}} monedas",
+    "streak_one": "Racha: {{count}} día de estudio",
+    "streak_other": "Racha: {{count}} días de estudio",
+    "streakPaused_one": "Racha en pausa: {{count}} día de estudio",
+    "streakPaused_other": "Racha en pausa: {{count}} días de estudio",
+    "open": "Premios y logros",
+    "balanceLabel": "Tus monedas",
+    "balance_one": "Tienes {{count}} moneda",
+    "balance_other": "Tienes {{count}} monedas",
+    "howXp": "Cada tarjeta que respondes suma la misma XP, aciertes o no. El tiempo con la app abierta no cuenta.",
+    "rewards": {
+      "title": "Tus premios",
+      "empty": "Todavía no hay premios. Agrega algo que te guste: un capítulo, un postre, una salida.",
+      "add": "Nuevo premio",
+      "addButton": "Agregar",
+      "name": "Premio",
+      "placeholder": "Por ejemplo: un capítulo de tu serie",
+      "cost": "Costo en monedas",
+      "redeem": "Canjear",
+      "redeemNamed": "Canjear {{name}}",
+      "edit": "Editar",
+      "editNamed": "Editar {{name}}",
+      "close": "Cerrar",
+      "save": "Guardar",
+      "delete": "Borrar premio",
+      "cancel": "Cancelar",
+      "missing_one": "Te falta {{count}} moneda",
+      "missing_other": "Te faltan {{count}} monedas",
+      "confirmRedeem_one": "¿Canjear {{name}} por {{count}} moneda?",
+      "confirmRedeem_other": "¿Canjear {{name}} por {{count}} monedas?",
+      "confirmDelete": "¿Borrar {{name}}? Lo que ya canjeaste no cambia.",
+      "status": {
+        "invalid": "Escribe un nombre de hasta 80 caracteres y un costo válido.",
+        "failed": "No se pudo guardar. Intenta de nuevo.",
+        "notEnough": "Todavía no alcanzan las monedas para este premio.",
+        "redeemed": "Canjeaste {{name}}. ¡Disfrútalo!"
+      }
+    },
+    "badges": {
+      "title": "Logros",
+      "earned": "Desde el {{date}}",
+      "first_review": {
+        "name": "Primer repaso",
+        "how": "Al responder tu primera tarjeta"
+      },
+      "first_exercise": {
+        "name": "Primer ejercicio",
+        "how": "Al resolver tu primer ejercicio de aplicación"
+      },
+      "first_contrast_set": {
+        "name": "Primer set de contraste",
+        "how": "Al repasar tu primer set de tarjetas que se confunden"
+      },
+      "first_mock": {
+        "name": "Primer simulacro",
+        "how": "Al calificar tu primera pregunta de un simulacro"
+      },
+      "first_focus_block": {
+        "name": "Primer bloque de enfoque",
+        "how": "Al completar tu primer bloque con el temporizador"
+      }
+    },
+    "history": {
+      "title": "Lo que canjeaste",
+      "item_one": "{{count}} moneda · {{date}}",
+      "item_other": "{{count}} monedas · {{date}}"
+    },
+    "celebration": {
+      "level": "Nivel {{level}}",
+      "badge": "Logro: {{name}}"
+    },
+    "settings": {
+      "title": "Puntos y premios",
+      "hint": "Opcional. Su efecto en el estudio no está investigado; lo apagas cuando quieras.",
+      "enabled": "Puntos, niveles y premios",
+      "streak": "Racha de días de estudio",
+      "streakHint": "Un día sin estudiar la pone en pausa; nunca vuelve a cero.",
+      "celebrations": "Celebraciones",
+      "celebrationsHint": "Un aviso breve al subir de nivel o ganar un logro, sin sonido."
+    }
   }
 }

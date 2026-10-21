@@ -8,6 +8,8 @@ import type {
   Mutation,
   Note,
   ReviewLog,
+  Reward,
+  RewardRedemption,
   SelfExplanation,
   SleepLog,
   StudySession,
@@ -66,8 +68,10 @@ export const TABLE_FOR = {
   studySession: 'studySessions',
   timerSession: 'timerSessions',
   sleepLog: 'sleepLogs',
+  reward: 'rewards',
   reviewLog: 'reviewLogs',
   timerBlockLog: 'timerBlockLogs',
+  rewardRedemption: 'rewardRedemptions',
 } as const satisfies Record<SyncedEntity, string>;
 
 /** IndexedDB es la fuente local de la UI (ARCHITECTURE ARC3). */
@@ -88,6 +92,8 @@ export class EstudioDb extends Dexie {
   timerSessions!: EntityTable<TimerSession, 'id'>;
   timerBlockLogs!: EntityTable<TimerBlockLog, 'id'>;
   sleepLogs!: EntityTable<SleepLog, 'id'>;
+  rewards!: EntityTable<Reward, 'id'>;
+  rewardRedemptions!: EntityTable<RewardRedemption, 'id'>;
   cardStates!: EntityTable<CardState, 'cardId'>;
   outbox!: EntityTable<OutboxEntry, 'mutationId'>;
   meta!: EntityTable<MetaEntry, 'key'>;
@@ -176,6 +182,11 @@ export class EstudioDb extends Dexie {
           });
         await tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' });
       });
+    // UX10: premios (LWW) y canjes (solo inserción); como en v6-v13, el cursor vuelve a 0 por si
+    // otro dispositivo ya creó alguno que esta versión saltó.
+    this.version(14)
+      .stores({ rewards: 'id', rewardRedemptions: 'id, rewardId' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -198,6 +209,8 @@ export const syncedTables = (database: EstudioDb) => [
   database.timerSessions,
   database.timerBlockLogs,
   database.sleepLogs,
+  database.rewards,
+  database.rewardRedemptions,
   database.cardStates,
   database.meta,
 ];

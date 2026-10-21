@@ -1,4 +1,12 @@
-import type { SelfExplanation, SleepLog, StudySession, TimerBlockLog, TimerSession } from '@estudio/shared';
+import type {
+  Reward,
+  RewardRedemption,
+  SelfExplanation,
+  SleepLog,
+  StudySession,
+  TimerBlockLog,
+  TimerSession,
+} from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
@@ -79,6 +87,41 @@ export class StudyRepository {
       ]),
     );
     return rows.length > 0 ? 'applied' : 'stale';
+  }
+
+  async upsertRewardLww(userId: string, r: Reward): Promise<ApplyStatus> {
+    const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>(
+      upsertLwwSql('reward', [
+        { name: 'id', value: r.id, cast: 'uuid' },
+        { name: 'user_id', value: userId, cast: 'uuid' },
+        { name: 'name', value: r.name },
+        { name: 'cost', value: r.cost, cast: 'integer' },
+        ...syncMetaColumns(r),
+      ]),
+    );
+    return rows.length > 0 ? 'applied' : 'stale';
+  }
+
+  async insertRewardRedemption(userId: string, r: RewardRedemption): Promise<ApplyStatus> {
+    const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>(
+      insertAppendSql('reward_redemption', [
+        { name: 'id', value: r.id, cast: 'uuid' },
+        { name: 'user_id', value: userId, cast: 'uuid' },
+        { name: 'reward_id', value: r.rewardId, cast: 'uuid' },
+        { name: 'name', value: r.name },
+        { name: 'cost', value: r.cost, cast: 'integer' },
+        { name: 'redeemed_at', value: r.redeemedAt, cast: 'bigint' },
+        { name: 'device_id', value: r.deviceId, cast: 'uuid' },
+      ]),
+    );
+    return rows.length > 0 ? 'applied' : 'duplicate';
+  }
+
+  /** BE2: el premio existe y es de ella (aunque esté borrado: el canje guarda su foto). */
+  async ownsReward(userId: string, id: string): Promise<boolean> {
+    const rows = await this.tx.$queryRaw<unknown[]>`
+      SELECT 1 FROM "reward" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;
+    return rows.length > 0;
   }
 
   /** SY7: sesiones vivas que cuentan como activas, de HLC mayor a menor (byte a byte). */

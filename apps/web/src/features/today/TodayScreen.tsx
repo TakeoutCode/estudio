@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useExamsOverview } from '@/features/exams';
+import { GamificationCard } from '@/features/gamification';
 import { NotificationsAtOpen } from '@/features/notifications';
 import { SleepCheckIn } from '@/features/sleep';
 import { type PlanSnapshot, useTodayPlan } from '@/features/study';
@@ -94,6 +95,8 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
           </ul>
         </section>
       ) : null}
+      {/* UX10: la pregunta del onboarding o, si la activó, su progreso; apagada, nada. */}
+      <GamificationCard />
       <ActionBar>
         {nothing ? null : (
           <Link className={primary} to="/study">

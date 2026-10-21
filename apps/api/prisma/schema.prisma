@@ -39,6 +39,8 @@ model User {
   timerSessions          TimerSession[]
   timerBlockLogs         TimerBlockLog[]
   sleepLogs              SleepLog[]
+  rewards                Reward[]
+  rewardRedemptions      RewardRedemption[]
   pushSubscriptions      PushSubscription[]
   notificationEvents     NotificationEvent[]
   scheduledNotifications ScheduledNotification[]
@@ -347,6 +349,40 @@ model SleepLog {
 
   @@index([userId, serverSeq])
   @@map("sleep_log")
+}
+
+/// UX10 (diseño · sin evidencia): un premio de la tienda, con el nombre y el costo que ella
+/// define. LWW. El saldo de monedas no se guarda: se calcula con srs (SYNC §1).
+model Reward {
+  id        String  @id @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  name      String
+  cost      Int
+  hlc       String
+  updatedAt BigInt  @map("updated_at")
+  deletedAt BigInt? @map("deleted_at")
+  serverSeq BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("reward")
+}
+
+/// UX10: un canje, con la foto del nombre y el costo. Solo inserción (trigger
+/// reward_redemption_append_only en la migración).
+model RewardRedemption {
+  id         String @id @db.Uuid
+  userId     String @map("user_id") @db.Uuid
+  rewardId   String @map("reward_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  name       String
+  cost       Int
+  redeemedAt BigInt @map("redeemed_at")
+  deviceId   String @map("device_id") @db.Uuid
+  serverSeq  BigInt @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("reward_redemption")
 }
 
 /// R3: solo inserción (trigger review_log_append_only en la migración).

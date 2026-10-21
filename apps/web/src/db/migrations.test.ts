@@ -44,7 +44,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.decks.toArray()).toEqual([{ ...deck, pausedAt: null }]); // v9: activo
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
@@ -73,7 +73,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
     expect(await current.reviewLogs.toArray()).toEqual([log]);
@@ -94,7 +94,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([{ ...note, tagIds: [] }]); // v13: sin etiquetas
     current.close();
@@ -116,7 +116,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.timerBlockLogs.toArray()).toEqual([{ ...block, extended: false }]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     current.close();
@@ -139,7 +139,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([{ ...note, tagIds: [] }]); // v13: sin etiquetas
     expect(await current.outbox.toArray()).toEqual([pending]);
@@ -170,7 +170,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.decks.toArray()).toEqual([{ ...deck, pausedAt: null }]);
     expect(await current.outbox.toArray()).toEqual([pending]); // la api completa el campo al recibirlo
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
@@ -206,7 +206,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.decks.toArray()).toEqual([deck]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.mediaAssets.count()).toBe(0);
@@ -240,7 +240,7 @@ describe('migraciones de Dexie: grupos de contraste (R9, LD10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.contrastGroups.count()).toBe(0);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.pendingUploads.count()).toBe(1);
@@ -273,7 +273,7 @@ describe('migraciones de Dexie: registro de sueño (§5)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.sleepLogs.count()).toBe(0);
     expect(await current.contrastGroups.toArray()).toEqual([group]);
     expect(await current.outbox.toArray()).toEqual([pending]);
@@ -307,7 +307,7 @@ describe('migraciones de Dexie: etiquetas', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(13);
+    expect(current.verno).toBe(14);
     expect(await current.tags.count()).toBe(0);
     expect(await current.notes.toArray()).toEqual([{ ...note, tagIds: [] }]);
     expect(await current.outbox.toArray()).toEqual([pending]); // la api completa el campo al recibirlo
@@ -315,6 +315,42 @@ describe('migraciones de Dexie: etiquetas', () => {
     const tagId = newId();
     await current.notes.update(note.id, { tagIds: [tagId] });
     expect((await current.notes.where('tagIds').equals(tagId).toArray()).map((n) => n.id)).toEqual([note.id]);
+    current.close();
+  });
+});
+
+describe('migraciones de Dexie: premios (UX10)', () => {
+  it('v13 → v14: aparecen premios y canjes; el cursor vuelve a 0; lo demás intacto', async () => {
+    const name = `migracion-${newId()}`;
+    names.push(name);
+    const v13 = openVersion1(name);
+    v13.version(2).stores({ userSettings: 'id, section' });
+    v13.version(3).stores({ notes: 'id, deckId', cards: 'id, noteId' });
+    v13.version(4).stores({ timerSessions: 'id, state', timerBlockLogs: 'id, timerSessionId, endedAt' });
+    v13.version(5).stores({});
+    v13.version(6).stores({ topics: 'id, deckId', selfExplanations: 'id, topicId' });
+    v13.version(7).stores({ exams: 'id, date' });
+    v13.version(8).stores({ studySessions: 'id, examId' });
+    v13.version(9).stores({});
+    v13.version(10).stores({ mediaAssets: 'id', pendingUploads: 'assetId' });
+    v13.version(11).stores({ contrastGroups: 'id' });
+    v13.version(12).stores({ sleepLogs: 'id, date' });
+    v13.version(13).stores({ tags: 'id', notes: 'id, deckId, *tagIds' });
+    const tag = { id: newId(), name: 'Huesos', deletedAt: null };
+    const pending = { mutationId: newId(), op: 'upsert', entity: 'tag', row: tag, createdAt: 1 };
+    await v13.table('tags').add(tag);
+    await v13.table('outbox').add(pending);
+    await v13.table('meta').put({ key: 'syncCursor', value: '1800' });
+    v13.close();
+
+    const current = new EstudioDb(name);
+    await current.open();
+    expect(current.verno).toBe(14);
+    expect(await current.rewards.count()).toBe(0);
+    expect(await current.rewardRedemptions.count()).toBe(0);
+    expect(await current.tags.toArray()).toEqual([tag]);
+    expect(await current.outbox.toArray()).toEqual([pending]);
+    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     current.close();
   });
 });

@@ -51,7 +51,7 @@ También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medi
 | R21 | Los minutos de una sesión con un hueco de 10 min suman solo hasta `metrics.inactivityCutoffSec` |
 | §3 | NT-T1 a NT-T12 |
 | §5 | Las métricas están ocultas con menos de `metrics.minReviewsToShow` repasos |
-| Gamificación | Con `gamification.enabled = false`, ningún nodo con `data-gamification` en ninguna ruta (E2E) |
+| Gamificación | Con `gamification.enabled = false`, ningún nodo con `data-gamification` en ninguna ruta (E2E). Mientras no exista la suite de Playwright, lo cubre `Gamification.test.tsx` sobre Hoy, Premios y logros, Ajustes y la celebración de la sesión |
 
 ## 5. CI (GitHub Actions)
 

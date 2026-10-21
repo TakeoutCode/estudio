@@ -23,7 +23,21 @@ export const router = createBrowserRouter([
           },
           {
             path: 'study',
-            lazy: async () => ({ Component: (await import('@/features/study')).StudyScreen }),
+            lazy: async () => {
+              // UX6, UX10: la celebración de hitos acompaña a la sesión sin entrar en ella.
+              const [{ StudyScreen }, { MilestoneCelebration }] = await Promise.all([
+                import('@/features/study'),
+                import('@/features/gamification'),
+              ]);
+              return {
+                Component: () => (
+                  <>
+                    <StudyScreen />
+                    <MilestoneCelebration />
+                  </>
+                ),
+              };
+            },
           },
           {
             path: 'dashboard',
@@ -38,11 +52,13 @@ export const router = createBrowserRouter([
                 { NotificationsSection },
                 { DeleteAccountSection },
                 { BackupSection },
+                { GamificationSection },
               ] = await Promise.all([
                 import('@/features/settings'),
                 import('@/features/notifications'),
                 import('@/features/auth'),
                 import('@/features/backup'),
+                import('@/features/gamification'),
               ]);
               return {
                 Component: () => (
@@ -55,6 +71,7 @@ export const router = createBrowserRouter([
                     }
                   >
                     <NotificationsSection />
+                    <GamificationSection />
                   </SettingsScreen>
                 ),
               };
@@ -70,7 +87,20 @@ export const router = createBrowserRouter([
           },
           {
             path: 'exams/:examId/mock',
-            lazy: async () => ({ Component: (await import('@/features/exams')).MockScreen }),
+            lazy: async () => {
+              const [{ MockScreen }, { MilestoneCelebration }] = await Promise.all([
+                import('@/features/exams'),
+                import('@/features/gamification'),
+              ]);
+              return {
+                Component: () => (
+                  <>
+                    <MockScreen />
+                    <MilestoneCelebration />
+                  </>
+                ),
+              };
+            },
           },
           {
             path: 'exams/:examId',
@@ -87,6 +117,10 @@ export const router = createBrowserRouter([
           {
             path: 'contrast/:groupId',
             lazy: async () => ({ Component: (await import('@/features/contrast')).ContrastEditorScreen }),
+          },
+          {
+            path: 'rewards',
+            lazy: async () => ({ Component: (await import('@/features/gamification')).RewardsScreen }),
           },
           {
             path: 'decks',

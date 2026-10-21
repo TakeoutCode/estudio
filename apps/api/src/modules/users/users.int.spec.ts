@@ -17,7 +17,16 @@ import {
 const PHONE = '0192f1a0-0000-7000-8000-0000000000e1';
 
 /** Tablas con filas de una cuenta; todas cuelgan de `user` con ON DELETE CASCADE. */
-const TABLES = ['deck', 'note', 'card', 'review_log', 'media_asset', 'refresh_token'] as const;
+const TABLES = [
+  'deck',
+  'note',
+  'card',
+  'review_log',
+  'media_asset',
+  'reward',
+  'reward_redemption',
+  'refresh_token',
+] as const;
 
 describe('DELETE /me: borrado total de la cuenta (QUALITY QA6)', () => {
   let server: IntegrationApp;
@@ -40,7 +49,7 @@ describe('DELETE /me: borrado total de la cuenta (QUALITY QA6)', () => {
     row,
   });
 
-  /** Mazo, nota, Card, un repaso (tabla de solo inserción) y una imagen. */
+  /** Mazo, nota, Card, un repaso y un canje (tablas de solo inserción), una imagen y un premio. */
   const seed = async (token: string) => {
     const deck = deckRow(now, PHONE);
     const note = noteRow(now, PHONE, deck.id);
@@ -70,20 +79,32 @@ describe('DELETE /me: borrado total de la cuenta (QUALITY QA6)', () => {
       updatedAt: now,
       deletedAt: null,
     };
+    const reward = {
+      id: newId(),
+      name: 'Un postre',
+      cost: 5,
+      hlc: hlcAt(now, PHONE),
+      updatedAt: now,
+      deletedAt: null,
+    };
+    const redemption = {
+      id: newId(),
+      rewardId: reward.id,
+      name: reward.name,
+      cost: reward.cost,
+      redeemedAt: now,
+      deviceId: PHONE,
+    };
     const results = await push(token, [
       upsert('deck', deck),
       upsert('note', note),
       upsert('card', card),
       { mutationId: newId(), op: 'append', entity: 'reviewLog', row: review },
       upsert('mediaAsset', asset),
+      upsert('reward', reward),
+      { mutationId: newId(), op: 'append', entity: 'rewardRedemption', row: redemption },
     ]);
-    expect(results.results.map((r) => r.status)).toEqual([
-      'applied',
-      'applied',
-      'applied',
-      'applied',
-      'applied',
-    ]);
+    expect(results.results.map((r) => r.status)).toEqual(Array.from({ length: 7 }, () => 'applied'));
   };
 
   const rowsOf = async (userId: string) => {

@@ -91,10 +91,13 @@
 ## 9. Gamificación (diseño; STUDY-METHODS no la investigó)
 
 **UX10 · DEBE** depender de `gamification.enabled`. Se pregunta en el onboarding y queda apagada hasta que ella responda. Apagada no muestra XP, niveles, monedas, tienda, insignias, racha ni celebraciones; solo el resumen neutro de la sesión (§3). *Razón:* §6 advierte que no se evaluó el riesgo de la motivación extrínseca.
-- **XP:** la misma cantidad por cada repaso respondido, sin importar la calificación (R19). Nunca por tiempo con la app abierta (R21).
-- **Niveles e insignias:** por conductas propias (primer simulacro, primer set de contraste), nunca por comparación con otras personas.
-- **Monedas y tienda:** los premios y sus costos los define ella. Canjear un premio es un `RewardRedemption` y el saldo se calcula (SYNC §1).
-- **Racha:** opcional y apagada por defecto. Un día sin estudiar la pone en pausa, sin alarma, sin notificación y sin texto de pérdida.
+- **Onboarding:** mientras `enabled` es `null`, Hoy pregunta una sola vez "¿Quieres puntos, niveles y premios?" con dos botones iguales; la respuesta se cambia cuando quiera en Ajustes › Puntos y premios, junto con la racha y las celebraciones.
+- **XP:** la misma cantidad por cada repaso respondido, sin importar la calificación (R19). Nunca por tiempo con la app abierta (R21). Cuenta cada `ReviewLog`, de cualquier tipo.
+- **Niveles e insignias:** por conductas propias (primer simulacro, primer set de contraste), nunca por comparación con otras personas. El nivel n pide `levelCurve.baseXp × n^exponent` XP. Los logros son cinco primeras veces: repaso, ejercicio de aplicación, set de contraste, pregunta de simulacro y bloque de enfoque completado. Salen solo de logs de solo inserción (`ReviewLog`, `TimerBlockLog`), así no desaparecen al borrar algo ni difieren entre dispositivos.
+- **Monedas y tienda:** los premios y sus costos los define ella (Premios y logros, `/rewards`). Canjear un premio es un `RewardRedemption` con la foto del nombre y el costo (editar o borrar el premio no cambia lo canjeado), pide confirmación y el saldo se calcula: `⌊XP × coinsPerXp⌋` menos lo canjeado (SYNC §1). Al canjear se revisa el saldo en ese dispositivo; dos canjes sin red en dos dispositivos pueden dejarlo negativo, y se muestra tal cual.
+- **Racha:** opcional y apagada por defecto. Cuenta los días locales de ella con al menos un repaso. Un día sin estudiar la pone en pausa ("Racha en pausa: 12 días de estudio"), sin alarma, sin notificación, sin texto de pérdida y sin volver a cero.
+- **Celebraciones** (`gamification.celebrations`): solo durante una sesión de estudio o un simulacro, al subir de nivel o ganar un logro (UX6). El resumen completo se calcula una vez al abrir la sesión en el worker y después se suman solo las respuestas nuevas (`progressAfter` en `srs`).
+- XP, nivel, monedas, logros y racha son una proyección que no viaja: `gamificationSummary()` en `srs`, calculada en el worker (FRONTEND FE4) solo si la gamificación está activa.
 - Los valores (`gamification.xpPerReview`, `coinsPerXp`, `levelCurve`) viven en configuración marcados `// diseño · sin evidencia` (AGENTS AG4).
 - **NO DEBE** haber ranking, penalizaciones, cuentas regresivas, recompensas aleatorias, mensajes de pérdida ni "no te lo pierdas" (R19).
 ```ts

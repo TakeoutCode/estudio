@@ -3,6 +3,9 @@ import {
   type BreakUsage,
   breakUsage,
   type CardState,
+  type GamificationInput,
+  gamificationSummary,
+  type GamificationSummary,
   type LoadCard,
   projectReviewLoad,
   type ReplayCard,
@@ -47,6 +50,10 @@ export const projectionApi = {
   /** §5: el resumen semanal. */
   weeklyMetrics(input: WeeklyMetricsInput): WeeklyMetrics {
     return weeklyMetrics(input);
+  },
+  /** UX10: XP, nivel, monedas, logros y racha (solo si ella activó la gamificación). */
+  gamificationSummary(input: GamificationInput): GamificationSummary {
+    return gamificationSummary(input);
   },
   /** §5: uso de descansos, solo en Ajustes. */
   breakUsage(input: BreakUsageInput): BreakUsage {

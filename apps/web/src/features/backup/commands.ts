@@ -70,6 +70,8 @@ const ORDER = [
   'timerSession',
   'timerBlockLog',
   'sleepLog',
+  'reward',
+  'rewardRedemption',
   'reviewLog',
 ] as const satisfies readonly SyncedEntity[];
 
@@ -98,7 +100,7 @@ export async function importBackup(
         return { hlc, updatedAt: hlcWall(hlc) };
       };
       const append = async (
-        entity: 'reviewLog' | 'timerBlockLog',
+        entity: 'reviewLog' | 'timerBlockLog' | 'rewardRedemption',
         row: Readonly<Record<string, unknown>> & { readonly id: string },
       ) => {
         const table = database.table<{ id: string }, string>(TABLE_FOR[entity]);
@@ -247,6 +249,18 @@ export async function importBackup(
                 id: sleepLogIdFor(userId, night.date),
                 ...(await stamp()),
               });
+            }
+            break;
+          case 'reward':
+            for (const reward of entities.reward)
+              await write('reward', { ...reward, id: ids.own(reward.id), ...(await stamp()) });
+            break;
+          case 'rewardRedemption':
+            // UX10: el canje guarda su foto del premio; sin él (otra cuenta) se omite, como todo lo que no vino.
+            for (const redemption of entities.rewardRedemption) {
+              const rewardId = ids.ref(redemption.rewardId);
+              if (rewardId)
+                await append('rewardRedemption', { ...redemption, id: ids.own(redemption.id), rewardId });
             }
             break;
           case 'reviewLog':

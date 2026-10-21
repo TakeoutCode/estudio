@@ -1,5 +1,6 @@
 export {
   ensureProfileTimeZone,
+  updateGamificationConfig,
   updateNotificationPrefs,
   updateProfile,
   updateStudyConfig,

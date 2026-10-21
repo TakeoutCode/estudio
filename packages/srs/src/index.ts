@@ -3,6 +3,7 @@ export * from './fsrs/scheduler.js';
 export * from './exams/final-review.js';
 export * from './exams/mock.js';
 export * from './exams/plan.js';
+export * from './gamification/summary.js';
 export * from './metrics/breaks.js';
 export * from './metrics/sleep.js';
 export * from './metrics/weekly.js';

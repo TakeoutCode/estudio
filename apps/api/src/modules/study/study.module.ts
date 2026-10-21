@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { DecksModule } from '../decks/decks.module.js';
 import { ReviewLogSyncHandler } from './review-log.sync-handler.js';
+import { RewardRedemptionSyncHandler } from './reward-redemption.sync-handler.js';
+import { RewardSyncHandler } from './reward.sync-handler.js';
 import { SelfExplanationSyncHandler } from './self-explanation.sync-handler.js';
 import { SleepLogSyncHandler } from './sleep-log.sync-handler.js';
 import { StudySessionSyncHandler } from './study-session.sync-handler.js';
@@ -18,6 +20,8 @@ import { TimerSessionSyncHandler } from './timer-session.sync-handler.js';
     SelfExplanationSyncHandler,
     StudySessionSyncHandler,
     SleepLogSyncHandler,
+    RewardSyncHandler,
+    RewardRedemptionSyncHandler,
   ],
 })
 export class StudyModule {}

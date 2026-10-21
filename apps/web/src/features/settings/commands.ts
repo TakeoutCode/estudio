@@ -1,4 +1,6 @@
 import {
+  type GamificationConfig,
+  GamificationConfigSchema,
   type NotificationPrefs,
   NotificationPrefsSchema,
   type ProfileSettings,
@@ -13,7 +15,13 @@ import {
 } from '@estudio/shared';
 import { hlcWall, nextHlc } from '@/db/clock';
 import { db as defaultDb, type EstudioDb } from '@/db/schema';
-import { readNotificationPrefs, readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
+import {
+  readGamificationConfig,
+  readNotificationPrefs,
+  readProfile,
+  readStudyConfig,
+  readUiSettings,
+} from '@/db/settings';
 import { writeAndQueue } from '@/db/write';
 import { accountUserId } from '@/features/auth';
 import { ensureProjection, syncScheduler } from '@/sync';
@@ -94,6 +102,19 @@ export function updateNotificationPrefs(
   return writeSection(
     'notifications',
     async () => NotificationPrefsSchema.parse(update(await readNotificationPrefs(database))),
+    options,
+  );
+}
+
+/** UX10: la sección `gamification` (la respuesta del onboarding, la racha y las celebraciones). */
+export function updateGamificationConfig(
+  update: (current: GamificationConfig) => GamificationConfig,
+  options: CommandOptions = {},
+): Promise<GamificationConfig> {
+  const database = options.database ?? defaultDb;
+  return writeSection(
+    'gamification',
+    async () => GamificationConfigSchema.parse(update(await readGamificationConfig(database))),
     options,
   );
 }

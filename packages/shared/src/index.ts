@@ -20,6 +20,7 @@ export * from './domain/exam.js';
 export * from './domain/exercise.js';
 export * from './domain/media.js';
 export * from './domain/note.js';
+export * from './domain/reward.js';
 export * from './domain/sleep.js';
 export * from './domain/tag.js';
 export * from './domain/topic.js';
