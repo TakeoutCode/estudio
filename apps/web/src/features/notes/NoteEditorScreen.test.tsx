@@ -252,3 +252,37 @@ describe('editor de notas · imagen con etiquetas (R10, LD1)', () => {
     expect(screen.queryByRole('group', { name: 'Imagen para tapar etiquetas' })).toBeNull();
   });
 });
+
+describe('editor de notas · etiquetas', () => {
+  it('Enter agrega la etiqueta sin guardar; las que ya tiene se sugieren; se guardan con la nota', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    await createNote({
+      deck: { name: 'Carpo' },
+      content: { kind: 'basic', front: '¿Grande?', back: 'El hueso grande', explanation: '', reverse: false },
+      tags: [{ name: 'Parcial 2' }],
+    });
+    renderEditor();
+    fireEvent.change(await screen.findByLabelText('Pregunta'), { target: { value: '¿Ganchoso?' } });
+    fireEvent.change(screen.getByLabelText('Respuesta'), { target: { value: 'El hamato' } });
+    const input = await screen.findByRole('textbox', { name: 'Agregar etiqueta' });
+    fireEvent.change(input, { target: { value: 'Mano' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByRole('button', { name: 'Quitar la etiqueta Mano' })).toBeTruthy();
+    expect(await db.notes.count()).toBe(1); // Enter no guardó la nota
+    fireEvent.click(screen.getByRole('button', { name: 'Parcial 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect(await db.notes.count()).toBe(2);
+    });
+    const tags = await db.tags.toArray();
+    const saved = (await db.notes.toArray()).find(
+      (n) => n.content.kind === 'basic' && n.content.front === '¿Ganchoso?',
+    );
+    expect(saved?.tagIds.map((id) => tags.find((t) => t.id === id)?.name).sort()).toEqual([
+      'Mano',
+      'Parcial 2',
+    ]);
+    // La siguiente nota conserva las etiquetas, como el mazo y el tema.
+    expect(screen.getByRole('button', { name: 'Quitar la etiqueta Mano' })).toBeTruthy();
+  });
+});

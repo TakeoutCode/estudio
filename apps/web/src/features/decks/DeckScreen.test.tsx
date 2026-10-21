@@ -174,3 +174,19 @@ describe('pantalla de un mazo', () => {
     expect(screen.getByRole('link', { name: 'Mazos' }).getAttribute('href')).toBe('/decks');
   });
 });
+
+describe('DeckScreen · filtro por etiqueta', () => {
+  it('filtra las tarjetas del mazo por una de sus etiquetas', async () => {
+    const tagged = await createNote(
+      { deck: { name: 'Columna' }, content: basic('¿C1?', 'Atlas'), tags: [{ name: 'Cervical' }] },
+      { now: T0 - 2 },
+    );
+    await createNote({ deck: { id: tagged.deckId }, content: basic('¿L5?', 'Lumbar') }, { now: T0 - 1 });
+    renderDeck(tagged.deckId);
+    const group = await screen.findByRole('group', { name: 'Filtrar por etiqueta' });
+    expect(within(group).getByRole('button', { name: 'Todas' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(group).getByRole('button', { name: 'Cervical' }));
+    expect(await screen.findByText('1 de 2 tarjetas')).toBeTruthy();
+    expect(screen.queryByText('¿L5?')).toBeNull();
+  });
+});

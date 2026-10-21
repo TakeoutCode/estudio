@@ -1,8 +1,10 @@
 export {
   createDeck,
   deleteDeck,
+  deleteTag,
   deleteTopic,
   renameDeck,
+  renameTag,
   setDeckPaused,
   updateDeck,
   updateTopic,
@@ -10,4 +12,5 @@ export {
 export { DeckScreen } from './DeckScreen';
 export { DecksScreen } from './DecksScreen';
 export { useTopic } from './queries';
+export { TagsScreen } from './TagsScreen';
 export { TopicScreen } from './TopicScreen';

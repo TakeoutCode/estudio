@@ -23,16 +23,24 @@ export type Attempt =
 
 /**
  * Qué se estudia: Hoy mezcla todos los mazos (R9, P4); `deck` aplica el plan a un solo mazo
- * (`?mazo=`); `exam` es la vuelta de repaso previa a un examen (LD12, `?examen=`).
+ * (`?mazo=`) y `tag` a las tarjetas de una etiqueta (`?etiqueta=`); `exam` es la vuelta de
+ * repaso previa a un examen (LD12, `?examen=`).
  */
 export type StudyScope =
   | { readonly kind: 'today' }
   | { readonly kind: 'deck'; readonly deckId: string }
+  | { readonly kind: 'tag'; readonly tagId: string }
   | { readonly kind: 'exam'; readonly examId: string };
 
 /** Dos alcances con la misma clave son la misma sesión. */
 export const scopeKey = (scope: StudyScope): string =>
-  scope.kind === 'deck' ? `deck:${scope.deckId}` : scope.kind === 'exam' ? `exam:${scope.examId}` : 'today';
+  scope.kind === 'deck'
+    ? `deck:${scope.deckId}`
+    : scope.kind === 'tag'
+      ? `tag:${scope.tagId}`
+      : scope.kind === 'exam'
+        ? `exam:${scope.examId}`
+        : 'today';
 
 export interface StudySession {
   readonly id: string;
@@ -41,8 +49,8 @@ export interface StudySession {
   /** R6, LD6: pedir confianza antes de revelar (`review.askConfidence`). */
   readonly askConfidence: boolean;
   readonly scope: StudyScope;
-  /** Nombre del mazo con `scope.kind === 'deck'`, para el título. */
-  readonly deckName: string | null;
+  /** Nombre del mazo o la etiqueta del alcance, para el título. */
+  readonly scopeName: string | null;
 }
 
 /** P5 en la sesión. */

@@ -48,8 +48,14 @@ export async function loadPlan(
   {
     plannedBlocks,
     deckId,
+    tagId,
     includePaused = false,
-  }: { readonly plannedBlocks?: number; readonly deckId?: string; readonly includePaused?: boolean } = {},
+  }: {
+    readonly plannedBlocks?: number;
+    readonly deckId?: string;
+    readonly tagId?: string;
+    readonly includePaused?: boolean;
+  } = {},
 ): Promise<PlanSnapshot> {
   const [config, profile, all] = await Promise.all([
     readStudyConfig(database),
@@ -60,9 +66,11 @@ export async function loadPlan(
   const plannerCards =
     deckId !== undefined
       ? all.cards.filter((c) => c.deckId === deckId)
-      : includePaused
-        ? all.cards
-        : all.cards.filter((c) => !c.deckPaused);
+      : tagId !== undefined
+        ? all.cards.filter((c) => c.tagIds.includes(tagId))
+        : includePaused
+          ? all.cards
+          : all.cards.filter((c) => !c.deckPaused);
   const pausedDecks = all.pausedDeckIds.size;
   const contrast = await readContrastPlan(database, plannerCards); // R9, LD10
   const plan = buildSessionQueue({
@@ -92,13 +100,29 @@ export async function loadDeckPlan(
   database: EstudioDb,
   deckId: string,
   now: number,
-): Promise<PlanSnapshot & { readonly deckName: string }> {
+): Promise<PlanSnapshot & { readonly scopeName: string }> {
   const deck = await database.decks.get(deckId);
   if (deck?.deletedAt !== null) throw new Error('deck_not_found');
-  return { ...(await loadPlan(database, now, { deckId })), deckName: deck.name };
+  return { ...(await loadPlan(database, now, { deckId })), scopeName: deck.name };
 }
 
 export const planDeckNow = (deckId: string) => loadDeckPlan(db, deckId, Date.now());
+
+/**
+ * Estudiar una etiqueta (diseño), como un mazo: P1-P8 solo sobre sus tarjetas, de cualquier
+ * mazo y aunque esté en pausa (ella eligió ese alcance); tiempos y retención, de todo su historial.
+ */
+export async function loadTagPlan(
+  database: EstudioDb,
+  tagId: string,
+  now: number,
+): Promise<PlanSnapshot & { readonly scopeName: string }> {
+  const tag = await database.tags.get(tagId);
+  if (tag?.deletedAt !== null) throw new Error('tag_not_found');
+  return { ...(await loadPlan(database, now, { tagId })), scopeName: tag.name };
+}
+
+export const planTagNow = (tagId: string) => loadTagPlan(db, tagId, Date.now());
 
 /**
  * LD12: la vuelta de repaso previa al examen. Usa el mismo plan (tiempos, retención) con la

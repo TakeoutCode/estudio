@@ -11,6 +11,7 @@ import type {
   SelfExplanation,
   SleepLog,
   StudySession,
+  Tag,
   SyncedEntity,
   TimerBlockLog,
   TimerSession,
@@ -54,6 +55,7 @@ export const SERVER_OFFSET_KEY = 'serverOffsetMs';
 export const TABLE_FOR = {
   deck: 'decks',
   topic: 'topics',
+  tag: 'tags',
   note: 'notes',
   card: 'cards',
   exam: 'exams',
@@ -72,6 +74,7 @@ export const TABLE_FOR = {
 export class EstudioDb extends Dexie {
   decks!: EntityTable<Deck, 'id'>;
   topics!: EntityTable<Topic, 'id'>;
+  tags!: EntityTable<Tag, 'id'>;
   notes!: EntityTable<Note, 'id'>;
   cards!: EntityTable<Card, 'id'>;
   exams!: EntityTable<Exam, 'id'>;
@@ -159,6 +162,20 @@ export class EstudioDb extends Dexie {
     this.version(12)
       .stores({ sleepLogs: 'id, date' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // Etiquetas (diseño): la tabla y un índice multi-entrada para filtrar notas por etiqueta.
+    // Las notas guardadas quedan sin etiquetas; el cursor vuelve a 0 por si otro dispositivo ya
+    // etiquetó alguna que esta versión no podía leer.
+    this.version(13)
+      .stores({ tags: 'id', notes: 'id, deckId, *tagIds' })
+      .upgrade(async (tx) => {
+        await tx
+          .table<{ tagIds?: string[] }, string>('notes')
+          .toCollection()
+          .modify((note) => {
+            note.tagIds ??= [];
+          });
+        await tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' });
+      });
   }
 }
 
@@ -168,6 +185,7 @@ export const db = new EstudioDb();
 export const syncedTables = (database: EstudioDb) => [
   database.decks,
   database.topics,
+  database.tags,
   database.notes,
   database.cards,
   database.exams,

@@ -184,6 +184,22 @@ describe('respaldo de ella: exportar e importar (QUALITY QA7)', () => {
     await other.delete();
   });
 
+  it('otra cuenta: las etiquetas llegan con ids nuevos y sus notas apuntan a ellas', async () => {
+    await db.meta.put({ key: 'accountUserId', value: ME });
+    const note = await createNote(
+      { deck: { name: 'Columna' }, content: { ...basic, reverse: false }, tags: [{ name: 'Parcial 2' }] },
+      { now: T0 },
+    );
+    const backup = await exportedBackup();
+    expect(backup.entities.tag).toHaveLength(1);
+    await importBackup(backup, { userId: OTHER, database: target, now: T0 + MIN });
+    const [tag] = await target.tags.toArray();
+    const [copy] = await target.notes.toArray();
+    expect(tag?.name).toBe('Parcial 2');
+    expect(tag?.id).not.toBe(note.tagIds[0]);
+    expect(copy?.tagIds).toEqual([tag?.id]);
+  });
+
   it('§3: un temporizador en curso no se revive; uno terminado sí', async () => {
     const backup = await exportedBackup();
     const timer = (state: 'focus' | 'ended') => ({

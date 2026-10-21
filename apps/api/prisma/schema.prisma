@@ -26,6 +26,7 @@ model User {
   appliedMutations       AppliedMutation[]
   decks                  Deck[]
   topics                 Topic[]
+  tags                   Tag[]
   exams                  Exam[]
   notes                  Note[]
   cards                  Card[]
@@ -108,6 +109,22 @@ model Topic {
   @@map("topic")
 }
 
+/// LEARNING-DESIGN §1, §6 (diseño): etiqueta de ella, entre mazos; las notas la referencian en
+/// `note.tag_ids`.
+model Tag {
+  id        String  @id @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  name      String
+  hlc       String
+  updatedAt BigInt  @map("updated_at")
+  deletedAt BigInt? @map("deleted_at")
+  serverSeq BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("tag")
+}
+
 /// STUDY-METHODS R11, LEARNING-DESIGN LD11: examen con su fecha y los temas que entran.
 model Exam {
   id        String  @id @db.Uuid
@@ -173,6 +190,7 @@ model Note {
   kind      String
   content   Json
   origin    String
+  tagIds    Json    @default("[]") @map("tag_ids") // uuid[] como JSON; cada una la valida el handler (BE2)
   hlc       String
   updatedAt BigInt  @map("updated_at")
   deletedAt BigInt? @map("deleted_at")

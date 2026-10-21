@@ -6,6 +6,7 @@ import { MediaAssetSchema } from '../domain/media.js';
 import { CardSchema, NoteSchema } from '../domain/note.js';
 import { ReviewLogSchema } from '../domain/review.js';
 import { SleepLogSchema } from '../domain/sleep.js';
+import { TagSchema } from '../domain/tag.js';
 import { StudySessionSchema } from '../domain/study-session.js';
 import { SelfExplanationSchema, TopicSchema } from '../domain/topic.js';
 import { TimerBlockLogSchema, TimerSessionSchema } from '../domain/timer.js';
@@ -20,6 +21,7 @@ import type { EntityName } from './entities.js';
 export const SYNC_ROW_SCHEMAS = {
   deck: DeckSchema,
   topic: TopicSchema,
+  tag: TagSchema,
   note: NoteSchema,
   card: CardSchema,
   exam: ExamSchema,

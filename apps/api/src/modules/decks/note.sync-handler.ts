@@ -25,6 +25,8 @@ export class NoteSyncHandler implements EntitySyncHandler<'note'> {
     ) {
       return 'not_found';
     }
+    // Cada etiqueta es de ella (aunque esté borrada); viaja antes que la nota (outbox).
+    if (!(await this.repo.ownsAll('tag', userId, row.tagIds))) return 'not_found';
     return row.topicId === null || (await this.repo.owns('topic', userId, row.topicId)) ? null : 'not_found';
   }
 
@@ -39,6 +41,7 @@ export class NoteSyncHandler implements EntitySyncHandler<'note'> {
       topicId: d.topic_id,
       content: d.content,
       origin: d.origin,
+      tagIds: d.tag_ids,
       hlc: d.hlc,
       updatedAt: dbNumber(d.updated_at),
       deletedAt: dbNumberOrNull(d.deleted_at),

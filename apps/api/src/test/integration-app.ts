@@ -161,6 +161,7 @@ export const noteRow = (
     reverse: false,
   },
   origin: 'manual',
+  tagIds: [],
   hlc: hlcAt(wall, node),
   updatedAt: wall,
   deletedAt: null,

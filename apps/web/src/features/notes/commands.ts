@@ -8,12 +8,14 @@ import {
   type Note,
   type NoteContent,
   NoteSchema,
+  tagKey,
+  TagSchema,
   TopicSchema,
 } from '@estudio/shared';
 import { isLeech } from '@estudio/srs';
 import { hlcWall, nextHlc } from '@/db/clock';
 import { projectCards } from '@/db/projection';
-import { db as defaultDb, type EstudioDb } from '@/db/schema';
+import { alive, db as defaultDb, type EstudioDb } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { writeAndQueue } from '@/db/write';
 import { mediaTables, type StagedImage, stageImageAsset } from '@/features/media';
@@ -31,6 +33,7 @@ interface CommandOptions {
 export const noteTables = (database: EstudioDb) => [
   database.decks,
   database.topics,
+  database.tags,
   database.notes,
   database.cards,
   database.cardStates,
@@ -62,6 +65,9 @@ export type DeckChoice = { readonly id: string } | { readonly name: string };
 export type TopicChoice =
   { readonly id: string } | { readonly name: string; readonly explanation: string } | null;
 
+/** Etiqueta (diseño): una existente o una nueva que se crea con la nota. */
+export type TagChoice = { readonly id: string } | { readonly name: string };
+
 /**
  * Crea la nota. `image`: la imagen que ella eligió para una oclusión (R10); se guarda con la
  * nota y se sube después (FE8).
@@ -71,6 +77,7 @@ export function createNote(
     readonly deck: DeckChoice;
     readonly content: NoteContent;
     readonly topic?: TopicChoice;
+    readonly tags?: readonly TagChoice[];
     readonly image?: StagedImage;
   },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
@@ -84,6 +91,7 @@ export function createNote(
       topicId: await resolveTopic(database, input.topic ?? null, deckId, now),
       content: input.content,
       origin: 'manual',
+      tagIds: await resolveTags(database, input.tags ?? [], now),
       deletedAt: null,
       ...(await stamp(database, now)),
     });
@@ -104,7 +112,13 @@ export function createNote(
  */
 export function updateNote(
   id: string,
-  input: { readonly content: NoteContent; readonly topic?: TopicChoice; readonly deck?: DeckChoice },
+  input: {
+    readonly content: NoteContent;
+    readonly topic?: TopicChoice;
+    readonly deck?: DeckChoice;
+    /** `undefined` deja las que tenía. */
+    readonly tags?: readonly TagChoice[];
+  },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
 ): Promise<Note> {
   return write(database, async () => {
@@ -123,12 +137,33 @@ export function updateNote(
       deckId,
       topicId,
       content: input.content,
+      tagIds: input.tags === undefined ? current.tagIds : await resolveTags(database, input.tags, now),
       ...(await stamp(database, now)),
     });
     await writeAndQueue(database, 'note', note, now);
     await syncCards(database, note, now, { reformulated: true });
     return note;
   });
+}
+
+/**
+ * Al borrar una etiqueta, sus notas la pierden: cada una es su propia escritura LWW (SY5).
+ * Llamar dentro de una transacción que incluya `noteTables`.
+ */
+export async function removeTagFromNotes(database: EstudioDb, tagId: string, now: number): Promise<void> {
+  const notes = await alive(database.notes.where('tagIds').equals(tagId)).toArray();
+  for (const note of notes) {
+    await writeAndQueue(
+      database,
+      'note',
+      NoteSchema.parse({
+        ...note,
+        tagIds: note.tagIds.filter((id) => id !== tagId),
+        ...(await stamp(database, now)),
+      }),
+      now,
+    );
+  }
 }
 
 /** Borrado lógico (SYNC §6) con sus Cards; los ReviewLog se conservan (SYNC §5). */
@@ -281,6 +316,47 @@ async function resolveTopic(
   });
   await writeAndQueue(database, 'topic', topic, now);
   return topic.id;
+}
+
+/**
+ * Las etiquetas elegidas, sin repetir. Una nueva cuyo nombre ya existe (sin contar mayúsculas
+ * ni acentos, `tagKey`) usa la que ya está; si no, se crea en la misma transacción. Una que se
+ * borró en otro dispositivo mientras editaba se omite: borrarla es quitarla de sus notas.
+ */
+async function resolveTags(
+  database: EstudioDb,
+  choices: readonly TagChoice[],
+  now: number,
+): Promise<string[]> {
+  const byKey = new Map(
+    (await alive(database.tags.toCollection()).toArray()).map((tag) => [tagKey(tag.name), tag.id]),
+  );
+  const ids: string[] = [];
+  for (const choice of choices) {
+    let id: string;
+    if ('id' in choice) {
+      const tag = await database.tags.get(choice.id);
+      if (tag?.deletedAt !== null) continue;
+      id = tag.id;
+    } else {
+      const known = byKey.get(tagKey(choice.name));
+      if (known) {
+        id = known;
+      } else {
+        const tag = TagSchema.parse({
+          id: newId(),
+          name: choice.name,
+          deletedAt: null,
+          ...(await stamp(database, now)),
+        });
+        await writeAndQueue(database, 'tag', tag, now);
+        byKey.set(tagKey(tag.name), tag.id);
+        id = tag.id;
+      }
+    }
+    if (!ids.includes(id)) ids.push(id);
+  }
+  return ids;
 }
 
 async function existing(database: EstudioDb, id: string): Promise<Note> {

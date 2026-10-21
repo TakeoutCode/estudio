@@ -6,6 +6,8 @@ import { alive, type EstudioDb } from './schema';
 export interface DeckPlannerCard extends PlannerCard {
   readonly noteId: string;
   readonly deckId: string;
+  /** Etiquetas de su nota (diseño): estudiar una etiqueta filtra por aquí. */
+  readonly tagIds: readonly string[];
   /** Su mazo está en pausa: no entra en Hoy ni en la carga (LEARNING-DESIGN §6). */
   readonly deckPaused: boolean;
 }
@@ -47,6 +49,7 @@ export async function readPlannerCards(database: EstudioDb): Promise<{
         lapseBaseline: card.lapseBaseline,
         noteId: note.id,
         deckId: note.deckId,
+        tagIds: note.tagIds,
         deckPaused: paused.has(note.deckId),
       },
     ];

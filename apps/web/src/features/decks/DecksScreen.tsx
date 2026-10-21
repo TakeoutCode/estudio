@@ -39,7 +39,10 @@ export function DecksScreen() {
         </>
       )}
       <NewDeckForm />
-      {/* R9, LD10: los grupos de contraste pueden mezclar mazos. */}
+      {/* Las etiquetas y los grupos de contraste (R9, LD10) pueden mezclar mazos. */}
+      <Link className={textLink} to="/tags">
+        {t('decks.tagsLink')}
+      </Link>
       <Link className={textLink} to="/contrast">
         {t('decks.contrastLink')}
       </Link>

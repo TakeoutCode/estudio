@@ -5,8 +5,10 @@ import { createNote } from '@/features/notes';
 import {
   createDeck,
   deleteDeck,
+  deleteTag,
   deleteTopic,
   renameDeck,
+  renameTag,
   setDeckPaused,
   updateDeck,
   updateTopic,
@@ -123,5 +125,36 @@ describe('temas (LD5, SY5)', () => {
     await deleteDeck(note.deckId, { now: T0 + 10 });
     expect((await db.topics.get(note.topicId ?? ''))?.deletedAt).not.toBeNull();
     expect((await db.notes.get(note.id))?.deletedAt).not.toBeNull();
+  });
+});
+
+describe('etiquetas (diseño)', () => {
+  const basic = { kind: 'basic', front: '¿C1?', back: 'Atlas', explanation: '', reverse: false } as const;
+
+  it('renombrar no repite un nombre que ya existe', async () => {
+    const note = await createNote(
+      { deck: { name: 'Columna' }, content: basic, tags: [{ name: 'Cervical' }, { name: 'Parcial' }] },
+      { now: T0 },
+    );
+    const [cervical] = note.tagIds;
+    if (!cervical) throw new Error('faltó la etiqueta');
+    await expect(renameTag(cervical, 'PARCIAL', { now: T0 + 1 })).rejects.toThrow('tag_name_taken');
+    expect((await renameTag(cervical, 'Columna cervical', { now: T0 + 2 })).name).toBe('Columna cervical');
+  });
+
+  it('SY5: borrarla la quita de sus notas en la misma transacción; las notas siguen', async () => {
+    const note = await createNote(
+      { deck: { name: 'Columna' }, content: basic, tags: [{ name: 'Cervical' }, { name: 'Parcial' }] },
+      { now: T0 },
+    );
+    const [cervical, parcial] = note.tagIds;
+    if (!cervical || !parcial) throw new Error('faltaron etiquetas');
+    await db.outbox.clear();
+    await deleteTag(cervical, { now: T0 + 1 });
+    expect((await db.tags.get(cervical))?.deletedAt).not.toBeNull();
+    expect(await db.notes.get(note.id)).toMatchObject({ deletedAt: null, tagIds: [parcial] });
+    const entries = await db.outbox.toArray();
+    expect(entries.map((e) => e.entity)).toEqual(['tag', 'note']);
+    expect(entries.every((e) => MutationSchema.safeParse(e).success)).toBe(true);
   });
 });

@@ -22,9 +22,17 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { checkImageFile, isImageMime, readImageSize } from '@/lib/media';
 import { useOnline } from '@/lib/use-online';
-import { createNote, type DeckChoice, deleteNote, type TopicChoice, updateNote } from './commands';
+import {
+  createNote,
+  type DeckChoice,
+  deleteNote,
+  type TagChoice,
+  type TopicChoice,
+  updateNote,
+} from './commands';
 import { type EditorPicture, OcclusionEditor } from './OcclusionEditor';
-import { useDecks, useNote, useTopics } from './queries';
+import { useDecks, useNote, useTags, useTopics } from './queries';
+import { TagsField } from './TagsField';
 
 const NEW_DECK = 'new';
 const NO_TOPIC = '';
@@ -114,6 +122,8 @@ function NoteForm({
   const [topicName, setTopicName] = useState('');
   const [topicExplanation, setTopicExplanation] = useState('');
   const topics = useTopics(deckId === NEW_DECK ? null : deckId);
+  const tags = useTags();
+  const [tagChoices, setTagChoices] = useState<TagChoice[]>(() => (note?.tagIds ?? []).map((id) => ({ id })));
   const moving = note !== null && deckId !== note.deckId;
   const [status, setStatus] = useState<Status>('idle');
   const [busy, setBusy] = useState(false);
@@ -193,9 +203,11 @@ function NoteForm({
           content: content.data,
           topic,
           deck: moving ? deck : undefined,
+          tags: tagChoices,
         });
         setDeckId(updated.deckId);
         setTopicId(updated.topicId ?? NO_TOPIC);
+        setTagChoices(updated.tagIds.map((id) => ({ id })));
         setTopicName('');
         setTopicExplanation('');
         setStatus('updated');
@@ -211,10 +223,11 @@ function NoteForm({
                 height: picked.height,
               }
             : undefined;
-        const created = await createNote({ deck, content: content.data, topic, image });
-        // La siguiente nota va al mismo mazo, tema y tipo; el texto se limpia para escribirla.
+        const created = await createNote({ deck, content: content.data, topic, tags: tagChoices, image });
+        // La siguiente nota va al mismo mazo, tema, tipo y etiquetas; el texto se limpia para escribirla.
         setDeckId(created.deckId);
         setTopicId(created.topicId ?? NO_TOPIC);
+        setTagChoices(created.tagIds.map((id) => ({ id })));
         setTopicName('');
         setTopicExplanation('');
         clearFields();
@@ -542,6 +555,16 @@ function NoteForm({
             />
             <span>{t('notes.reverse')}</span>
           </label>
+        ) : null}
+        {tags ? (
+          <TagsField
+            tags={tags}
+            chosen={tagChoices}
+            onChange={(next) => {
+              setTagChoices(next);
+              setStatus('idle');
+            }}
+          />
         ) : null}
         {message ? (
           <p role="status" className="m-0 text-caption">

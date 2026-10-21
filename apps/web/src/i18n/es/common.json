@@ -106,6 +106,10 @@
       "empty": "No hay tarjetas pendientes en este mazo. Puedes añadir nuevas o elegir otro mazo.",
       "missing": "Este mazo ya no existe; puede que se haya borrado en otro dispositivo."
     },
+    "tag": {
+      "empty": "No hay tarjetas pendientes con esta etiqueta. Puedes añadir nuevas o elegir otra.",
+      "missing": "Esta etiqueta ya no existe; puede que se haya borrado en otro dispositivo."
+    },
     "objective": {
       "right": "Correcto.",
       "wrong": "No coincide.",
@@ -142,6 +146,16 @@
     "explanation": "Explicación breve (se muestra después de cada intento)",
     "explanationCount": "{{count}} de {{max}} caracteres",
     "reverse": "Crear también la tarjeta inversa",
+    "tags": {
+      "label": "Etiquetas (opcional)",
+      "add": "Agregar etiqueta",
+      "addButton": "Agregar",
+      "placeholder": "Por ejemplo: miembro superior",
+      "remove": "Quitar la etiqueta {{name}}",
+      "suggestions": "Etiquetas que ya tienes",
+      "hint": "Juntan tarjetas de varios mazos: puedes filtrar por ellas y estudiar solo las de una.",
+      "full": "Esta tarjeta ya tiene {{max}} etiquetas, el máximo."
+    },
     "save": "Guardar",
     "saved": "Guardada. Puedes escribir la siguiente.",
     "updated": "Cambios guardados.",
@@ -310,7 +324,31 @@
     "noMatches": "Ninguna tarjeta coincide con la búsqueda.",
     "matches_one": "{{count}} de {{total}} tarjetas",
     "matches_other": "{{count}} de {{total}} tarjetas",
+    "tagFilter": "Filtrar por etiqueta",
+    "allTags": "Todas",
+    "tagsLink": "Etiquetas",
     "contrastLink": "Tarjetas que se confunden"
+  },
+  "tags": {
+    "title": "Etiquetas",
+    "back": "Mazos",
+    "hint": "Una etiqueta junta tarjetas de varios mazos. Estudiar una etiqueta repasa solo esas, también las de un mazo en pausa.",
+    "empty": "Todavía no hay etiquetas. Se agregan al crear o editar una tarjeta.",
+    "studyNamed": "Estudiar la etiqueta {{name}}",
+    "edit": "Editar",
+    "editNamed": "Editar la etiqueta {{name}}",
+    "close": "Cerrar",
+    "name": "Nombre de la etiqueta",
+    "save": "Guardar",
+    "delete": "Borrar etiqueta",
+    "cancel": "Cancelar",
+    "confirmDelete_one": "¿Borrar {{name}}? Su {{count}} tarjeta la pierde; la tarjeta y su historial no cambian.",
+    "confirmDelete_other": "¿Borrar {{name}}? Sus {{count}} tarjetas la pierden; las tarjetas y su historial no cambian.",
+    "error": {
+      "invalid": "Escribe un nombre de hasta 60 caracteres.",
+      "taken": "Ya tienes una etiqueta con ese nombre.",
+      "failed": "No se pudo guardar. Intenta de nuevo."
+    }
   },
   "topics": {
     "title": "Tema",

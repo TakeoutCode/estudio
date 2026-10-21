@@ -1,4 +1,4 @@
-import type { Card, ContrastGroup, Deck, Note, Topic } from '@estudio/shared';
+import type { Card, ContrastGroup, Deck, Note, Tag, Topic } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
@@ -6,7 +6,7 @@ import { type Column, ident, syncMetaColumns, upsertLwwSql } from '../sync/sql.j
 import type { ApplyStatus } from '../sync/sync-handler.js';
 
 /** Tablas que otras entidades referencian (BE2). */
-export type OwnedTable = 'deck' | 'topic' | 'note' | 'card' | 'media_asset';
+export type OwnedTable = 'deck' | 'topic' | 'tag' | 'note' | 'card' | 'media_asset';
 
 @Injectable()
 export class DecksRepository {
@@ -52,7 +52,17 @@ export class DecksRepository {
       { name: 'kind', value: note.content.kind },
       { name: 'content', value: JSON.stringify(note.content), cast: 'jsonb' },
       { name: 'origin', value: note.origin },
+      { name: 'tag_ids', value: JSON.stringify(note.tagIds), cast: 'jsonb' },
       ...syncMetaColumns(note),
+    ]);
+  }
+
+  upsertTagLww(userId: string, tag: Tag): Promise<ApplyStatus> {
+    return this.upsert('tag', [
+      { name: 'id', value: tag.id, cast: 'uuid' },
+      { name: 'user_id', value: userId, cast: 'uuid' },
+      { name: 'name', value: tag.name },
+      ...syncMetaColumns(tag),
     ]);
   }
 

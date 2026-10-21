@@ -1,4 +1,4 @@
-import { type Deck, DeckSchema, type Topic } from '@estudio/shared';
+import { type Deck, DeckSchema, type Tag, type Topic } from '@estudio/shared';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { type SubmitEvent, useCallback, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,7 +42,7 @@ export function DeckScreen() {
   return <DeckView key={detail.deck.id} detail={detail} />;
 }
 
-function DeckView({ detail: { deck, load, topics, notes } }: { readonly detail: DeckDetail }) {
+function DeckView({ detail: { deck, load, topics, tags, notes } }: { readonly detail: DeckDetail }) {
   const { t } = useTranslation();
   const editId = useId();
   const [editing, setEditing] = useState(false);
@@ -74,7 +74,7 @@ function DeckView({ detail: { deck, load, topics, notes } }: { readonly detail: 
         {editing ? <DeckEditForm id={editId} deck={deck} noteCount={notes.length} /> : null}
       </div>
       <TopicList topics={topics} />
-      <NoteList deckId={deck.id} notes={notes} />
+      <NoteList deckId={deck.id} notes={notes} tags={tags} />
       <ActionBar>
         {load.due + load.fresh > 0 ? (
           <Link className={primary} to={`/study?mazo=${deck.id}`}>
@@ -292,13 +292,30 @@ function TopicList({ topics }: { readonly topics: readonly Topic[] }) {
  * FE9: lista virtualizada contra el scroll de la ventana. `top` es dónde empieza la lista en
  * la página; se mide al montarla y cada vez que cambia el alto de lo que hay arriba.
  */
-function NoteList({ deckId, notes }: { readonly deckId: string; readonly notes: readonly DeckNoteRow[] }) {
+function NoteList({
+  deckId,
+  notes,
+  tags,
+}: {
+  readonly deckId: string;
+  readonly notes: readonly DeckNoteRow[];
+  readonly tags: readonly Tag[];
+}) {
   const { t } = useTranslation();
   const id = useId();
   const [query, setQuery] = useState('');
+  const [tagId, setTagId] = useState<string | null>(null);
+  // Una etiqueta que ya nadie usa en este mazo deja de filtrar.
+  const activeTag = tags.some((tag) => tag.id === tagId) ? tagId : null;
+  const filtering = query.trim() !== '' || activeTag !== null;
   const shown = useMemo(
-    () => (query.trim() === '' ? notes : notes.filter((note) => matchesSearch(note, query))),
-    [notes, query],
+    () =>
+      notes.filter(
+        (note) =>
+          (query.trim() === '' || matchesSearch(note, query)) &&
+          (activeTag === null || note.tagIds.includes(activeTag)),
+      ),
+    [notes, query, activeTag],
   );
   const [layout, setLayout] = useState({ top: 0, rem: 16 });
   const measure = useCallback((list: HTMLUListElement | null) => {
@@ -348,7 +365,27 @@ function NoteList({ deckId, notes }: { readonly deckId: string; readonly notes: 
               }}
             />
           </label>
-          {query.trim() === '' ? null : (
+          {tags.length > 0 ? (
+            <div role="group" aria-label={t('decks.tagFilter')} className="flex flex-wrap gap-2">
+              {[null, ...tags].map((tag) => {
+                const pressed = (tag?.id ?? null) === activeTag;
+                return (
+                  <button
+                    key={tag?.id ?? 'all'}
+                    type="button"
+                    aria-pressed={pressed}
+                    className={`inline-flex min-h-11 items-center rounded-(--radius-card) border px-3 ${pressed ? 'border-primary bg-primary/20 text-text' : 'border-muted/40 text-primary'} ${focus}`}
+                    onClick={() => {
+                      setTagId(tag?.id ?? null);
+                    }}
+                  >
+                    {tag?.name ?? t('decks.allTags')}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          {!filtering ? null : (
             <p role="status" className="m-0 text-caption text-muted">
               {shown.length === 0
                 ? t('decks.noMatches')

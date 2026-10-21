@@ -1,4 +1,4 @@
-import type { Deck, Note, Topic } from '@estudio/shared';
+import type { Deck, Note, Tag, Topic } from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { alive, db } from '@/db/schema';
 
@@ -21,3 +21,10 @@ export const useTopics = (deckId: string | null): Topic[] | undefined =>
     const topics = await alive(db.topics.where('deckId').equals(deckId)).toArray();
     return topics.sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }, [deckId]);
+
+/** Etiquetas vivas, por nombre (diseño); `undefined` mientras carga. */
+export const useTags = (): Tag[] | undefined =>
+  useLiveQuery(async () => {
+    const tags = await alive(db.tags.toCollection()).toArray();
+    return tags.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }, []);

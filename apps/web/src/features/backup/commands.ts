@@ -59,6 +59,7 @@ const ORDER = [
   'mediaAsset',
   'deck',
   'topic',
+  'tag',
   'note',
   'card',
   'contrastGroup',
@@ -135,6 +136,10 @@ export async function importBackup(
                 await write('topic', { ...topic, id: ids.own(topic.id), deckId, ...(await stamp()) });
             }
             break;
+          case 'tag':
+            for (const tag of entities.tag)
+              await write('tag', { ...tag, id: ids.own(tag.id), ...(await stamp()) });
+            break;
           case 'note':
             for (const note of entities.note) {
               const content = remapContent(note, ids);
@@ -146,6 +151,7 @@ export async function importBackup(
                 id: ids.own(note.id),
                 deckId,
                 topicId,
+                tagIds: note.tagIds.flatMap((t) => ids.ref(t) ?? []),
                 content,
                 ...(await stamp()),
               });

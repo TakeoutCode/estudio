@@ -39,7 +39,7 @@ describe('UserSettings por sección (SYNC §1)', () => {
 });
 
 describe('esquemas de fila sincronizables', () => {
-  it('viajan mazos, temas, notas, tarjetas, exámenes, grupos de contraste, imágenes, ajustes, autoexplicaciones, simulacros, temporizador, sueño y logs por ahora', () => {
+  it('viajan mazos, temas, notas, tarjetas, exámenes, grupos de contraste, imágenes, ajustes, autoexplicaciones, simulacros, temporizador, sueño, etiquetas y logs por ahora', () => {
     expect(Object.keys(SYNC_ROW_SCHEMAS).sort()).toEqual([
       'card',
       'contrastGroup',
@@ -51,6 +51,7 @@ describe('esquemas de fila sincronizables', () => {
       'selfExplanation',
       'sleepLog',
       'studySession',
+      'tag',
       'timerBlockLog',
       'timerSession',
       'topic',

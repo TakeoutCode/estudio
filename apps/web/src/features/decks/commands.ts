@@ -1,8 +1,17 @@
-import { type Deck, DeckSchema, newId, type Topic, TopicSchema } from '@estudio/shared';
+import {
+  type Deck,
+  DeckSchema,
+  newId,
+  type Tag,
+  tagKey,
+  TagSchema,
+  type Topic,
+  TopicSchema,
+} from '@estudio/shared';
 import { hlcWall, nextHlc } from '@/db/clock';
-import { db as defaultDb, type EstudioDb } from '@/db/schema';
+import { alive, db as defaultDb, type EstudioDb } from '@/db/schema';
 import { writeAndQueue } from '@/db/write';
-import { clearTopicOfNotes, noteTables, softDeleteNotesOfDeck } from '@/features/notes';
+import { clearTopicOfNotes, noteTables, removeTagFromNotes, softDeleteNotesOfDeck } from '@/features/notes';
 import { syncScheduler } from '@/sync';
 
 interface CommandOptions {
@@ -171,4 +180,55 @@ async function existing(database: EstudioDb, id: string): Promise<Deck> {
   const deck = await database.decks.get(id);
   if (deck?.deletedAt !== null) throw new Error('deck_not_found');
   return deck;
+}
+
+/** La etiqueta viva con ese nombre (sin contar mayúsculas ni acentos), si hay otra. */
+async function tagNamed(database: EstudioDb, name: string, except: string): Promise<Tag | undefined> {
+  const key = tagKey(name);
+  return alive(database.tags.toCollection())
+    .filter((tag) => tag.id !== except && tagKey(tag.name) === key)
+    .first();
+}
+
+async function existingTag(database: EstudioDb, id: string): Promise<Tag> {
+  const tag = await database.tags.get(id);
+  if (tag?.deletedAt !== null) throw new Error('tag_not_found');
+  return tag;
+}
+
+/** Renombra la etiqueta (diseño); otro nombre que ya existe no se repite (`tag_name_taken`). */
+export async function renameTag(
+  id: string,
+  name: string,
+  { database = defaultDb, now = Date.now() }: CommandOptions = {},
+): Promise<Tag> {
+  const tag = await database.transaction('rw', [database.tags, database.outbox, database.meta], async () => {
+    if (await tagNamed(database, name, id)) throw new Error('tag_name_taken');
+    const hlc = await nextHlc(database, now);
+    const row = TagSchema.parse({ ...(await existingTag(database, id)), name, hlc, updatedAt: hlcWall(hlc) });
+    await writeAndQueue(database, 'tag', row, now);
+    return row;
+  });
+  syncScheduler.poke();
+  return tag;
+}
+
+/**
+ * Borrado lógico (SYNC §6): sus notas la pierden en la misma transacción, cada una con su
+ * escritura LWW (SY5). Las notas y su historial no cambian.
+ */
+export async function deleteTag(id: string, { database = defaultDb, now = Date.now() }: CommandOptions = {}) {
+  await database.transaction('rw', noteTables(database), async () => {
+    const hlc = await nextHlc(database, now);
+    const updatedAt = hlcWall(hlc);
+    const row = TagSchema.parse({
+      ...(await existingTag(database, id)),
+      hlc,
+      updatedAt,
+      deletedAt: updatedAt,
+    });
+    await writeAndQueue(database, 'tag', row, now);
+    await removeTagFromNotes(database, id, now);
+  });
+  syncScheduler.poke();
 }

@@ -327,7 +327,7 @@ describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
       plan,
       askConfidence: false,
       scope: { kind: 'today' },
-      deckName: null,
+      scopeName: null,
     });
     const fresh = Array.from({ length: 10 }, (_, i) => sessionLog(T0 + i * 10_000, Rating.Good, 5_000));
     await db.reviewLogs.bulkAdd([...fresh, ...tired(T0 + 200_000, 10)]);
@@ -611,5 +611,45 @@ describe('StudyScreen · LD12 (repaso previo al examen)', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText(/No hay tarjetas para el repaso previo/)).toBeTruthy();
+  });
+});
+
+describe('StudyScreen · una etiqueta (?etiqueta=)', () => {
+  const atlas = {
+    kind: 'basic',
+    front: '¿Primera vértebra cervical?',
+    back: 'El atlas',
+    explanation: '',
+    reverse: false,
+  } as const;
+  const renderAt = (path: string) =>
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/study" element={<StudyScreen />} />
+          <Route path="/tags" element={<p>Etiquetas</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+  it('solo sus tarjetas, de cualquier mazo y aunque esté en pausa; "Salir" vuelve a Etiquetas', async () => {
+    const tagged = await createNote(
+      { deck: { name: 'Columna' }, content: atlas, tags: [{ name: 'Parcial 2' }] },
+      { now: T0 - 3 },
+    );
+    const [tagId] = tagged.tagIds;
+    if (!tagId) throw new Error('faltó la etiqueta');
+    await setDeckPaused(tagged.deckId, true);
+    renderAt(`/study?etiqueta=${tagId}`);
+    expect(await screen.findByText(atlas.front)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Parcial 2' })).toBeTruthy();
+    expect(useStudy.getState().session?.plan.queue.map((q) => q.cardId)).toEqual([cardIdFor(tagged.id, 0)]);
+    fireEvent.click(screen.getByRole('link', { name: 'Salir' }));
+    expect(await screen.findByText('Etiquetas')).toBeTruthy();
+  });
+
+  it('una etiqueta borrada ya no existe', async () => {
+    renderAt('/study?etiqueta=0192f1a0-0000-7000-8000-0000000dead1');
+    expect(await screen.findByText(/Esta etiqueta ya no existe/)).toBeTruthy();
   });
 });

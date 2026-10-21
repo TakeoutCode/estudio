@@ -4,7 +4,7 @@
 
 ## 1. Modelo: nota y tarjeta
 
-Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una **`Card`** es la unidad que programa FSRS: una por lado, por hueco cloze, por grupo de máscaras o por pregunta de ejercicio. Cada `Card` tiene su propio estado FSRS (`cardStates`, ARC5). Un `Exercise` también genera `Card`s. Una nota se puede mover a otro mazo al editarla: sus `Card`s y su historial no cambian, y como los temas son de cada mazo, queda sin tema o con uno del mazo nuevo.
+Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una **`Card`** es la unidad que programa FSRS: una por lado, por hueco cloze, por grupo de máscaras o por pregunta de ejercicio. Cada `Card` tiene su propio estado FSRS (`cardStates`, ARC5). Un `Exercise` también genera `Card`s. Una nota se puede mover a otro mazo al editarla: sus `Card`s y su historial no cambian, y como los temas son de cada mazo, queda sin tema o con uno del mazo nuevo. Además del tema (uno, de su mazo), una nota puede tener hasta 20 **etiquetas** (`Note.tagIds`, *diseño*): son de ella, cruzan mazos y se eligen o crean en el editor; dos nombres que solo difieren en mayúsculas o acentos son la misma.
 
 | Tipo de nota | Cards que genera | Intento (R1) | Calificación |
 |---|---|---|---|
@@ -86,6 +86,8 @@ Una **`Note`** es el contenido que ella crea (en la UI se llama "tarjeta"). Una 
 | §5 (sueño) | `metrics.visible.sleep` (`false`), `metrics.sleepMinNights` (3, *diseño*) | Opcional: si lo activa en Ajustes, Hoy pregunta "¿Cómo dormiste anoche?" con un toque (1-5) y se corrige ese mismo día; una fila por noche y día local (`SleepLog`, SYNC §1). Tu semana da la mediana de la semana frente a la de sus semanas previas, con "pocos datos" bajo `sleepMinNights` noches. Sin racha, aviso ni recordatorio, y sin relacionarlo con su rendimiento: [30] es transversal (R20). No toca FSRS ni el planificador |
 
 **Estudiar un mazo** (*diseño*): la sesión de Hoy mezcla todos los mazos (R9, P4). Desde Mazos se puede estudiar uno solo (`/study?mazo=<id>`): P1-P8 se aplican solo a sus tarjetas, pero los tiempos medianos (P1) y la retención reciente (P3) siguen saliendo de todo su historial, porque son de ella y no del mazo. Dentro del mazo, los temas se siguen mezclando (P4). Las cargas por mazo (`loadSummary()`) cuentan con la misma regla que la cola.
+
+**Estudiar una etiqueta** (*diseño*): desde Mazos › Etiquetas (`/study?etiqueta=<id>`), con la misma regla que estudiar un mazo: P1-P8 solo sobre las tarjetas con esa etiqueta, de cualquier mazo, y los tiempos (P1) y la retención (P3) de todo su historial. Entran también las de un mazo en pausa, porque ese alcance lo eligió ella. En la pantalla de un mazo, las etiquetas solo filtran la lista. No cambian FSRS ni la mezcla de Hoy (R9, P4).
 
 **Pausar un mazo** (*diseño*, `Deck.pausedAt`): sus tarjetas no entran en Hoy (cola, P2, P8), en la carga de Tu semana, en la carga proyectada de Ajustes (LD8) ni en el conteo de los recordatorios (NOTIFICATIONS NT3). FSRS no cambia (LD9): sus fechas siguen corriendo y, al reanudarlo, lo pendiente entra con P8 (se reparte en 3-7 días si no cabe). Se puede estudiar igual desde Mazos, y los exámenes (repaso previo, simulacros, plan por tema) lo siguen viendo, porque ese alcance lo eligió ella. El historial completo sigue alimentando P1, P3 y las métricas.
 

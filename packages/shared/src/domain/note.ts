@@ -1,6 +1,7 @@
 import { v5 as uuidv5 } from 'uuid';
 import { z } from 'zod';
 import { SyncMetaSchema } from '../sync/contracts.js';
+import { NoteTagIdsSchema } from './tag.js';
 
 // Notas y tarjetas (LEARNING-DESIGN §1). Una `Note` es el contenido que ella crea (en la UI,
 // "tarjeta"); una `Card` es lo que programa FSRS, una por lado o hueco. Ambas son LWW.
@@ -136,6 +137,8 @@ export const NoteSchema = SyncMetaSchema.extend({
   content: NoteContentSchema,
   /** LD16: `ai` solo al aceptar un borrador revisado por ella. */
   origin: z.enum(['manual', 'ai']),
+  /** Etiquetas suyas, de cualquier mazo (*diseño*). Un cliente con el contrato 12 no lo envía. */
+  tagIds: NoteTagIdsSchema.default([]),
 }).strict();
 export type Note = z.infer<typeof NoteSchema>;
 

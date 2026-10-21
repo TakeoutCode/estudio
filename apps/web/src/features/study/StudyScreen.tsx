@@ -40,6 +40,7 @@ import {
   planDeckNow,
   planExamReviewNow,
   planSessionNow,
+  planTagNow,
   useExplainedTopics,
   useQueueStates,
   useStudyCard,
@@ -64,13 +65,22 @@ export function StudyScreen() {
   const { t } = useTranslation();
   const session = useStudy((s) => s.session);
   const start = useStudy((s) => s.start);
-  // LD12: `?examen=<id>` abre la vuelta de repaso previa a ese examen; `?mazo=<id>`, un solo mazo.
+  // LD12: `?examen=<id>` abre la vuelta de repaso previa a ese examen; `?mazo=<id>`, un solo
+  // mazo; `?etiqueta=<id>`, las tarjetas de una etiqueta.
   const [params] = useSearchParams();
   const examId = params.get('examen');
   const deckId = params.get('mazo');
+  const tagId = params.get('etiqueta');
   const scope = useMemo<StudyScope>(
-    () => (examId ? { kind: 'exam', examId } : deckId ? { kind: 'deck', deckId } : { kind: 'today' }),
-    [examId, deckId],
+    () =>
+      examId
+        ? { kind: 'exam', examId }
+        : deckId
+          ? { kind: 'deck', deckId }
+          : tagId
+            ? { kind: 'tag', tagId }
+            : { kind: 'today' },
+    [examId, deckId, tagId],
   );
   const key = scopeKey(scope);
   /** Clave del alcance que no se pudo armar (p. ej. un mazo borrado). */
@@ -81,12 +91,14 @@ export function StudyScreen() {
     let cancelled = false;
     const planned =
       scope.kind === 'exam'
-        ? planExamReviewNow(scope.examId).then((s) => ({ ...s, deckName: null }))
+        ? planExamReviewNow(scope.examId).then((s) => ({ ...s, scopeName: null }))
         : scope.kind === 'deck'
           ? planDeckNow(scope.deckId)
-          : planSessionNow().then((s) => ({ ...s, deckName: null }));
+          : scope.kind === 'tag'
+            ? planTagNow(scope.tagId)
+            : planSessionNow().then((s) => ({ ...s, scopeName: null }));
     planned
-      .then(({ plan, config, deckName }) => {
+      .then(({ plan, config, scopeName }) => {
         if (!cancelled) {
           start({
             id: newId(),
@@ -94,7 +106,7 @@ export function StudyScreen() {
             plan,
             askConfidence: config.review.askConfidence,
             scope,
-            deckName,
+            scopeName,
           });
         }
       })
@@ -107,12 +119,22 @@ export function StudyScreen() {
   }, [session, start, scope, key]);
 
   if (failed === key) {
-    return <EmptyState message={t(scope.kind === 'deck' ? 'study.deck.missing' : 'error.generic')} />;
+    const missing = { deck: 'study.deck.missing', tag: 'study.tag.missing' } as const;
+    return (
+      <EmptyState
+        message={t(scope.kind === 'deck' || scope.kind === 'tag' ? missing[scope.kind] : 'error.generic')}
+      />
+    );
   }
   if (!session) return null;
   if (scopeKey(session.scope) !== key) return null; // se está armando la otra
   if (session.plan.queue.length === 0) {
-    const empty = { today: 'today.empty', deck: 'study.deck.empty', exam: 'study.examReview.empty' } as const;
+    const empty = {
+      today: 'today.empty',
+      deck: 'study.deck.empty',
+      tag: 'study.tag.empty',
+      exam: 'study.examReview.empty',
+    } as const;
     return (
       <>
         <StudyHeader />
@@ -138,18 +160,18 @@ export function StudyScreen() {
 function StudyHeader({ done, total }: { readonly done?: number; readonly total?: number }) {
   const { t } = useTranslation();
   const scope = useStudy((s) => s.session?.scope.kind ?? 'today');
-  const deckName = useStudy((s) => s.session?.deckName ?? null);
+  const scopeName = useStudy((s) => s.session?.scopeName ?? null);
   const title =
     scope === 'exam'
       ? t('study.examReview.title')
-      : scope === 'deck' && deckName
-        ? deckName
+      : (scope === 'deck' || scope === 'tag') && scopeName
+        ? scopeName
         : t('study.title');
   return (
     <header className="flex min-h-11 items-center justify-between gap-3">
       <Link
         className={`-ml-2 inline-flex min-h-11 min-w-11 items-center px-2 text-primary ${focus}`}
-        to={scope === 'deck' ? '/decks' : '/'}
+        to={scope === 'deck' ? '/decks' : scope === 'tag' ? '/tags' : '/'}
       >
         {t('study.exit')}
       </Link>

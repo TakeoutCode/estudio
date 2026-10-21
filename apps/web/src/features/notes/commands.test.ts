@@ -268,3 +268,53 @@ describe('notas de oclusión con su imagen (R10, FE8)', () => {
     expect(await db.mediaAssets.count()).toBe(1);
   });
 });
+
+describe('etiquetas de la nota (diseño)', () => {
+  it('crea las nuevas con la nota y reusa las que ya tiene, sin contar mayúsculas ni acentos', async () => {
+    const first = await createNote(
+      { deck: { name: 'Hombro' }, content, tags: [{ name: 'Miembro superior' }, { name: 'Parcial 2' }] },
+      { now: T0 },
+    );
+    expect(first.tagIds).toHaveLength(2);
+    // Las etiquetas van antes que la nota en el outbox: el handler las busca (BE2).
+    expect(await outboxEntities()).toEqual(['deck', 'tag', 'tag', 'note', 'card']);
+
+    const second = await createNote(
+      {
+        deck: { id: first.deckId },
+        content: { ...content, front: '¿Y el redondo menor?' },
+        tags: [{ name: '  MIEMBRO   superior' }, { id: first.tagIds[0] ?? '' }],
+      },
+      { now: T0 + MIN },
+    );
+    expect(second.tagIds).toEqual([first.tagIds[0]]);
+    expect(await db.tags.count()).toBe(2);
+  });
+
+  it('editar sin `tags` deja las que tenía; con `tags`, las reemplaza', async () => {
+    const note = await createNote(
+      { deck: { name: 'Hombro' }, content, tags: [{ name: 'Parcial 2' }] },
+      { now: T0 },
+    );
+    const kept = await updateNote(
+      note.id,
+      { content: { ...content, back: 'Nervio axilar' } },
+      { now: T0 + MIN },
+    );
+    expect(kept.tagIds).toEqual(note.tagIds);
+    const cleared = await updateNote(note.id, { content, tags: [] }, { now: T0 + 2 * MIN });
+    expect(cleared.tagIds).toEqual([]);
+  });
+
+  it('una etiqueta borrada en otro dispositivo se omite al guardar', async () => {
+    const note = await createNote(
+      { deck: { name: 'Hombro' }, content, tags: [{ name: 'Vieja' }] },
+      { now: T0 },
+    );
+    const [tagId] = note.tagIds;
+    if (!tagId) throw new Error('faltó la etiqueta');
+    await db.tags.update(tagId, { deletedAt: T0 + 1 });
+    const saved = await updateNote(note.id, { content, tags: [{ id: tagId }] }, { now: T0 + MIN });
+    expect(saved.tagIds).toEqual([]);
+  });
+});
