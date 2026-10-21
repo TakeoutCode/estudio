@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { newId } from '../ids.js';
 import { encodeHlc } from '../sync/hlc.js';
-import { isExerciseKind, LABEL_IMAGE_LABELS, MATCHING_PAIRS, SEQUENCE_ITEMS } from './exercise.js';
+import {
+  CLINICAL_QUESTIONS,
+  clinicalQuestion,
+  isExerciseKind,
+  LABEL_IMAGE_LABELS,
+  MATCHING_PAIRS,
+  SEQUENCE_ITEMS,
+} from './exercise.js';
 import { cardFaces, cardOrdinals, NoteContentSchema, noteImageAssetId, NoteSchema } from './note.js';
 import { CardKindSchema } from './review.js';
 
@@ -147,5 +154,67 @@ describe('etiquetar una imagen (label_image, R10, LD §2)', () => {
         NoteContentSchema.parse({ kind: 'open_question', question: 'q', key: 'k', explanation: '' }),
       ),
     ).toBeNull();
+  });
+});
+
+describe('caso clínico (clinical_case, LD §2)', () => {
+  const clinical = {
+    kind: 'clinical_case',
+    vignette: 'Mujer de 34 años que cayó sobre la mano extendida; duele la tabaquera anatómica.',
+    questions: [
+      {
+        n: 1,
+        type: 'multiple_choice',
+        question: '¿Qué hueso sospechas?',
+        options: ['Escafoides', 'Semilunar', 'Pisiforme'],
+        correct: 0,
+      },
+      {
+        n: 2,
+        type: 'type_answer',
+        question: '¿Qué arteria lo irriga en forma retrógrada?',
+        answer: 'Radial',
+      },
+      {
+        n: 4,
+        type: 'open',
+        question: '¿Por qué puede necrosarse?',
+        key: 'Irrigación retrógrada: el polo proximal se queda sin sangre.',
+      },
+    ],
+    explanation: '',
+  } as const;
+
+  it('una Card por subpregunta, con su número estable como ordinal', () => {
+    expect(NoteSchema.safeParse(note(clinical)).success).toBe(true);
+    const parsed = NoteContentSchema.parse(clinical);
+    expect(cardOrdinals(parsed)).toEqual([1, 2, 4]);
+    expect(cardFaces(parsed, 2)).toEqual({
+      prompt: `${clinical.vignette}\n\n¿Qué arteria lo irriga en forma retrógrada?`,
+      answer: 'Radial',
+    });
+    expect(cardFaces(parsed, 1).answer).toBe('a) Escafoides');
+    expect(cardFaces(parsed, 0)).toEqual({ prompt: clinical.vignette, answer: '' });
+    expect(parsed.kind === 'clinical_case' ? clinicalQuestion(parsed, 4) : null).toMatchObject({
+      position: 3,
+      total: 3,
+    });
+  });
+
+  it('rechaza subpreguntas inválidas, números repetidos y más de las que caben', () => {
+    const [mc, typed, open] = clinical.questions;
+    expect(NoteContentSchema.safeParse({ ...clinical, questions: [] }).success).toBe(false);
+    expect(NoteContentSchema.safeParse({ ...clinical, questions: [mc, { ...typed, n: 1 }] }).success).toBe(
+      false,
+    );
+    expect(NoteContentSchema.safeParse({ ...clinical, questions: [{ ...mc, correct: 3 }] }).success).toBe(
+      false,
+    );
+    expect(NoteContentSchema.safeParse({ ...clinical, questions: [{ ...open, key: ' ' }] }).success).toBe(
+      false,
+    );
+    const many = Array.from({ length: CLINICAL_QUESTIONS.max + 1 }, (_, i) => ({ ...typed, n: i + 1 }));
+    expect(NoteContentSchema.safeParse({ ...clinical, questions: many }).success).toBe(false);
+    expect(isExerciseKind('clinical_case')).toBe(true);
   });
 });

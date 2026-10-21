@@ -37,6 +37,7 @@ import {
   defaultObjectiveRating,
   RatingControls,
   revealsDirectly,
+  caseQuestion,
   labelAnswers,
   matchingPicks,
   sequenceOrder,
@@ -486,17 +487,27 @@ function CurrentCard({
       });
   };
   // LD2: escribir u opción múltiple se califican solas, de forma determinista.
+  // LD §2: una subpregunta del caso clínico se responde como su tipo.
+  const sub = card ? caseQuestion(card) : null;
   const typed = (text: string) => {
-    if (card?.content.kind !== 'type_answer') return;
-    reveal(null, {
-      kind: 'typed',
-      text: text.trim(),
-      correct: isTypedAnswerCorrect(text, card.content.back),
-    });
+    const expected =
+      card?.content.kind === 'type_answer'
+        ? card.content.back
+        : sub?.type === 'type_answer'
+          ? sub.answer
+          : null;
+    if (expected === null) return;
+    reveal(null, { kind: 'typed', text: text.trim(), correct: isTypedAnswerCorrect(text, expected) });
   };
   const choose = (option: number) => {
-    if (card?.content.kind !== 'multiple_choice') return;
-    reveal(null, { kind: 'choice', option, correct: option === card.content.correct });
+    const correct =
+      card?.content.kind === 'multiple_choice'
+        ? card.content.correct
+        : sub?.type === 'multiple_choice'
+          ? sub.correct
+          : null;
+    if (correct === null) return;
+    reveal(null, { kind: 'choice', option, correct: option === correct });
   };
   // LD2: el V/F se califica solo; la justificación la juzga ella después.
   const verdict = (value: boolean, justification: string) => {
@@ -504,7 +515,7 @@ function CurrentCard({
     reveal(null, { kind: 'verdict', verdict: value, justification, correct: value === card.content.isTrue });
   };
   const written = (text: string) => {
-    if (card?.content.kind !== 'open_question') return;
+    if (card?.content.kind !== 'open_question' && sub?.type !== 'open') return;
     reveal(null, { kind: 'written', text });
   };
   // LD §2, LD2: el puntaje de Kendall pasa por `toRating` con los umbrales de `exercise`.
@@ -673,7 +684,8 @@ const writesAnswer = (kind: CardKind): boolean =>
   kind === 'type_answer' ||
   kind === 'true_false_justify' ||
   kind === 'open_question' ||
-  kind === 'label_image';
+  kind === 'label_image' ||
+  kind === 'clinical_case';
 
 function SkipDeleted({ onSkip }: { readonly onSkip: () => void }) {
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { MATCHING_PAIRS, SEQUENCE_ITEMS } from '@estudio/shared';
 import { type RefObject, useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ClinicalCaseFields } from './ClinicalCaseFields';
 import type { DraftExerciseKind, ExerciseDraft } from './draft';
 import { moved, OrderList } from './OrderList';
 
@@ -31,6 +32,8 @@ export function ExerciseFields({
   };
 
   switch (kind) {
+    case 'clinical_case':
+      return <ClinicalCaseFields draft={draft} onDraft={onDraft} firstRef={firstRef} />;
     case 'matching':
       return (
         <>

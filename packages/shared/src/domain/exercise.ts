@@ -105,6 +105,67 @@ export type LabelImageContent = z.infer<typeof LabelImageContentSchema>;
 export const numberedLabels = (content: LabelImageContent): OcclusionGroup[] =>
   [...content.labels].sort((a, b) => a.n - b.n);
 
+/** Límites de un caso clínico (técnicos: lo que se responde en una sentada). */
+export const CLINICAL_QUESTIONS = { min: 1, max: 6 } as const;
+
+/** El número estable de la subpregunta: es el `ordinal` de su Card y no se reutiliza. */
+const questionNumber = () => z.number().int().min(1).max(99);
+
+/**
+ * Una subpregunta del caso; cada una es una Card y se intenta y califica como su tipo (LD2):
+ * opción múltiple y escribir la respuesta son objetivas; la abierta la califica ella.
+ */
+export const ClinicalQuestionSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      n: questionNumber(),
+      type: z.literal('multiple_choice'),
+      question: text(1000),
+      options: z
+        .array(text(200))
+        .min(3)
+        .max(5)
+        .refine((o) => new Set(o.map((x) => x.toLowerCase())).size === o.length, 'duplicate_option'),
+      correct: z.number().int().nonnegative(),
+    })
+    .strict()
+    .refine((q) => q.correct < q.options.length, { path: ['correct'], message: 'correct_out_of_range' }),
+  z
+    .object({ n: questionNumber(), type: z.literal('type_answer'), question: text(1000), answer: text(200) })
+    .strict(),
+  z.object({ n: questionNumber(), type: z.literal('open'), question: text(1000), key: text(2000) }).strict(),
+]);
+export type ClinicalQuestion = z.infer<typeof ClinicalQuestionSchema>;
+
+/**
+ * `clinical_case`: un caso (la viñeta) y sus subpreguntas, una Card por cada una (LD §2). La
+ * viñeta se muestra con cada subpregunta; quitar una subpregunta borra solo su Card.
+ */
+export const ClinicalCaseContentSchema = z
+  .object({
+    kind: z.literal('clinical_case'),
+    vignette: text(3000),
+    questions: z
+      .array(ClinicalQuestionSchema)
+      .min(CLINICAL_QUESTIONS.min)
+      .max(CLINICAL_QUESTIONS.max)
+      .refine((qs) => new Set(qs.map((q) => q.n)).size === qs.length, 'duplicate_question'),
+    explanation: explanation(),
+  })
+  .strict();
+export type ClinicalCaseContent = z.infer<typeof ClinicalCaseContentSchema>;
+
+/** La subpregunta de la Card `ordinal`, y su posición entre todas ("2 de 3"). */
+export function clinicalQuestion(
+  content: ClinicalCaseContent,
+  ordinal: number,
+): { readonly question: ClinicalQuestion; readonly position: number; readonly total: number } | null {
+  const sorted = [...content.questions].sort((a, b) => a.n - b.n);
+  const index = sorted.findIndex((q) => q.n === ordinal);
+  const question = sorted[index];
+  return question ? { question, position: index + 1, total: sorted.length } : null;
+}
+
 /** `open_question`: escribe su respuesta y se califica al compararla con la clave (LD2). */
 export const OpenQuestionContentSchema = z
   .object({

@@ -75,6 +75,19 @@ function faces(content: NoteContent): readonly [string, string] {
           .map((g) => g.label)
           .join(' | '),
       ];
+    case 'clinical_case':
+      return [
+        content.vignette,
+        content.questions
+          .map((q) =>
+            q.type === 'multiple_choice'
+              ? (q.options[q.correct] ?? '')
+              : q.type === 'type_answer'
+                ? q.answer
+                : q.key,
+          )
+          .join(' | '),
+      ];
   }
 }
 

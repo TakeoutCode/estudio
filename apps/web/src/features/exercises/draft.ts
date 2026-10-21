@@ -7,6 +7,7 @@ export const EXERCISE_KINDS = [
   'sequence',
   'matching',
   'label_image',
+  'clinical_case',
 ] as const satisfies readonly ExerciseKind[];
 export type EditableExerciseKind = (typeof EXERCISE_KINDS)[number];
 
@@ -18,6 +19,27 @@ export const isDraftExerciseKind = (kind: string): kind is DraftExerciseKind =>
 
 export const isEditableExerciseKind = (kind: string): kind is EditableExerciseKind =>
   (EXERCISE_KINDS as readonly string[]).includes(kind);
+
+/** Una subpregunta del caso clínico; `n` es su número estable (el ordinal de su Card). */
+export interface ClinicalQuestionDraft {
+  readonly n: number;
+  readonly type: 'multiple_choice' | 'type_answer' | 'open';
+  readonly question: string;
+  readonly options: readonly string[];
+  readonly correct: number | null;
+  readonly answer: string;
+  readonly key: string;
+}
+
+export const emptyClinicalQuestion = (n: number): ClinicalQuestionDraft => ({
+  n,
+  type: 'multiple_choice',
+  question: '',
+  options: ['', '', ''],
+  correct: null,
+  answer: '',
+  key: '',
+});
 
 export interface MatchingPairDraft {
   readonly left: string;
@@ -38,6 +60,9 @@ export interface ExerciseDraft {
   readonly items: readonly string[];
   /** Relacionar: cada fila es un par; las filas vacías no cuentan. */
   readonly pairs: readonly MatchingPairDraft[];
+  /** Caso clínico: la viñeta y sus subpreguntas. */
+  readonly vignette: string;
+  readonly questions: readonly ClinicalQuestionDraft[];
 }
 
 export const emptyExerciseDraft = (): ExerciseDraft => ({
@@ -49,6 +74,8 @@ export const emptyExerciseDraft = (): ExerciseDraft => ({
   prompt: '',
   items: Array.from({ length: SEQUENCE_ITEMS.min }, () => ''),
   pairs: Array.from({ length: MATCHING_PAIRS.min }, () => ({ left: '', right: '' })),
+  vignette: '',
+  questions: [emptyClinicalQuestion(1)],
 });
 
 /** El borrador de un ejercicio guardado, para editarlo. */
@@ -68,6 +95,23 @@ export function exerciseDraftOf(content: NoteContent | undefined): ExerciseDraft
       return { ...draft, prompt: content.prompt, items: [...content.items] };
     case 'matching':
       return { ...draft, prompt: content.prompt, pairs: content.pairs.map((p) => ({ ...p })) };
+    case 'clinical_case':
+      return {
+        ...draft,
+        vignette: content.vignette,
+        questions: [...content.questions]
+          .sort((a, b) => a.n - b.n)
+          .map((q) => ({
+            ...emptyClinicalQuestion(q.n),
+            type: q.type,
+            question: q.question,
+            ...(q.type === 'multiple_choice'
+              ? { options: [...q.options], correct: q.correct }
+              : q.type === 'type_answer'
+                ? { answer: q.answer }
+                : { key: q.key }),
+          })),
+      };
     default:
       return draft;
   }
@@ -103,5 +147,32 @@ export function exerciseContent(kind: DraftExerciseKind, draft: ExerciseDraft, e
           .filter((p) => p.left !== '' || p.right !== ''),
         explanation,
       };
+    case 'clinical_case':
+      return {
+        kind,
+        vignette: draft.vignette,
+        questions: draft.questions.map(clinicalQuestionContent),
+        explanation,
+      };
+  }
+}
+
+/** Una subpregunta con solo los campos de su tipo; en opción múltiple las vacías no cuentan. */
+function clinicalQuestionContent(q: ClinicalQuestionDraft): unknown {
+  const base = { n: q.n, question: q.question };
+  switch (q.type) {
+    case 'multiple_choice': {
+      const kept = q.options.map((text, i) => ({ text: text.trim(), i })).filter((o) => o.text !== '');
+      return {
+        ...base,
+        type: q.type,
+        options: kept.map((o) => o.text),
+        correct: kept.findIndex((o) => o.i === q.correct),
+      };
+    }
+    case 'type_answer':
+      return { ...base, type: q.type, answer: q.answer };
+    case 'open':
+      return { ...base, type: q.type, key: q.key };
   }
 }

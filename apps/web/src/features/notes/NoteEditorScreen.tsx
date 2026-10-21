@@ -215,6 +215,7 @@ function NoteForm({
       case 'open_question':
       case 'sequence':
       case 'matching':
+      case 'clinical_case':
         return exerciseContent(kind, exerciseDraft, explanation);
     }
   };
@@ -312,6 +313,7 @@ function NoteForm({
     open_question: t('exercises.error.open_question'),
     sequence: t('exercises.error.sequence'),
     matching: t('exercises.error.matching'),
+    clinical_case: t('exercises.error.clinical_case'),
   }[kind];
   const message = {
     idle: null,

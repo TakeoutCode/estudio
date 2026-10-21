@@ -68,6 +68,8 @@ const searchParts = (content: NoteContent): readonly string[] => {
       return [content.prompt, ...content.pairs.flatMap((p) => [p.left, p.right])];
     case 'label_image':
       return [content.prompt, ...content.labels.map((g) => g.label)];
+    case 'clinical_case':
+      return [content.vignette, ...content.questions.map((q) => q.question)];
   }
 };
 

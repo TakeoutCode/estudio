@@ -1,4 +1,6 @@
 import {
+  type ClinicalQuestion,
+  clinicalQuestion,
   clozeSegments,
   type Confidence,
   type LabelImageContent,
@@ -66,6 +68,13 @@ export function matchingPicks(card: StudyCardView, work: ExerciseWork | null): r
   if (card.content.kind !== 'matching') return [];
   const pairs = card.content.pairs;
   return work?.kind === 'matching' && work.picks.length === pairs.length ? work.picks : pairs.map(() => null);
+}
+
+/** Caso clínico: la subpregunta de esta Card; `null` en otros tipos o si ya no existe. */
+export function caseQuestion(card: StudyCardView): ClinicalQuestion | null {
+  return card.content.kind === 'clinical_case'
+    ? (clinicalQuestion(card.content, card.ordinal)?.question ?? null)
+    : null;
 }
 
 /** Etiquetar: lo escrito para cada número (vacío si todavía no). */
@@ -139,6 +148,8 @@ export function CardBody({
             ),
           )}
         </p>
+      ) : content.kind === 'clinical_case' ? (
+        <CaseHeader card={card} />
       ) : (
         <p className="m-0 text-card whitespace-pre-wrap">
           {content.kind === 'multiple_choice' ? content.question : card.prompt}
@@ -149,6 +160,15 @@ export function CardBody({
           options={content.options}
           correct={revealed ? content.correct : null}
           chosen={attempt?.kind === 'choice' ? attempt.option : null}
+          disabled={!canChoose || revealed}
+          onChoose={onChoose}
+        />
+      ) : null}
+      {caseQuestion(card)?.type === 'multiple_choice' ? (
+        <CaseOptions
+          card={card}
+          attempt={attempt}
+          revealed={revealed}
           disabled={!canChoose || revealed}
           onChoose={onChoose}
         />
@@ -176,6 +196,12 @@ export function CardBody({
                 </p>
                 <Labeled label={t('study.tfj.yours')} text={attempt.justification} />
                 <Labeled label={t('study.tfj.reference')} text={content.justification} strong />
+              </>
+            ) : null}
+            {attempt?.kind === 'written' && content.kind === 'clinical_case' ? (
+              <>
+                <Labeled label={t('study.open.yours')} text={attempt.text} />
+                <Labeled label={t('study.open.key')} text={card.answer} strong />
               </>
             ) : null}
             {attempt?.kind === 'written' && content.kind === 'open_question' ? (
@@ -326,6 +352,56 @@ function MatchingResult({
         })}
       </ul>
     </>
+  );
+}
+
+/** LD §2: el caso arriba, en texto de lectura, y debajo la subpregunta que toca ("2 de 3"). */
+function CaseHeader({ card }: { readonly card: StudyCardView }) {
+  const { t } = useTranslation();
+  if (card.content.kind !== 'clinical_case') return null;
+  const found = clinicalQuestion(card.content, card.ordinal);
+  return (
+    <>
+      <section aria-label={t('study.case.vignette')} className="flex flex-col gap-1">
+        <h2 className="m-0 text-caption font-normal text-muted">{t('study.case.vignette')}</h2>
+        <p className="m-0 whitespace-pre-wrap">{card.content.vignette}</p>
+      </section>
+      {found ? (
+        <div className="flex flex-col gap-1">
+          <p className="m-0 text-caption text-muted">
+            {t('study.case.position', { position: found.position, total: found.total })}
+          </p>
+          <p className="m-0 text-card whitespace-pre-wrap">{found.question.question}</p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+/** Opción múltiple dentro de un caso: igual que una tarjeta de opción múltiple (R1, UX4). */
+function CaseOptions({
+  card,
+  attempt,
+  revealed,
+  disabled,
+  onChoose,
+}: {
+  readonly card: StudyCardView;
+  readonly attempt: Attempt | null;
+  readonly revealed: boolean;
+  readonly disabled: boolean;
+  readonly onChoose: (option: number) => void;
+}) {
+  const sub = caseQuestion(card);
+  if (sub?.type !== 'multiple_choice') return null;
+  return (
+    <Options
+      options={sub.options}
+      correct={revealed ? sub.correct : null}
+      chosen={attempt?.kind === 'choice' ? attempt.option : null}
+      disabled={disabled}
+      onChoose={onChoose}
+    />
   );
 }
 
@@ -601,6 +677,13 @@ export function AttemptControls({
     );
   }
   if (card.content.kind === 'type_answer') return <TypedAttempt onSubmit={onTyped} />;
+  // LD §2: cada subpregunta del caso se intenta como su tipo.
+  const sub = caseQuestion(card);
+  if (sub?.type === 'type_answer') return <TypedAttempt onSubmit={onTyped} />;
+  if (sub?.type === 'open') return <WrittenAttempt onSubmit={onWritten} />;
+  if (sub?.type === 'multiple_choice') {
+    return <p className="m-0 text-center text-caption text-muted">{t('study.objective.choose')}</p>;
+  }
   if (card.content.kind === 'true_false_justify') return <VerdictAttempt onSubmit={onVerdict} />;
   if (card.content.kind === 'open_question') return <WrittenAttempt onSubmit={onWritten} />;
   if (card.content.kind === 'sequence') {
@@ -858,7 +941,7 @@ export function RatingControls({
     <div role="group" aria-labelledby={id} className="flex flex-col gap-2">
       <p id={id} className="m-0 text-center text-caption text-muted">
         {t(
-          card.content.kind === 'open_question'
+          card.content.kind === 'open_question' || attempt?.kind === 'written'
             ? 'study.open.rateLabel'
             : isSelfGraded(card)
               ? 'study.rate.label'

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
@@ -473,6 +473,56 @@ describe('editor de notas · etiquetar una imagen (label_image)', () => {
         ],
       });
       expect(await db.pendingUploads.count()).toBe(1);
+    });
+  });
+});
+
+describe('editor de notas · caso clínico (clinical_case)', () => {
+  it('el caso y sus preguntas, cada una de su tipo; quitar una no reusa su número', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    await createDeck({ name: 'Mano' });
+    render(
+      <MemoryRouter initialEntries={['/notes/new?tipo=ejercicio']}>
+        <NoteEditorScreen />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Caso clínico' }));
+    fireEvent.change(screen.getByLabelText('Caso'), { target: { value: 'Caída sobre la mano extendida.' } });
+    // Pregunta 1: opción múltiple.
+    fireEvent.change(screen.getAllByLabelText('Pregunta')[0] ?? document.body, {
+      target: { value: '¿Qué hueso?' },
+    });
+    ['Escafoides', 'Semilunar', 'Pisiforme'].forEach((option, i) => {
+      fireEvent.change(screen.getByLabelText(`Opción ${String(i + 1)}`), { target: { value: option } });
+    });
+    fireEvent.click(screen.getByLabelText('La opción 1 es la correcta'));
+    // Pregunta 2 (se quita) y 3: escribir.
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar pregunta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar pregunta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar la pregunta 2' }));
+    const last = screen.getByRole('group', { name: 'Pregunta 2' });
+    fireEvent.click(within(last).getByRole('button', { name: 'Escribir' }));
+    fireEvent.change(within(last).getByLabelText('Pregunta'), { target: { value: '¿Qué arteria?' } });
+    fireEvent.change(within(last).getByLabelText('Respuesta (corta)'), { target: { value: 'Radial' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect((await db.notes.toArray()).map((n) => n.content)).toEqual([
+        {
+          kind: 'clinical_case',
+          vignette: 'Caída sobre la mano extendida.',
+          questions: [
+            {
+              n: 1,
+              type: 'multiple_choice',
+              question: '¿Qué hueso?',
+              options: ['Escafoides', 'Semilunar', 'Pisiforme'],
+              correct: 0,
+            },
+            { n: 3, type: 'type_answer', question: '¿Qué arteria?', answer: 'Radial' },
+          ],
+          explanation: '',
+        },
+      ]);
     });
   });
 });

@@ -11,6 +11,8 @@ import {
   text,
 } from './content-parts.js';
 import {
+  ClinicalCaseContentSchema,
+  clinicalQuestion,
   LabelImageContentSchema,
   numberedLabels,
   MatchingContentSchema,
@@ -121,6 +123,7 @@ export const NoteContentSchema = z.discriminatedUnion('kind', [
   SequenceContentSchema,
   MatchingContentSchema,
   LabelImageContentSchema,
+  ClinicalCaseContentSchema,
 ]);
 export type NoteContent = z.infer<typeof NoteContentSchema>;
 
@@ -159,6 +162,8 @@ export function cardOrdinals(content: NoteContent): number[] {
       return clozeNumbers(content.text);
     case 'image_occlusion':
       return content.groups.map((g) => g.n).sort((a, b) => a - b);
+    case 'clinical_case':
+      return content.questions.map((q) => q.n).sort((a, b) => a - b);
     case 'type_answer':
     case 'multiple_choice':
     case 'true_false_justify':
@@ -256,6 +261,22 @@ export function cardFaces(content: NoteContent, ordinal: number): { prompt: stri
           .map((label, i) => `${String(i + 1)}. ${label.label}`)
           .join('\n'),
       };
+    case 'clinical_case': {
+      // Sin subpregunta con ese número (p. ej. "Para mejorar" pide la 0), queda el caso solo.
+      const q = clinicalQuestion(content, ordinal)?.question;
+      if (!q) return { prompt: content.vignette, answer: '' };
+      const options =
+        q.type === 'multiple_choice' ? q.options.map((o, i) => `${LETTERS[i] ?? '?'}) ${o}`) : [];
+      return {
+        prompt: [content.vignette, '', q.question, ...options].join('\n'),
+        answer:
+          q.type === 'multiple_choice'
+            ? (options[q.correct] ?? '')
+            : q.type === 'type_answer'
+              ? q.answer
+              : q.key,
+      };
+    }
   }
 }
 

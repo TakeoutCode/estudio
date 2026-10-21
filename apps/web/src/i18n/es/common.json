@@ -149,6 +149,10 @@
       "right": "correcta",
       "youChose": "elegiste: {{pick}}"
     },
+    "case": {
+      "vignette": "Caso",
+      "position": "Pregunta {{position}} de {{total}}"
+    },
     "labels": {
       "board": "Nombres de las etiquetas",
       "input": "Etiqueta {{n}}",
@@ -234,7 +238,8 @@
       "open_question": "Pregunta abierta",
       "sequence": "Ordenar",
       "matching": "Relacionar columnas",
-      "label_image": "Etiquetar imagen"
+      "label_image": "Etiquetar imagen",
+      "clinical_case": "Caso clínico"
     },
     "kindHint": {
       "basic": "Recuerdas la respuesta, la ves y calificas cómo te fue.",
@@ -246,7 +251,8 @@
       "open_question": "Escribes tu respuesta y, al ver la clave, calificas cómo te fue.",
       "sequence": "Pones en orden pasos o estructuras; cuenta cuántos pares quedan al revés.",
       "matching": "Relacionas cada elemento de una columna con el suyo de la otra.",
-      "label_image": "Tapas las etiquetas de una imagen tuya y escribes el nombre de cada número."
+      "label_image": "Tapas las etiquetas de una imagen tuya y escribes el nombre de cada número.",
+      "clinical_case": "Un caso con varias preguntas; cada una se responde y se repasa por separado."
     },
     "question": "Pregunta",
     "exactAnswer": "Respuesta (corta)",
@@ -425,6 +431,25 @@
       "add": "Agregar par",
       "hint": "De {{min}} a {{max}} pares. Al estudiar, la columna B se muestra mezclada."
     },
+    "clinical": {
+      "vignette": "Caso",
+      "vignettePlaceholder": "Edad, motivo de consulta, hallazgos de la exploración…",
+      "question": "Pregunta {{n}}",
+      "type": "Tipo de pregunta",
+      "types": {
+        "multiple_choice": "Opción múltiple",
+        "type_answer": "Escribir",
+        "open": "Abierta"
+      },
+      "questionText": "Pregunta",
+      "options": "Opciones: marca la correcta",
+      "option": "Opción {{n}}",
+      "markCorrect": "La opción {{n}} es la correcta",
+      "addOption": "Agregar opción",
+      "answer": "Respuesta (corta)",
+      "add": "Agregar pregunta",
+      "remove": "Quitar la pregunta {{n}}"
+    },
     "labelImage": {
       "hint": "Al estudiar se tapan todas, numeradas, y escribes el nombre de cada número.",
       "masked": "Etiqueta {{n}} de {{total}}, tapada"
@@ -438,7 +463,8 @@
       "open_question": "Escribe la pregunta y la clave de respuesta.",
       "sequence": "Escribe la consigna y de 3 a 10 elementos distintos.",
       "matching": "Escribe la consigna y de 3 a 8 pares completos, sin repetir en ninguna columna.",
-      "label_image": "Elige una imagen, escribe la consigna y la descripción, tapa al menos 2 etiquetas y ponle nombre a cada una."
+      "label_image": "Elige una imagen, escribe la consigna y la descripción, tapa al menos 2 etiquetas y ponle nombre a cada una.",
+      "clinical_case": "Escribe el caso y completa cada pregunta: en opción múltiple, de 3 a 5 opciones distintas y la correcta marcada."
     }
   },
   "tags": {

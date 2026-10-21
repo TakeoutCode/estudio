@@ -1,4 +1,4 @@
-import { newId, type NoteContent, Rating } from '@estudio/shared';
+import { cardIdFor, newId, type NoteContent, Rating } from '@estudio/shared';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -318,5 +318,74 @@ describe('etiquetar una imagen (label_image, R10, LD §2)', () => {
         },
       ]);
     });
+  });
+});
+
+describe('caso clínico (clinical_case, LD §2)', () => {
+  const vignette = 'Mujer de 34 años que cayó sobre la mano extendida; duele la tabaquera anatómica.';
+  const clinical: NoteContent = {
+    kind: 'clinical_case',
+    vignette,
+    questions: [
+      {
+        n: 1,
+        type: 'multiple_choice',
+        question: '¿Qué hueso sospechas?',
+        options: ['Escafoides', 'Semilunar', 'Pisiforme'],
+        correct: 0,
+      },
+      { n: 2, type: 'type_answer', question: '¿Qué arteria lo irriga?', answer: 'Radial' },
+      { n: 3, type: 'open', question: '¿Por qué puede necrosarse?', key: 'Irrigación retrógrada.' },
+    ],
+    explanation: 'El polo proximal depende de ramas que entran por el distal.',
+  };
+
+  it('una Card por subpregunta, cada una con el caso y respondida como su tipo', async () => {
+    const note = await only(clinical);
+    renderStudy();
+    await screen.findByText(vignette);
+    const queue = useStudy.getState().session?.plan.queue.map((q) => q.cardId) ?? [];
+    expect(new Set(queue)).toEqual(new Set([1, 2, 3].map((n) => cardIdFor(note.id, n))));
+    // Cómo responde cada subpregunta, según su tipo (el orden de las nuevas lo decide la cola).
+    const answer: Record<number, () => void> = {
+      1: () => {
+        fireEvent.click(screen.getByRole('button', { name: /Escafoides/ }));
+        expect(screen.getByText('Correcto.')).toBeTruthy();
+        expect(screen.getByText('El polo proximal depende de ramas que entran por el distal.')).toBeTruthy(); // R4
+        fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+      },
+      2: () => {
+        fireEvent.change(screen.getByLabelText('Escribe tu respuesta'), { target: { value: 'radial' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Comprobar' }));
+        expect(screen.getByText('Correcto.')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+      },
+      3: () => {
+        expect(screen.queryByText('Irrigación retrógrada.')).toBeNull(); // R1
+        fireEvent.change(screen.getByLabelText('Escribe tu respuesta antes de ver la clave'), {
+          target: { value: 'Le llega poca sangre.' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Ver la clave' }));
+        expect(screen.getByText('Irrigación retrógrada.')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Difícil' }));
+      },
+    };
+    for (const [i, cardId] of queue.entries()) {
+      const n = [1, 2, 3].find((k) => cardIdFor(note.id, k) === cardId) ?? 0;
+      expect(await screen.findByText(`Pregunta ${String(n)} de 3`)).toBeTruthy();
+      expect(screen.getByText(vignette)).toBeTruthy(); // el caso va con cada subpregunta
+      answer[n]?.();
+      await waitFor(async () => {
+        expect(await logs()).toHaveLength(i + 1);
+      });
+    }
+    const byCard = new Map((await logs()).map((l) => [l.cardId, [l.cardKind, l.rating, l.answer]]));
+    expect(byCard).toEqual(
+      new Map([
+        [cardIdFor(note.id, 1), ['clinical_case', Rating.Good, { option: 0 }]],
+        [cardIdFor(note.id, 2), ['clinical_case', Rating.Good, { text: 'radial' }]],
+        [cardIdFor(note.id, 3), ['clinical_case', Rating.Hard, { text: 'Le llega poca sangre.' }]],
+      ]),
+    );
   });
 });
