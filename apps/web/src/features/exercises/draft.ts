@@ -6,8 +6,15 @@ export const EXERCISE_KINDS = [
   'open_question',
   'sequence',
   'matching',
+  'label_image',
 ] as const satisfies readonly ExerciseKind[];
 export type EditableExerciseKind = (typeof EXERCISE_KINDS)[number];
+
+/** Las que se escriben con `ExerciseFields`; etiquetar una imagen usa el editor de oclusión (FE8). */
+export type DraftExerciseKind = Exclude<EditableExerciseKind, 'label_image'>;
+
+export const isDraftExerciseKind = (kind: string): kind is DraftExerciseKind =>
+  kind !== 'label_image' && isEditableExerciseKind(kind);
 
 export const isEditableExerciseKind = (kind: string): kind is EditableExerciseKind =>
   (EXERCISE_KINDS as readonly string[]).includes(kind);
@@ -67,11 +74,7 @@ export function exerciseDraftOf(content: NoteContent | undefined): ExerciseDraft
 }
 
 /** El contenido sin validar; el editor lo pasa por `NoteContentSchema`. */
-export function exerciseContent(
-  kind: EditableExerciseKind,
-  draft: ExerciseDraft,
-  explanation: string,
-): unknown {
+export function exerciseContent(kind: DraftExerciseKind, draft: ExerciseDraft, explanation: string): unknown {
   switch (kind) {
     case 'true_false_justify':
       return {

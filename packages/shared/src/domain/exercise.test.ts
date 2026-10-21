@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { newId } from '../ids.js';
 import { encodeHlc } from '../sync/hlc.js';
-import { isExerciseKind, MATCHING_PAIRS, SEQUENCE_ITEMS } from './exercise.js';
-import { cardFaces, cardOrdinals, NoteContentSchema, NoteSchema } from './note.js';
+import { isExerciseKind, LABEL_IMAGE_LABELS, MATCHING_PAIRS, SEQUENCE_ITEMS } from './exercise.js';
+import { cardFaces, cardOrdinals, NoteContentSchema, noteImageAssetId, NoteSchema } from './note.js';
 import { CardKindSchema } from './review.js';
 
 const note = (content: unknown) => ({
@@ -109,5 +109,43 @@ describe('relacionar columnas (LD §2)', () => {
     expect(cardFaces(parsed, 0).answer).toBe(
       'Deltoides → Axilar\nBíceps braquial → Musculocutáneo\nTríceps braquial → Radial',
     );
+  });
+});
+
+describe('etiquetar una imagen (label_image, R10, LD §2)', () => {
+  const rect = { x: 0.1, y: 0.1, w: 0.2, h: 0.1 };
+  const carpus = {
+    kind: 'label_image',
+    imageAssetId: newId(),
+    prompt: 'Nombra los huesos marcados.',
+    alt: 'Mano derecha, vista palmar, con los huesos del carpo marcados.',
+    labels: [
+      { n: 2, label: 'Semilunar', rects: [rect] },
+      { n: 1, label: 'Escafoides', rects: [rect] },
+    ],
+    explanation: '',
+  } as const;
+
+  it('imagen con al menos 2 etiquetas numeradas; una sola Card y su imagen va antes (FE8)', () => {
+    expect(NoteSchema.safeParse(note(carpus)).success).toBe(true);
+    expect(NoteContentSchema.safeParse({ ...carpus, labels: carpus.labels.slice(0, 1) }).success).toBe(false);
+    expect(
+      NoteContentSchema.safeParse({ ...carpus, labels: carpus.labels.map((l) => ({ ...l, n: 1 })) }).success,
+    ).toBe(false);
+    const many = Array.from({ length: LABEL_IMAGE_LABELS.max + 1 }, (_, i) => ({
+      n: i + 1,
+      label: `H${String(i)}`,
+      rects: [rect],
+    }));
+    expect(NoteContentSchema.safeParse({ ...carpus, labels: many }).success).toBe(false);
+    const parsed = NoteContentSchema.parse(carpus);
+    expect(cardOrdinals(parsed)).toEqual([0]);
+    expect(cardFaces(parsed, 0).answer).toBe('1. Escafoides\n2. Semilunar'); // por su número
+    expect(noteImageAssetId(parsed)).toBe(carpus.imageAssetId);
+    expect(
+      noteImageAssetId(
+        NoteContentSchema.parse({ kind: 'open_question', question: 'q', key: 'k', explanation: '' }),
+      ),
+    ).toBeNull();
   });
 });

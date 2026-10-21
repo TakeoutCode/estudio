@@ -1,4 +1,4 @@
-import type { MediaAsset } from '@estudio/shared';
+import { type MediaAsset, noteImageAssetId } from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { db } from '@/db/schema';
@@ -39,11 +39,7 @@ export const useImageUrlsForCards = (cardIds: readonly string[], cssWidth: numbe
     const cards = await db.cards.bulkGet([...cardIds]);
     const notes = await db.notes.bulkGet([...new Set(cards.flatMap((c) => (c ? [c.noteId] : [])))]);
     const assetIds = [
-      ...new Set(
-        notes.flatMap((n) =>
-          n?.deletedAt === null && n.content.kind === 'image_occlusion' ? [n.content.imageAssetId] : [],
-        ),
-      ),
+      ...new Set(notes.flatMap((n) => (n?.deletedAt === null ? (noteImageAssetId(n.content) ?? []) : []))),
     ];
     const assets = await db.mediaAssets.bulkGet(assetIds);
     return assets.flatMap((asset) => {

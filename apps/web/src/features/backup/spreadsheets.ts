@@ -1,4 +1,4 @@
-import type { Backup, Note, NoteContent } from '@estudio/shared';
+import { type Backup, type Note, type NoteContent, numberedLabels } from '@estudio/shared';
 import type { CardState } from '@estudio/srs';
 
 // QUALITY QA7: una planilla por tabla (notes, cards, review_logs, exams) para abrir en Excel o
@@ -68,6 +68,13 @@ function faces(content: NoteContent): readonly [string, string] {
       return [content.prompt, content.items.join(' → ')];
     case 'matching':
       return [content.prompt, content.pairs.map((p) => `${p.left} → ${p.right}`).join(' | ')];
+    case 'label_image':
+      return [
+        content.prompt,
+        numberedLabels(content)
+          .map((g) => g.label)
+          .join(' | '),
+      ];
   }
 }
 

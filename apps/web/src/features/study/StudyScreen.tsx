@@ -1,4 +1,4 @@
-import { type CardKind, newId, type Rating } from '@estudio/shared';
+import { type CardKind, newId, numberedLabels, type Rating } from '@estudio/shared';
 import {
   cardElapsedMs,
   fractionScore,
@@ -37,6 +37,7 @@ import {
   defaultObjectiveRating,
   RatingControls,
   revealsDirectly,
+  labelAnswers,
   matchingPicks,
   sequenceOrder,
 } from './CardView';
@@ -536,6 +537,22 @@ function CurrentCard({
       answer: { picks: [...picks] },
     });
   };
+  // LD §2, LD2: etiquetas bien escritas / total (normalizadas como en `type_answer`), con `toRating`.
+  const labels = () => {
+    const state = useStudy.getState();
+    const config = state.session?.ratingConfig;
+    if (card?.content.kind !== 'label_image' || !config) return;
+    const answers = labelAnswers(card, state.work).map((a) => a.trim());
+    const expected = numberedLabels(card.content);
+    const right = expected.filter((label, i) => isTypedAnswerCorrect(answers[i] ?? '', label.label)).length;
+    const score = fractionScore(right, expected.length);
+    reveal(null, {
+      kind: 'scored',
+      score,
+      rating: toRating({ kind: 'scored', score }, config),
+      answer: { answers },
+    });
+  };
   const direct = card ? revealsDirectly(card) : true;
   const fallback = attempt ? defaultObjectiveRating(attempt) : null;
 
@@ -623,6 +640,7 @@ function CurrentCard({
             onWritten={written}
             onSequence={sequence}
             onMatching={matching}
+            onLabels={labels}
           />
         ) : null}
         {phase === 'revealed' ? (
@@ -652,7 +670,10 @@ function answerOf(attempt: Attempt | null): Record<string, unknown> | undefined 
 
 /** UX2: con el teclado abierto, el campo y su botón siguen a la vista (`visualViewport`). */
 const writesAnswer = (kind: CardKind): boolean =>
-  kind === 'type_answer' || kind === 'true_false_justify' || kind === 'open_question';
+  kind === 'type_answer' ||
+  kind === 'true_false_justify' ||
+  kind === 'open_question' ||
+  kind === 'label_image';
 
 function SkipDeleted({ onSkip }: { readonly onSkip: () => void }) {
   useEffect(() => {

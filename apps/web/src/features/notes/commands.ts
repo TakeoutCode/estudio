@@ -7,6 +7,7 @@ import {
   newId,
   type Note,
   type NoteContent,
+  noteImageAssetId,
   NoteSchema,
   tagKey,
   TagSchema,
@@ -263,16 +264,17 @@ async function checkImage(
   image: StagedImage | undefined,
   now: number,
 ): Promise<void> {
-  if (content.kind !== 'image_occlusion') {
+  const imageAssetId = noteImageAssetId(content);
+  if (imageAssetId === null) {
     if (image) throw new Error('image_without_occlusion');
     return;
   }
   if (image) {
-    if (image.assetId !== content.imageAssetId) throw new Error('image_mismatch');
+    if (image.assetId !== imageAssetId) throw new Error('image_mismatch');
     await stageImageAsset(database, image, now);
     return;
   }
-  const asset = await database.mediaAssets.get(content.imageAssetId);
+  const asset = await database.mediaAssets.get(imageAssetId);
   if (asset?.deletedAt !== null) throw new Error('image_not_found');
 }
 

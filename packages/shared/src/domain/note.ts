@@ -1,8 +1,18 @@
 import { v5 as uuidv5 } from 'uuid';
 import { z } from 'zod';
 import { SyncMetaSchema } from '../sync/contracts.js';
-import { EXPLANATION_MAX_LENGTH, explanation, text } from './content-parts.js';
 import {
+  EXPLANATION_MAX_LENGTH,
+  explanation,
+  type OcclusionGroup,
+  OcclusionGroupSchema,
+  type OcclusionRect,
+  OcclusionRectSchema,
+  text,
+} from './content-parts.js';
+import {
+  LabelImageContentSchema,
+  numberedLabels,
   MatchingContentSchema,
   OpenQuestionContentSchema,
   SequenceContentSchema,
@@ -70,34 +80,9 @@ export const MultipleChoiceContentSchema = z
   .strict()
   .refine((c) => c.correct < c.options.length, { path: ['correct'], message: 'correct_out_of_range' });
 
-/** Coordenada normalizada sobre la imagen tal como se ve: 0 es el borde izquierdo o superior. */
-const unit = () => z.number().min(0).max(1);
-
-/** Tolerancia de redondeo: con 4 decimales, `x + w` puede pasar de 1 por muy poco. */
-const EDGE_TOLERANCE = 1e-6;
-
-/** Un recuadro que tapa una etiqueta de la imagen. */
-export const OcclusionRectSchema = z
-  .object({ x: unit(), y: unit(), w: unit().positive(), h: unit().positive() })
-  .strict()
-  .refine((r) => r.x + r.w <= 1 + EDGE_TOLERANCE && r.y + r.h <= 1 + EDGE_TOLERANCE, 'rect_outside_image');
-export type OcclusionRect = z.infer<typeof OcclusionRectSchema>;
-
 export const OCCLUSION_MAX_GROUPS = 60;
 
-/**
- * Una etiqueta y los recuadros que la tapan (a veces aparece en dos lugares). `n` es su número
- * estable, como el de un hueco cloze: es el `ordinal` de su Card, así que quitar otra etiqueta
- * no cambia de qué Card es el historial.
- */
-export const OcclusionGroupSchema = z
-  .object({
-    n: z.number().int().min(1).max(999),
-    label: text(200),
-    rects: z.array(OcclusionRectSchema).min(1).max(10),
-  })
-  .strict();
-export type OcclusionGroup = z.infer<typeof OcclusionGroupSchema>;
+export { type OcclusionGroup, OcclusionGroupSchema, type OcclusionRect, OcclusionRectSchema };
 
 /**
  * `image_occlusion` (R10, LD1): imagen con texto y etiquetas ocultas; una Card por etiqueta, que
@@ -135,6 +120,7 @@ export const NoteContentSchema = z.discriminatedUnion('kind', [
   OpenQuestionContentSchema,
   SequenceContentSchema,
   MatchingContentSchema,
+  LabelImageContentSchema,
 ]);
 export type NoteContent = z.infer<typeof NoteContentSchema>;
 
@@ -179,6 +165,7 @@ export function cardOrdinals(content: NoteContent): number[] {
     case 'open_question':
     case 'sequence':
     case 'matching':
+    case 'label_image':
       return [0];
   }
 }
@@ -261,7 +248,20 @@ export function cardFaces(content: NoteContent, ordinal: number): { prompt: stri
         prompt: content.prompt,
         answer: content.pairs.map((p) => `${p.left} → ${p.right}`).join('\n'),
       };
+    case 'label_image':
+      // La imagen la dibuja cada vista; como texto, cada número con su etiqueta.
+      return {
+        prompt: content.prompt,
+        answer: numberedLabels(content)
+          .map((label, i) => `${String(i + 1)}. ${label.label}`)
+          .join('\n'),
+      };
   }
+}
+
+/** FE8: la imagen de la nota (oclusión o etiquetar), que viaja como asset antes que la nota. */
+export function noteImageAssetId(content: NoteContent): string | null {
+  return content.kind === 'image_occlusion' || content.kind === 'label_image' ? content.imageAssetId : null;
 }
 
 // Espacio de nombres fijo para los IDs de Card. No cambiar: los ReviewLog ya guardados los

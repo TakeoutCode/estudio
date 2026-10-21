@@ -276,9 +276,10 @@ export async function importBackup(
   return result;
 }
 
-/** Las referencias dentro del contenido: la imagen de una oclusión. */
+/** Las referencias dentro del contenido: la imagen de una oclusión o de etiquetar (FE8). */
 function remapContent(note: Note, ids: IdMap): Note['content'] | null {
-  if (note.content.kind !== 'image_occlusion') return note.content;
-  const imageAssetId = ids.ref(note.content.imageAssetId);
-  return imageAssetId ? { ...note.content, imageAssetId } : null;
+  const { content } = note;
+  if (content.kind !== 'image_occlusion' && content.kind !== 'label_image') return content;
+  const imageAssetId = ids.ref(content.imageAssetId);
+  return imageAssetId ? { ...content, imageAssetId } : null;
 }

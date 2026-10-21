@@ -43,7 +43,9 @@ export type Attempt =
 export type ExerciseWork =
   | { readonly kind: 'sequence'; readonly order: readonly string[] }
   /** Por cada elemento de la columna A, en su orden, la pareja que eligió de la B. */
-  | { readonly kind: 'matching'; readonly picks: readonly (string | null)[] };
+  | { readonly kind: 'matching'; readonly picks: readonly (string | null)[] }
+  /** Lo que escribió para cada etiqueta, en el orden de sus números. */
+  | { readonly kind: 'label_image'; readonly answers: readonly string[] };
 
 /**
  * Qué se estudia: Hoy mezcla todos los mazos (R9, P4); `deck` aplica el plan a un solo mazo

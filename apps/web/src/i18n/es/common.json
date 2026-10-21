@@ -149,6 +149,13 @@
       "right": "correcta",
       "youChose": "elegiste: {{pick}}"
     },
+    "labels": {
+      "board": "Nombres de las etiquetas",
+      "input": "Etiqueta {{n}}",
+      "score": "{{right}} de {{total}} etiquetas bien escritas.",
+      "right": "correcta",
+      "youWrote": "escribiste: {{text}}"
+    },
     "tag": {
       "empty": "No hay tarjetas pendientes con esta etiqueta. Puedes añadir nuevas o elegir otra.",
       "missing": "Esta etiqueta ya no existe; puede que se haya borrado en otro dispositivo."
@@ -226,7 +233,8 @@
       "true_false_justify": "Verdadero o falso",
       "open_question": "Pregunta abierta",
       "sequence": "Ordenar",
-      "matching": "Relacionar columnas"
+      "matching": "Relacionar columnas",
+      "label_image": "Etiquetar imagen"
     },
     "kindHint": {
       "basic": "Recuerdas la respuesta, la ves y calificas cómo te fue.",
@@ -237,7 +245,8 @@
       "true_false_justify": "Decides si una afirmación es verdadera o falsa y lo justificas; luego la comparas con la de referencia.",
       "open_question": "Escribes tu respuesta y, al ver la clave, calificas cómo te fue.",
       "sequence": "Pones en orden pasos o estructuras; cuenta cuántos pares quedan al revés.",
-      "matching": "Relacionas cada elemento de una columna con el suyo de la otra."
+      "matching": "Relacionas cada elemento de una columna con el suyo de la otra.",
+      "label_image": "Tapas las etiquetas de una imagen tuya y escribes el nombre de cada número."
     },
     "question": "Pregunta",
     "exactAnswer": "Respuesta (corta)",
@@ -416,6 +425,10 @@
       "add": "Agregar par",
       "hint": "De {{min}} a {{max}} pares. Al estudiar, la columna B se muestra mezclada."
     },
+    "labelImage": {
+      "hint": "Al estudiar se tapan todas, numeradas, y escribes el nombre de cada número.",
+      "masked": "Etiqueta {{n}} de {{total}}, tapada"
+    },
     "order": {
       "up": "Subir: {{label}}",
       "down": "Bajar: {{label}}"
@@ -424,7 +437,8 @@
       "true_false_justify": "Escribe la afirmación, elige si es verdadera o falsa y escribe la justificación de referencia.",
       "open_question": "Escribe la pregunta y la clave de respuesta.",
       "sequence": "Escribe la consigna y de 3 a 10 elementos distintos.",
-      "matching": "Escribe la consigna y de 3 a 8 pares completos, sin repetir en ninguna columna."
+      "matching": "Escribe la consigna y de 3 a 8 pares completos, sin repetir en ninguna columna.",
+      "label_image": "Elige una imagen, escribe la consigna y la descripción, tapa al menos 2 etiquetas y ponle nombre a cada una."
     }
   },
   "tags": {

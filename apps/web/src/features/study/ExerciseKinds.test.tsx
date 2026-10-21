@@ -1,4 +1,4 @@
-import { type NoteContent, Rating } from '@estudio/shared';
+import { newId, type NoteContent, Rating } from '@estudio/shared';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -260,6 +260,63 @@ describe('relacionar columnas (matching, LD §2, LD2)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Seguir' }));
     await waitFor(async () => {
       expect(await logs()).toMatchObject([{ rating: Rating.Again }]);
+    });
+  });
+});
+
+describe('etiquetar una imagen (label_image, R10, LD §2)', () => {
+  const rect = (x: number) => ({ x, y: 0.2, w: 0.15, h: 0.1 });
+  const withImage = async () => {
+    const assetId = newId();
+    await createNote(
+      {
+        deck: { name: 'Mano' },
+        content: {
+          kind: 'label_image',
+          imageAssetId: assetId,
+          prompt: 'Nombra los huesos marcados.',
+          alt: 'Mano derecha, vista palmar, con tres huesos del carpo marcados.',
+          labels: [
+            { n: 1, label: 'Escafoides', rects: [rect(0.1)] },
+            { n: 2, label: 'Semilunar', rects: [rect(0.3)] },
+            { n: 3, label: 'Piramidal', rects: [rect(0.5)] },
+          ],
+          explanation: '',
+        },
+        image: { assetId, data: new Uint8Array([1, 2]).buffer, mime: 'image/png', width: 800, height: 600 },
+      },
+      { now: T0 - 1 },
+    );
+  };
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => 'blob:copia-local');
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  it('R1: tapadas y numeradas, sin sus nombres en el DOM; escribe cada una y se califica por aciertos', async () => {
+    await withImage();
+    const { container } = renderStudy();
+    await screen.findByText('Nombra los huesos marcados.');
+    expect(await screen.findByRole('img', { name: 'Etiqueta 1 de 3, tapada' })).toBeTruthy();
+    expect(container.textContent).not.toMatch(/Escafoides|Semilunar|Piramidal/);
+    fireEvent.change(screen.getByLabelText('Etiqueta 1'), { target: { value: ' escafoides ' } });
+    fireEvent.change(screen.getByLabelText('Etiqueta 2'), { target: { value: 'Semilunar' } });
+    fireEvent.change(screen.getByLabelText('Etiqueta 3'), { target: { value: 'Pisiforme' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Comprobar' }));
+    expect(screen.getByText('2 de 3 etiquetas bien escritas.')).toBeTruthy();
+    expect(screen.getByText('Piramidal')).toBeTruthy(); // LD2: la ortografía correcta
+    expect(screen.getByText('escribiste: Pisiforme')).toBeTruthy();
+    // s = 2/3 < hardMinScore: Again.
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir' }));
+    await waitFor(async () => {
+      expect(await logs()).toMatchObject([
+        {
+          cardKind: 'label_image',
+          rating: Rating.Again,
+          answer: { answers: ['escafoides', 'Semilunar', 'Pisiforme'] },
+        },
+      ]);
     });
   });
 });

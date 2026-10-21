@@ -3,6 +3,7 @@ import {
   type Deck,
   EXPLANATION_MAX_LENGTH,
   isExerciseKind,
+  noteImageAssetId,
   type ImageMime,
   newId,
   type Note,
@@ -29,6 +30,7 @@ import {
   type ExerciseDraft,
   exerciseDraftOf,
   ExerciseFields,
+  isDraftExerciseKind,
   isEditableExerciseKind,
 } from '@/features/exercises';
 import { checkImageFile, isImageMime, readImageSize } from '@/lib/media';
@@ -147,7 +149,13 @@ function NoteForm({
   const [correct, setCorrect] = useState<number | null>(
     initial?.kind === 'multiple_choice' ? initial.correct : null,
   );
-  const occlusion = initial?.kind === 'image_occlusion' ? initial : null;
+  // R10: oclusión y etiquetar una imagen comparten imagen, texto, descripción y recuadros.
+  const occlusion =
+    initial?.kind === 'image_occlusion'
+      ? initial
+      : initial?.kind === 'label_image'
+        ? { ...initial, mode: 'hide_all' as const, groups: initial.labels }
+        : null;
   const [prompt, setPrompt] = useState(occlusion?.prompt ?? '');
   const [alt, setAlt] = useState(occlusion?.alt ?? '');
   const [mode, setMode] = useState(occlusion?.mode ?? 'hide_all');
@@ -181,6 +189,15 @@ function NoteForm({
           alt,
           mode,
           groups,
+          explanation,
+        };
+      case 'label_image':
+        return {
+          kind,
+          imageAssetId: occlusion?.imageAssetId ?? picked?.assetId ?? '',
+          prompt,
+          alt,
+          labels: groups,
           explanation,
         };
       case 'multiple_choice': {
@@ -257,7 +274,7 @@ function NoteForm({
       } else {
         // Los bytes se leen antes de la transacción: dentro de ella, esperar al archivo la cerraría.
         const image =
-          content.data.kind === 'image_occlusion' && picked
+          noteImageAssetId(content.data) !== null && picked
             ? {
                 assetId: picked.assetId,
                 data: await picked.file.arrayBuffer(),
@@ -290,6 +307,7 @@ function NoteForm({
     cloze: t('notes.error.cloze'),
     multiple_choice: t('notes.error.choice'),
     image_occlusion: t('notes.error.occlusion'),
+    label_image: t('exercises.error.label_image'),
     true_false_justify: t('exercises.error.true_false_justify'),
     open_question: t('exercises.error.open_question'),
     sequence: t('exercises.error.sequence'),
@@ -493,7 +511,7 @@ function NoteForm({
         {kind === 'cloze' ? (
           <ClozeField ids={ids} value={clozeText} onChange={setClozeText} inputRef={firstRef} />
         ) : null}
-        {kind === 'image_occlusion' ? (
+        {kind === 'image_occlusion' || kind === 'label_image' ? (
           <>
             <ImageField
               picked={picked}
@@ -541,23 +559,28 @@ function NoteForm({
                 onGroups={setGroups}
               />
             ) : null}
-            <fieldset className="m-0 flex flex-col gap-1 border-0 p-0">
-              <legend className="mb-1">{t('notes.occlusion.mode')}</legend>
-              {(['hide_all', 'hide_one'] as const).map((value) => (
-                <label key={value} className="flex min-h-11 items-center gap-3">
-                  <input
-                    type="radio"
-                    name={`${ids}-mode`}
-                    className="size-5 shrink-0 accent-primary"
-                    checked={mode === value}
-                    onChange={() => {
-                      setMode(value);
-                    }}
-                  />
-                  <span>{t(`notes.occlusion.${value}`)}</span>
-                </label>
-              ))}
-            </fieldset>
+            {kind === 'image_occlusion' ? (
+              <fieldset className="m-0 flex flex-col gap-1 border-0 p-0">
+                <legend className="mb-1">{t('notes.occlusion.mode')}</legend>
+                {(['hide_all', 'hide_one'] as const).map((value) => (
+                  <label key={value} className="flex min-h-11 items-center gap-3">
+                    <input
+                      type="radio"
+                      name={`${ids}-mode`}
+                      className="size-5 shrink-0 accent-primary"
+                      checked={mode === value}
+                      onChange={() => {
+                        setMode(value);
+                      }}
+                    />
+                    <span>{t(`notes.occlusion.${value}`)}</span>
+                  </label>
+                ))}
+              </fieldset>
+            ) : (
+              // LD §2: al estudiar se tapan todas y ella escribe el nombre de cada número.
+              <p className="m-0 text-caption text-muted">{t('exercises.labelImage.hint')}</p>
+            )}
           </>
         ) : null}
         {kind === 'multiple_choice' ? (
@@ -577,7 +600,7 @@ function NoteForm({
             <OptionsField options={options} correct={correct} onChange={setOptions} onCorrect={setCorrect} />
           </>
         ) : null}
-        {isEditableExerciseKind(kind) ? (
+        {isDraftExerciseKind(kind) ? (
           <ExerciseFields
             kind={kind}
             draft={exerciseDraft}

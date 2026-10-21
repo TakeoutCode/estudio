@@ -1,4 +1,4 @@
-import type { ApiErrorCode, Note } from '@estudio/shared';
+import { type ApiErrorCode, type Note, noteImageAssetId } from '@estudio/shared';
 import { Injectable } from '@nestjs/common';
 import { dbNumber, dbNumberOrNull } from '../sync/sql.js';
 import { type ApplyStatus, type EntitySyncHandler, SyncHandler } from '../sync/sync-handler.js';
@@ -18,11 +18,9 @@ export class NoteSyncHandler implements EntitySyncHandler<'note'> {
 
   async refs(userId: string, row: Note): Promise<ApiErrorCode | null> {
     if (!(await this.repo.owns('deck', userId, row.deckId))) return 'not_found';
-    // R10: la imagen de una oclusión es de ella; el asset viaja antes que la nota (outbox).
-    if (
-      row.content.kind === 'image_occlusion' &&
-      !(await this.repo.owns('media_asset', userId, row.content.imageAssetId))
-    ) {
+    // R10: la imagen (oclusión o etiquetar) es de ella; el asset viaja antes que la nota (outbox).
+    const imageAssetId = noteImageAssetId(row.content);
+    if (imageAssetId !== null && !(await this.repo.owns('media_asset', userId, imageAssetId))) {
       return 'not_found';
     }
     // Cada etiqueta es de ella (aunque esté borrada); viaja antes que la nota (outbox).

@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   cardRow,
   deckRow,
+  hlcAt,
   type IntegrationApp,
   noteRow,
   signIn,
@@ -83,6 +84,51 @@ describe('ejercicios como notas por sync (LD §2, BE2)', () => {
       .expect(200);
     const body = res.body as { changes: { entity: string; row: unknown }[] };
     expect(body.changes.filter((c) => c.entity === 'note').map((c) => c.row)).toEqual([tfj, open]);
+  });
+
+  it('R10: etiquetar una imagen necesita una imagen suya, que viaja antes que la nota (BE2)', async () => {
+    const deck = deckRow(now, PHONE);
+    const image = {
+      id: newId(),
+      kind: 'image',
+      mime: 'image/png',
+      bytes: 90_000,
+      width: 800,
+      height: 600,
+      publicId: null,
+      version: null,
+      hlc: hlcAt(now, PHONE),
+      updatedAt: now,
+      deletedAt: null,
+    };
+    const labels = (imageAssetId: string) =>
+      noteRow(now, PHONE, deck.id, {
+        content: {
+          kind: 'label_image',
+          imageAssetId,
+          prompt: 'Nombra los huesos marcados.',
+          alt: 'Mano derecha, vista palmar.',
+          labels: [
+            { n: 1, label: 'Escafoides', rects: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.1 }] },
+            { n: 2, label: 'Semilunar', rects: [{ x: 0.4, y: 0.1, w: 0.2, h: 0.1 }] },
+          ],
+          explanation: '',
+        },
+      });
+    const results = (
+      await push([
+        upsert('deck', deck),
+        upsert('note', labels(image.id)), // la imagen todavía no llegó
+        upsert('mediaAsset', image),
+        upsert('note', labels(image.id)),
+      ])
+    ).results;
+    expect(results.map((r) => [r.status, r.code])).toEqual([
+      ['applied', undefined],
+      ['rejected', 'not_found'],
+      ['applied', undefined],
+      ['applied', undefined],
+    ]);
   });
 
   it('`exercise` ya no es una entidad de sync: el sobre se rechaza entero', async () => {

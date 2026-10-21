@@ -1,9 +1,15 @@
-import { clozeSegments, type Confidence, Rating } from '@estudio/shared';
-import { sequenceInversions, shuffledSequence, toRating } from '@estudio/srs';
+import {
+  clozeSegments,
+  type Confidence,
+  type LabelImageContent,
+  numberedLabels,
+  Rating,
+} from '@estudio/shared';
+import { isTypedAnswerCorrect, sequenceInversions, shuffledSequence, toRating } from '@estudio/srs';
 import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { moved, OrderList } from '@/features/exercises';
-import { OcclusionFigure } from '@/features/media';
+import { LabelFigure, OcclusionFigure } from '@/features/media';
 import { RatingButton } from '@/ui/RatingButton';
 import type { StudyCardView } from './queries';
 import { type Attempt, type CardPhase, type ExerciseWork, useStudy } from './store';
@@ -60,6 +66,15 @@ export function matchingPicks(card: StudyCardView, work: ExerciseWork | null): r
   if (card.content.kind !== 'matching') return [];
   const pairs = card.content.pairs;
   return work?.kind === 'matching' && work.picks.length === pairs.length ? work.picks : pairs.map(() => null);
+}
+
+/** Etiquetar: lo escrito para cada número (vacío si todavía no). */
+export function labelAnswers(card: StudyCardView, work: ExerciseWork | null): readonly string[] {
+  if (card.content.kind !== 'label_image') return [];
+  const total = card.content.labels.length;
+  return work?.kind === 'label_image' && work.answers.length === total
+    ? work.answers
+    : Array.from({ length: total }, () => '');
 }
 
 /** LD2: las calificaciones que se pueden elegir después del intento. */
@@ -140,6 +155,9 @@ export function CardBody({
       ) : null}
       {content.kind === 'sequence' && !revealed ? <SequenceBoard card={card} disabled={!canChoose} /> : null}
       {content.kind === 'matching' && !revealed ? <MatchingBoard card={card} disabled={!canChoose} /> : null}
+      {content.kind === 'label_image' ? (
+        <LabelBoard card={card} revealed={revealed} disabled={!canChoose} />
+      ) : null}
       <div aria-live="polite">
         {revealed ? (
           <section className="flex flex-col gap-2 border-t border-muted/30 pt-4">
@@ -171,6 +189,9 @@ export function CardBody({
             ) : null}
             {attempt?.kind === 'scored' && content.kind === 'matching' ? (
               <MatchingResult pairs={content.pairs} answer={attempt.answer} />
+            ) : null}
+            {attempt?.kind === 'scored' && content.kind === 'label_image' ? (
+              <LabelResult content={content} answer={attempt.answer} />
             ) : null}
             {content.kind === 'basic' || content.kind === 'image_occlusion' ? (
               <>
@@ -304,6 +325,101 @@ function MatchingResult({
           );
         })}
       </ul>
+    </>
+  );
+}
+
+const labelInput = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-body text-text disabled:opacity-60 ${focus}`;
+
+/**
+ * LD §2 (`label_image`): la imagen tapada y un campo por número. Sin autocorrector: la
+ * terminología anatómica choca con él (UX2).
+ */
+function LabelBoard({
+  card,
+  revealed,
+  disabled,
+}: {
+  readonly card: StudyCardView;
+  readonly revealed: boolean;
+  readonly disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const work = useStudy((s) => s.work);
+  const setWork = useStudy((s) => s.setWork);
+  if (card.content.kind !== 'label_image') return null;
+  const answers = labelAnswers(card, work);
+  return (
+    <>
+      <LabelFigure content={card.content} revealed={revealed} eager />
+      {revealed ? null : (
+        <ol aria-label={t('study.labels.board')} className="m-0 flex list-none flex-col gap-2 p-0">
+          {answers.map((answer, i) => (
+            <li key={i} className="flex items-center gap-3">
+              <span className="w-6 shrink-0 text-right font-semibold tabular-nums" aria-hidden="true">
+                {i + 1}
+              </span>
+              <input
+                className={labelInput}
+                value={answer}
+                disabled={disabled}
+                aria-label={t('study.labels.input', { n: i + 1 })}
+                autoCapitalize="off"
+                autoCorrect="off"
+                autoComplete="off"
+                spellCheck={false}
+                enterKeyHint="next"
+                onChange={(event) => {
+                  setWork({
+                    kind: 'label_image',
+                    answers: answers.map((a, j) => (j === i ? event.target.value : a)),
+                  });
+                }}
+              />
+            </li>
+          ))}
+        </ol>
+      )}
+    </>
+  );
+}
+
+/** R4: cada número con su nombre y lo que escribió ella; siempre la ortografía correcta (LD2). */
+function LabelResult({
+  content,
+  answer,
+}: {
+  readonly content: LabelImageContent;
+  readonly answer: Readonly<Record<string, unknown>>;
+}) {
+  const { t } = useTranslation();
+  const labels = numberedLabels(content);
+  const written = Array.isArray(answer.answers) ? answer.answers : [];
+  const text = (i: number): string => {
+    const value: unknown = written[i];
+    return typeof value === 'string' ? value : '';
+  };
+  const right = labels.filter((label, i) => isTypedAnswerCorrect(text(i), label.label)).length;
+  return (
+    <>
+      <p className="m-0 font-semibold">{t('study.labels.score', { right, total: labels.length })}</p>
+      <ol className="m-0 flex list-none flex-col gap-2 p-0">
+        {labels.map((label, i) => (
+          <li key={label.n} className="flex items-baseline gap-3">
+            <span className="w-6 shrink-0 text-right font-semibold tabular-nums">{i + 1}</span>
+            <span className="flex flex-col">
+              <span className="text-card">{label.label}</span>
+              <span className="text-caption text-muted">
+                {isTypedAnswerCorrect(text(i), label.label)
+                  ? t('study.labels.right')
+                  : t('study.labels.youWrote', {
+                      text: text(i).trim() === '' ? t('study.objective.empty') : text(i),
+                    })}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
     </>
   );
 }
@@ -455,6 +571,7 @@ export function AttemptControls({
   onWritten,
   onSequence,
   onMatching,
+  onLabels,
 }: {
   readonly card: StudyCardView;
   readonly askConfidence: boolean;
@@ -468,6 +585,8 @@ export function AttemptControls({
   readonly onSequence: () => void;
   /** Relacionar: comprobar las parejas elegidas. */
   readonly onMatching: () => void;
+  /** Etiquetar: comprobar lo escrito para cada número. */
+  readonly onLabels: () => void;
 }) {
   const { t } = useTranslation();
   const direct = revealsDirectly(card);
@@ -496,6 +615,14 @@ export function AttemptControls({
   }
   if (card.content.kind === 'matching') {
     return <MatchingCheck card={card} onCheck={onMatching} />;
+  }
+  if (card.content.kind === 'label_image') {
+    // Como escribir la respuesta: un campo vacío también es un intento y cuenta como error.
+    return (
+      <button type="button" className={primary} onClick={onLabels}>
+        {t('study.objective.check')}
+      </button>
+    );
   }
   if (card.content.kind === 'multiple_choice') {
     return <p className="m-0 text-center text-caption text-muted">{t('study.objective.choose')}</p>;

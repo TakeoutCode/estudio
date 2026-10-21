@@ -419,3 +419,60 @@ describe('editor de notas · relacionar columnas (matching)', () => {
     });
   });
 });
+
+describe('editor de notas · etiquetar una imagen (label_image)', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(() => Promise.resolve({ width: 800, height: 600, close: vi.fn() })),
+    );
+    URL.createObjectURL = vi.fn(() => 'blob:vista-previa');
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('usa el editor de oclusión sin el modo; guarda las etiquetas y la imagen', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    render(
+      <MemoryRouter initialEntries={['/notes/new?tipo=ejercicio']}>
+        <NoteEditorScreen />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Etiquetar imagen' }));
+    fireEvent.change(screen.getByLabelText('Nombre del mazo nuevo'), { target: { value: 'Mano' } });
+    fireEvent.change(screen.getByLabelText('Elegir imagen'), {
+      target: { files: [new File([new Uint8Array([1, 2, 3])], 'carpo.png', { type: 'image/png' })] },
+    });
+    expect(await screen.findByRole('group', { name: 'Imagen para tapar etiquetas' })).toBeTruthy();
+    expect(screen.queryByLabelText('Tapar también las demás')).toBeNull();
+    expect(screen.getByText(/Al estudiar se tapan todas, numeradas/)).toBeTruthy();
+    for (const [i, name] of ['Escafoides', 'Semilunar'].entries()) {
+      fireEvent.click(screen.getByRole('button', { name: 'Agregar recuadro' }));
+      fireEvent.change(screen.getByLabelText(`Nombre de la etiqueta ${String(i + 1)}`), {
+        target: { value: name },
+      });
+    }
+    fireEvent.change(screen.getByLabelText('Pregunta que acompaña la imagen'), {
+      target: { value: 'Nombra los huesos marcados.' },
+    });
+    fireEvent.change(screen.getByLabelText('Descripción de la imagen'), {
+      target: { value: 'Mano derecha, vista palmar' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      const [note] = await db.notes.toArray();
+      expect(note?.content).toMatchObject({
+        kind: 'label_image',
+        prompt: 'Nombra los huesos marcados.',
+        labels: [
+          { n: 1, label: 'Escafoides' },
+          { n: 2, label: 'Semilunar' },
+        ],
+      });
+      expect(await db.pendingUploads.count()).toBe(1);
+    });
+  });
+});

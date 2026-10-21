@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { explanation, text } from './content-parts.js';
+import { explanation, type OcclusionGroup, OcclusionGroupSchema, text } from './content-parts.js';
 import { type CardKind, type ExerciseKind, ExerciseKindSchema } from './review.js';
 
 // Ejercicios de aplicación (LEARNING-DESIGN §2). Son tipos de nota con su propio editor: viven
@@ -74,6 +74,36 @@ export const MatchingContentSchema = z
   })
   .strict();
 export type MatchingContent = z.infer<typeof MatchingContentSchema>;
+
+/** Límites de etiquetar una imagen (técnicos: lo que se escribe cómodo en el teléfono). */
+export const LABEL_IMAGE_LABELS = { min: 2, max: 20 } as const;
+
+/**
+ * `label_image` (R10, LD1): una imagen suya con sus etiquetas tapadas y numeradas; ella escribe
+ * el nombre de cada una. Es una sola Card y el puntaje es etiquetas correctas / total (LD §2).
+ */
+export const LabelImageContentSchema = z
+  .object({
+    kind: z.literal('label_image'),
+    /** FE8: el asset, nunca una URL. */
+    imageAssetId: z.uuid(),
+    /** LD1: el texto que acompaña la imagen ("Nombra los huesos del carpo"). */
+    prompt: text(500),
+    /** UX4: describe la estructura sin dar ninguna respuesta. */
+    alt: text(300),
+    labels: z
+      .array(OcclusionGroupSchema)
+      .min(LABEL_IMAGE_LABELS.min)
+      .max(LABEL_IMAGE_LABELS.max)
+      .refine((labels) => new Set(labels.map((l) => l.n)).size === labels.length, 'duplicate_label'),
+    explanation: explanation(),
+  })
+  .strict();
+export type LabelImageContent = z.infer<typeof LabelImageContentSchema>;
+
+/** Las etiquetas en el orden en que se numeran en pantalla (1, 2, …). */
+export const numberedLabels = (content: LabelImageContent): OcclusionGroup[] =>
+  [...content.labels].sort((a, b) => a.n - b.n);
 
 /** `open_question`: escribe su respuesta y se califica al compararla con la clave (LD2). */
 export const OpenQuestionContentSchema = z

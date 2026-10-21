@@ -1,7 +1,7 @@
 import { MATCHING_PAIRS, SEQUENCE_ITEMS } from '@estudio/shared';
 import { type RefObject, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { EditableExerciseKind, ExerciseDraft } from './draft';
+import type { DraftExerciseKind, ExerciseDraft } from './draft';
 import { moved, OrderList } from './OrderList';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
@@ -18,7 +18,7 @@ export function ExerciseFields({
   onDraft,
   firstRef,
 }: {
-  readonly kind: EditableExerciseKind;
+  readonly kind: DraftExerciseKind;
   readonly draft: ExerciseDraft;
   readonly onDraft: (next: ExerciseDraft) => void;
   /** El primer campo: recibe el foco tras guardar, para escribir el siguiente. */
