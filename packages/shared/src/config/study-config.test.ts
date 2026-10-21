@@ -53,6 +53,13 @@ describe('StudyConfig: valores iniciales = STUDY-METHODS', () => {
     });
   });
 
+  it('§5: el sueño es opcional (oculto) y se resume con 3 noches o más en la semana', () => {
+    expect(cfg.metrics.visible.sleep).toBe(false);
+    expect(cfg.metrics.sleepMinNights).toBe(3);
+    expect(StudyConfigSchema.safeParse({ metrics: { sleepMinNights: 0 } }).success).toBe(false);
+    expect(StudyConfigSchema.safeParse({ metrics: { sleepMinNights: 8 } }).success).toBe(false);
+  });
+
   it('R9, P4, LD10: sets de hasta 5, A/B a 7 días y 30 repasos por brazo antes de comparar', () => {
     expect(cfg.contrast).toEqual({ maxSetSize: 5, retentionMinDays: 7, minReviewsPerArm: 30 });
     // Un ajuste guardado antes de esta sección se completa con los valores iniciales.

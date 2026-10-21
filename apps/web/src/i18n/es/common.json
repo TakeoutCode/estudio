@@ -24,6 +24,21 @@
     "finalReview_other": "Repaso previo para {{exam}}: {{count}} tarjetas.",
     "finalReviewStart": "Empezar"
   },
+  "sleep": {
+    "question": "¿Cómo dormiste anoche?",
+    "option": "{{quality}} de 5: {{label}}",
+    "quality": {
+      "1": "Muy mal",
+      "2": "Mal",
+      "3": "Regular",
+      "4": "Bien",
+      "5": "Muy bien"
+    },
+    "hint": "Opcional, con un toque. Es contexto para Tu semana, no una meta; lo apagas en Ajustes.",
+    "saved": "Anoche: {{quality}} de 5",
+    "change": "Cambiar",
+    "failed": "No se pudo guardar. Intenta de nuevo."
+  },
   "study": {
     "title": "Repaso",
     "reveal": "Mostrar respuesta",
@@ -382,6 +397,15 @@
       "count_one": "{{count}} tarjeta para reformular.",
       "count_other": "{{count}} tarjetas para reformular.",
       "link": "Ver en Hoy"
+    },
+    "sleep": {
+      "title": "Tu sueño",
+      "week_one": "Calidad mediana: {{median}} de 5 en {{count}} noche",
+      "week_other": "Calidad mediana: {{median}} de 5 en {{count}} noches",
+      "baseline_one": "Tus semanas anteriores: {{median}} de 5 en {{count}} noche.",
+      "baseline_other": "Tus semanas anteriores: {{median}} de 5 en {{count}} noches.",
+      "few": "Pocos datos todavía: aparece cuando anotes {{min}} noches o más en la semana.",
+      "hint": "Es contexto para tus semanas, no una meta. Lo anotas en Hoy con un toque."
     }
   },
   "settings": {
@@ -441,7 +465,9 @@
       "retention": "Retención real",
       "calibration": "Tu intuición frente a lo que pasó",
       "load": "Pendientes",
-      "improveList": "Para mejorar"
+      "improveList": "Para mejorar",
+      "sleep": "Tu sueño",
+      "sleepHint": "Opcional. Si lo activas, Hoy te pregunta cómo dormiste, con un toque."
     },
     "theme": {
       "title": "Apariencia",

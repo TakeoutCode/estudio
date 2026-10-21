@@ -7,12 +7,14 @@ import {
   parseBackup,
   Rating,
   settingsRowId,
+  sleepLogIdFor,
 } from '@estudio/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { db, EstudioDb } from '@/db/schema';
 import { createExam } from '@/features/exams';
 import { createNote } from '@/features/notes';
 import { updateStudyConfig } from '@/features/settings';
+import { logSleep } from '@/features/sleep';
 import { answerCard } from '@/features/study';
 import { importBackup } from './commands';
 import { readBackup } from './queries';
@@ -126,8 +128,9 @@ describe('respaldo de ella: exportar e importar (QUALITY QA7)', () => {
     expect(await target.notes.count()).toBe(2);
   });
 
-  it('otra cuenta: ids nuevos y referencias consistentes; Cards y ajustes con su id determinista', async () => {
+  it('otra cuenta: ids nuevos y referencias consistentes; Cards, ajustes y noches con su id determinista', async () => {
     const note = await studyOnSource();
+    await logSleep(4, { now: T0 });
     const backup = await exportedBackup();
     await importBackup(backup, { userId: OTHER, database: target, now: T0 + 3 * MIN });
 
@@ -146,6 +149,10 @@ describe('respaldo de ella: exportar e importar (QUALITY QA7)', () => {
     expect(exam?.topicIds).toEqual([topic?.id]);
     expect(await target.userSettings.get(settingsRowId(OTHER, 'study'))).toBeDefined();
     expect(await target.userSettings.get(settingsRowId(ME, 'study'))).toBeUndefined();
+    // §5: la noche viaja con su calidad y el id de la cuenta que importa (SYNC §1).
+    expect(await target.sleepLogs.toArray()).toEqual([
+      expect.objectContaining({ id: sleepLogIdFor(OTHER, '2026-10-20'), date: '2026-10-20', quality: 4 }),
+    ]);
   });
 
   it('otra cuenta: la imagen de una oclusión no se trae (otra carpeta) y se cuenta como perdida', async () => {

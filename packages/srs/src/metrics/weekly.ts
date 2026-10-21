@@ -5,39 +5,22 @@ import {
   type PlannerConfig,
   Rating,
   type ReviewLog,
+  type SleepLog,
   type StudyConfig,
 } from '@estudio/shared';
 import { byReviewOrder } from '../fsrs/scheduler.js';
 import { isLearnedReview, isRecalled } from '../planner/history.js';
 import { isLeech, type PlannerCard } from '../planner/queue.js';
+import { sleepSummary, type SleepSummary } from './sleep.js';
+import { type TimeWindow, weekWindows } from './windows.js';
 
 // Métricas de STUDY-METHODS §5, mostradas sin ansiedad (UI-UX UX9): por semana, contra su
 // propia línea base, con incertidumbre y solo con datos suficientes. Funciones puras: corren
 // en el worker de la web (FRONTEND FE4).
 
 const SECOND_MS = 1_000;
-const WEEK_DAYS = 7;
 /** Intervalo de confianza del 95 % (estadística, no es un umbral de estudio). */
 const Z_95 = 1.96;
-
-export interface TimeWindow {
-  /** Inicio inclusivo y fin exclusivo, epoch ms. */
-  readonly start: number;
-  readonly end: number;
-}
-
-/** Las `count` ventanas de 7 días locales más recientes; la primera termina al acabar hoy (AG6). */
-export function weekWindows(now: number, timeZone: string, count: number): TimeWindow[] {
-  const windows: TimeWindow[] = [];
-  let end = localDayBounds(now, timeZone).end;
-  for (let w = 0; w < count; w += 1) {
-    let start = end;
-    for (let d = 0; d < WEEK_DAYS; d += 1) start = localDayBounds(start - 1, timeZone).start;
-    windows.push({ start, end });
-    end = start;
-  }
-  return windows;
-}
 
 const within = (logs: readonly ReviewLog[], w: TimeWindow) =>
   logs.filter((log) => log.reviewedAt >= w.start && log.reviewedAt < w.end);
@@ -228,6 +211,8 @@ export interface WeeklyMetricsInput {
   /** Todo el historial: el total decide si hay datos suficientes (§5). */
   readonly logs: readonly ReviewLog[];
   readonly cards: readonly Pick<PlannerCard, 'state' | 'lapseBaseline'>[];
+  /** §5: noches anotadas y vivas; vacío si ella no registra el sueño. */
+  readonly sleepLogs: readonly Pick<SleepLog, 'date' | 'quality'>[];
   readonly config: StudyConfig;
   readonly now: number;
   readonly timeZone: string;
@@ -254,6 +239,7 @@ export interface WeeklyMetrics {
   };
   readonly calibration: Calibration | null;
   readonly load: readonly DayCount[];
+  readonly sleep: SleepSummary;
 }
 
 /** §5: el resumen de los últimos 7 días contra sus `baselineWeeks` semanas previas. */
@@ -290,5 +276,6 @@ export function weeklyMetrics(input: WeeklyMetricsInput): WeeklyMetrics {
     },
     calibration: calibration(weekLogs, m),
     load: dueForecast(input.cards, config.planner, now, timeZone, input.forecastDays),
+    sleep: sleepSummary(input.sleepLogs, m, now, timeZone),
   };
 }

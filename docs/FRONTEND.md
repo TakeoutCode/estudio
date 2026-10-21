@@ -8,7 +8,7 @@
 apps/web/src/
 ├─ app/          router (React Router 8, rutas lazy), providers, layout, error boundaries
 ├─ features/     study · timer · decks · notes · media · contrast · exercises · exams · plan · dashboard
-│  │             ai-drafts · gamification · notifications · settings · backup · auth
+│  │             sleep · ai-drafts · gamification · notifications · settings · backup · auth
 │  └─ <feature>/ components/ hooks/ queries.ts commands.ts store.ts index.ts
 ├─ db/           schema.ts (versiones de Dexie), alive(), hlc local, outbox
 ├─ sync/         cliente push/pull, scheduler, Web Locks

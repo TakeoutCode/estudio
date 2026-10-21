@@ -25,8 +25,8 @@ import {
   proportion,
   realRetention,
   weeklyMetrics,
-  weekWindows,
 } from './weekly.js';
+import { weekWindows } from './windows.js';
 
 const metrics = defaultStudyConfig().metrics;
 const MIN = 60_000;
@@ -188,7 +188,15 @@ describe('§5: semanas locales y línea base', () => {
   });
 
   const input = (logs: ReviewLog[], patch: Partial<MetricsConfig> = {}) =>
-    weeklyMetrics({ logs, cards: [], config: withMetrics(patch), now: NOW, timeZone: TZ, forecastDays: 7 });
+    weeklyMetrics({
+      logs,
+      cards: [],
+      sleepLogs: [],
+      config: withMetrics(patch),
+      now: NOW,
+      timeZone: TZ,
+      forecastDays: 7,
+    });
   const daily = (daysAgo: number, count: number, rating: Rating = Rating.Good) =>
     range(0, count).map((i) =>
       at(TODAY_START - daysAgo * DAY + 10 * HOUR + i * 30_000, {
@@ -220,5 +228,19 @@ describe('§5: semanas locales y línea base', () => {
     const result = input(daily(0, 5));
     expect(result.activeTime.baseline).toBeNull();
     expect(result.retention.baseline).toBeNull();
+  });
+
+  it('§5: el resumen incluye el sueño anotado, sin mezclarlo con los repasos', () => {
+    const today = weeklyMetrics({
+      logs: [],
+      cards: [],
+      sleepLogs: [{ date: '2026-10-20', quality: 4 }],
+      config: withMetrics({ sleepMinNights: 1 }),
+      now: NOW,
+      timeZone: TZ,
+      forecastDays: 7,
+    });
+    expect(today.sleep).toEqual({ week: { nights: 1, median: 4 }, enoughData: true, baseline: null });
+    expect(today.enoughData).toBe(false); // los repasos siguen decidiendo "pocos datos"
   });
 });

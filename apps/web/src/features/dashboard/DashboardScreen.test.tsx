@@ -6,6 +6,7 @@ import { db } from '@/db/schema';
 import { setDeckPaused } from '@/features/decks';
 import { createNote } from '@/features/notes';
 import { updateStudyConfig } from '@/features/settings';
+import { logSleep } from '@/features/sleep';
 import { DashboardScreen } from './DashboardScreen';
 import { loadMetricsInput } from './queries';
 
@@ -144,5 +145,38 @@ describe('Tu semana · mazos en pausa', () => {
     await setDeckPaused(paused.deckId, true);
     const input = await loadMetricsInput(db, T0);
     expect(input.cards.map((c) => c.state.cardId)).toEqual([cardIdFor(kept.id, 0)]);
+  });
+});
+
+describe('Tu semana · sueño (§5)', () => {
+  const showSleep = () =>
+    updateStudyConfig((c) => ({
+      ...c,
+      metrics: { ...c.metrics, visible: { ...c.metrics.visible, sleep: true } },
+    }));
+
+  it('apagado por defecto: ni se lee ni se muestra', async () => {
+    await db.reviewLogs.bulkAdd(today(120, 108));
+    await logSleep(4, { now: T0 });
+    expect((await loadMetricsInput(db, T0)).sleepLogs).toEqual([]);
+    renderDashboard();
+    await screen.findByText('Retención real');
+    expect(screen.queryByText('Tu sueño')).toBeNull();
+  });
+
+  it('activado: mediana de la semana o "pocos datos", sin metas', async () => {
+    await db.reviewLogs.bulkAdd(today(120, 108));
+    await showSleep();
+    await logSleep(4, { now: T0 - 2 * DAY });
+    const { unmount } = renderDashboard();
+    const card = (await screen.findByRole('heading', { name: 'Tu sueño' })).closest('section');
+    if (!card) throw new Error('faltó la tarjeta de sueño');
+    expect(within(card).getByText(/Pocos datos todavía/)).toBeTruthy();
+    unmount();
+
+    await logSleep(2, { now: T0 - DAY });
+    await logSleep(5, { now: T0 });
+    renderDashboard();
+    expect(await screen.findByText('Calidad mediana: 4 de 5 en 3 noches')).toBeTruthy();
   });
 });

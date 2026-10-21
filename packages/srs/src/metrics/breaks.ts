@@ -1,5 +1,5 @@
 import type { StudyConfig, TimerBlockLog } from '@estudio/shared';
-import { weekWindows } from './weekly.js';
+import { weekWindows } from './windows.js';
 
 // §5 "Uso de descansos" (tomados, omitidos, extendidos): sirve para comparar modos del
 // temporizador con sus datos (§6). Se muestra solo en Ajustes.

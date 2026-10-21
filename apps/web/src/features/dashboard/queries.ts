@@ -1,3 +1,4 @@
+import { DAY_MS, localDateOf } from '@estudio/shared';
 import type { WeeklyMetricsInput } from '@estudio/srs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readPausedDeckIds } from '@/db/planner-cards';
@@ -28,8 +29,14 @@ export async function loadMetricsInput(
   );
   const cards = (await alive(database.cards.toCollection()).toArray()).filter((c) => notes.has(c.noteId));
   const states = await database.cardStates.bulkGet(cards.map((c) => c.id));
+  // §5: el sueño solo si ella lo registra; basta la semana y su línea base (srs recorta).
+  const sleepSince = localDateOf(now - (config.metrics.baselineWeeks + 2) * 7 * DAY_MS, profile.timeZone);
+  const sleepLogs = config.metrics.visible.sleep
+    ? await alive(database.sleepLogs.where('date').aboveOrEqual(sleepSince)).toArray()
+    : [];
   return {
     logs: await database.reviewLogs.toArray(),
+    sleepLogs,
     cards: cards.flatMap((card, i) => {
       const state = states[i];
       return state ? [{ state, lapseBaseline: card.lapseBaseline }] : [];

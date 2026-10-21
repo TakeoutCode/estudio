@@ -25,8 +25,8 @@ const TIMER_KEYS = ['focusMin', 'shortBreakMin', 'longBreakMin', 'cyclesBeforeLo
 type TimerKey = (typeof TIMER_KEYS)[number];
 type TimerDraft = Record<TimerKey, number | null>;
 
-/** UX9: cada métrica de Tu semana se puede apagar por separado. */
-const METRIC_KEYS = ['activeTime', 'retention', 'calibration', 'load', 'improveList'] as const;
+/** UX9: cada métrica de Tu semana se puede apagar por separado. El sueño (§5) es opcional. */
+const METRIC_KEYS = ['activeTime', 'retention', 'calibration', 'load', 'improveList', 'sleep'] as const;
 type MetricKey = (typeof METRIC_KEYS)[number];
 
 /**
@@ -78,6 +78,7 @@ function SettingsForm({
     calibration: config.metrics.visible.calibration,
     load: config.metrics.visible.load,
     improveList: config.metrics.visible.improveList,
+    sleep: config.metrics.visible.sleep,
   }));
   const [status, setStatus] = useState<Status>('idle');
   const [busy, setBusy] = useState(false);
@@ -250,6 +251,7 @@ function SettingsForm({
           <Toggle
             key={key}
             label={t(`settings.metrics.${key}`)}
+            hint={key === 'sleep' ? t('settings.metrics.sleepHint') : undefined}
             checked={visible[key]}
             onChange={(checked) => {
               setVisible((prev) => ({ ...prev, [key]: checked }));

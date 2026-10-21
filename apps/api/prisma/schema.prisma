@@ -37,6 +37,7 @@ model User {
   reviewLogs             ReviewLog[]
   timerSessions          TimerSession[]
   timerBlockLogs         TimerBlockLog[]
+  sleepLogs              SleepLog[]
   pushSubscriptions      PushSubscription[]
   notificationEvents     NotificationEvent[]
   scheduledNotifications ScheduledNotification[]
@@ -310,6 +311,24 @@ model TimerBlockLog {
   @@index([userId, serverSeq])
   @@index([userId, timerSessionId])
   @@map("timer_block_log")
+}
+
+/// STUDY-METHODS §5: calidad de una noche (1-5), opcional y sin gamificar. Una fila por noche:
+/// id = uuidv5(userId, date) (SYNC §1). No entra en FSRS ni en los avisos.
+model SleepLog {
+  id        String  @id @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  date      String // YYYY-MM-DD, día local de ella en que terminó la noche (AG6)
+  quality   Int     @db.SmallInt
+  loggedAt  BigInt  @map("logged_at")
+  hlc       String
+  updatedAt BigInt  @map("updated_at")
+  deletedAt BigInt? @map("deleted_at")
+  serverSeq BigInt  @map("server_seq") // nextval('sync_seq') explícito en cada escritura (SYNC §3)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, serverSeq])
+  @@map("sleep_log")
 }
 
 /// R3: solo inserción (trigger review_log_append_only en la migración).

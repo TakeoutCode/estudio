@@ -5,6 +5,7 @@ import { ExamSchema } from '../domain/exam.js';
 import { MediaAssetSchema } from '../domain/media.js';
 import { CardSchema, NoteSchema } from '../domain/note.js';
 import { ReviewLogSchema } from '../domain/review.js';
+import { SleepLogSchema } from '../domain/sleep.js';
 import { StudySessionSchema } from '../domain/study-session.js';
 import { SelfExplanationSchema, TopicSchema } from '../domain/topic.js';
 import { TimerBlockLogSchema, TimerSessionSchema } from '../domain/timer.js';
@@ -28,6 +29,7 @@ export const SYNC_ROW_SCHEMAS = {
   selfExplanation: SelfExplanationSchema,
   studySession: StudySessionSchema,
   timerSession: TimerSessionSchema,
+  sleepLog: SleepLogSchema,
   reviewLog: ReviewLogSchema,
   timerBlockLog: TimerBlockLogSchema,
 } as const satisfies Partial<Record<EntityName, z.ZodType>>;

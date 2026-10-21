@@ -88,6 +88,7 @@ export const MetricsConfigSchema = z.object({
   calibrationMinSamples: int(5, 500).default(20), // §5 · diseño · sin evidencia: respuestas con confianza para juzgar la semana
   calibrationBiasMargin: z.number().min(0).max(0.5).default(0.1), // §5 · diseño · sin evidencia: |confianza − acierto| que cuenta como desfase
   calibrationResolutionMin: z.number().min(0).max(1).default(0.3), // §5 · diseño · sin evidencia: gamma desde la que la confianza distingue aciertos
+  sleepMinNights: int(1, 7).default(3), // §5 · diseño · sin evidencia: noches anotadas en la semana para resumir el sueño
   visible: z
     .object({
       activeTime: z.boolean().default(true), // §5: cada métrica se puede apagar

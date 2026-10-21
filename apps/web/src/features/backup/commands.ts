@@ -5,6 +5,7 @@ import {
   newId,
   type Note,
   settingsRowId,
+  sleepLogIdFor,
   SYNC_ROW_SCHEMAS,
   type SyncedEntity,
   type SyncedRow,
@@ -67,6 +68,7 @@ const ORDER = [
   'userSettings',
   'timerSession',
   'timerBlockLog',
+  'sleepLog',
   'reviewLog',
 ] as const satisfies readonly SyncedEntity[];
 
@@ -229,6 +231,16 @@ export async function importBackup(
               const timerSessionId = ids.ref(block.timerSessionId);
               if (timerSessionId)
                 await append('timerBlockLog', { ...block, id: ids.own(block.id), timerSessionId });
+            }
+            break;
+          case 'sleepLog':
+            // SYNC §1: una fila por noche; el id sale de la cuenta que importa y la fecha.
+            for (const night of entities.sleepLog) {
+              await write('sleepLog', {
+                ...night,
+                id: sleepLogIdFor(userId, night.date),
+                ...(await stamp()),
+              });
             }
             break;
           case 'reviewLog':

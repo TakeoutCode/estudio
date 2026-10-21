@@ -60,9 +60,14 @@ function Summary({
     return <EmptyState message={t('dashboard.fewData', { min: config.metrics.minReviewsToShow })} />;
   }
   if (
-    ![visible.activeTime, visible.retention, visible.calibration, visible.load, visible.improveList].some(
-      Boolean,
-    )
+    ![
+      visible.activeTime,
+      visible.retention,
+      visible.calibration,
+      visible.load,
+      visible.improveList,
+      visible.sleep,
+    ].some(Boolean)
   ) {
     return (
       <EmptyState
@@ -83,6 +88,7 @@ function Summary({
       {visible.calibration ? <CalibrationCard metrics={metrics} config={config} /> : null}
       {visible.load ? <Load metrics={metrics} timeZone={timeZone} /> : null}
       {visible.improveList ? <Improve /> : null}
+      {visible.sleep ? <Sleep metrics={metrics} config={config} /> : null}
     </>
   );
 }
@@ -223,6 +229,35 @@ function Load({ metrics, timeZone }: { readonly metrics: WeeklyMetrics; readonly
           </div>
         ))}
       </dl>
+    </Card>
+  );
+}
+
+/** §5: el sueño como contexto (opcional), contra sus semanas previas; sin metas ni rachas. */
+function Sleep({ metrics, config }: { readonly metrics: WeeklyMetrics; readonly config: StudyConfig }) {
+  const { t, i18n } = useTranslation();
+  const decimal = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 });
+  const { week, baseline, enoughData } = metrics.sleep;
+  return (
+    <Card title={t('dashboard.sleep.title')}>
+      {enoughData && week.median !== null ? (
+        <>
+          <p className="m-0 text-title font-semibold">
+            {t('dashboard.sleep.week', { median: decimal.format(week.median), count: week.nights })}
+          </p>
+          <p className="m-0">
+            {baseline && baseline.median !== null
+              ? t('dashboard.sleep.baseline', {
+                  median: decimal.format(baseline.median),
+                  count: baseline.nights,
+                })
+              : t('dashboard.noBaseline')}
+          </p>
+        </>
+      ) : (
+        <p className="m-0">{t('dashboard.sleep.few', { min: config.metrics.sleepMinNights })}</p>
+      )}
+      <p className="m-0 text-caption text-muted">{t('dashboard.sleep.hint')}</p>
     </Card>
   );
 }

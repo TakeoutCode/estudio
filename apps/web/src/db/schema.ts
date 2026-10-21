@@ -9,6 +9,7 @@ import type {
   Note,
   ReviewLog,
   SelfExplanation,
+  SleepLog,
   StudySession,
   SyncedEntity,
   TimerBlockLog,
@@ -62,6 +63,7 @@ export const TABLE_FOR = {
   selfExplanation: 'selfExplanations',
   studySession: 'studySessions',
   timerSession: 'timerSessions',
+  sleepLog: 'sleepLogs',
   reviewLog: 'reviewLogs',
   timerBlockLog: 'timerBlockLogs',
 } as const satisfies Record<SyncedEntity, string>;
@@ -82,6 +84,7 @@ export class EstudioDb extends Dexie {
   reviewLogs!: EntityTable<ReviewLog, 'id'>;
   timerSessions!: EntityTable<TimerSession, 'id'>;
   timerBlockLogs!: EntityTable<TimerBlockLog, 'id'>;
+  sleepLogs!: EntityTable<SleepLog, 'id'>;
   cardStates!: EntityTable<CardState, 'cardId'>;
   outbox!: EntityTable<OutboxEntry, 'mutationId'>;
   meta!: EntityTable<MetaEntry, 'key'>;
@@ -152,6 +155,10 @@ export class EstudioDb extends Dexie {
     this.version(11)
       .stores({ contrastGroups: 'id' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // §5: registro de sueño, una fila por noche; como en v6-v11, el cursor vuelve a 0.
+    this.version(12)
+      .stores({ sleepLogs: 'id, date' })
+      .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
   }
 }
 
@@ -172,6 +179,7 @@ export const syncedTables = (database: EstudioDb) => [
   database.reviewLogs,
   database.timerSessions,
   database.timerBlockLogs,
+  database.sleepLogs,
   database.cardStates,
   database.meta,
 ];

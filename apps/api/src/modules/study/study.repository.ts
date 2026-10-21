@@ -1,4 +1,4 @@
-import type { SelfExplanation, StudySession, TimerBlockLog, TimerSession } from '@estudio/shared';
+import type { SelfExplanation, SleepLog, StudySession, TimerBlockLog, TimerSession } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
@@ -61,6 +61,20 @@ export class StudyRepository {
         { name: 'items', value: JSON.stringify(s.items), cast: 'jsonb' },
         { name: 'started_at', value: s.startedAt, cast: 'bigint' },
         { name: 'finished_at', value: s.finishedAt, cast: 'bigint' },
+        ...syncMetaColumns(s),
+      ]),
+    );
+    return rows.length > 0 ? 'applied' : 'stale';
+  }
+
+  async upsertSleepLogLww(userId: string, s: SleepLog): Promise<ApplyStatus> {
+    const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>(
+      upsertLwwSql('sleep_log', [
+        { name: 'id', value: s.id, cast: 'uuid' },
+        { name: 'user_id', value: userId, cast: 'uuid' },
+        { name: 'date', value: s.date },
+        { name: 'quality', value: s.quality, cast: 'smallint' },
+        { name: 'logged_at', value: s.loggedAt, cast: 'bigint' },
         ...syncMetaColumns(s),
       ]),
     );

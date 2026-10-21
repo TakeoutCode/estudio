@@ -44,7 +44,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(await current.decks.toArray()).toEqual([{ ...deck, pausedAt: null }]); // v9: activo
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('hlc')).toEqual({ key: 'hlc', value: 'reloj' });
@@ -73,7 +73,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.meta.get('deviceId')).toEqual({ key: 'deviceId', value: 'dispositivo' });
     expect(await current.reviewLogs.toArray()).toEqual([log]);
@@ -94,7 +94,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([note]);
     current.close();
@@ -116,7 +116,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(await current.timerBlockLogs.toArray()).toEqual([{ ...block, extended: false }]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     current.close();
@@ -139,7 +139,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     expect(await current.notes.toArray()).toEqual([note]);
     expect(await current.outbox.toArray()).toEqual([pending]);
@@ -170,7 +170,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(await current.decks.toArray()).toEqual([{ ...deck, pausedAt: null }]);
     expect(await current.outbox.toArray()).toEqual([pending]); // la api completa el campo al recibirlo
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
@@ -206,7 +206,7 @@ describe('migraciones de Dexie (SYNC SY9, SY-T10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(await current.decks.toArray()).toEqual([deck]);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.mediaAssets.count()).toBe(0);
@@ -240,10 +240,43 @@ describe('migraciones de Dexie: grupos de contraste (R9, LD10)', () => {
 
     const current = new EstudioDb(name);
     await current.open();
-    expect(current.verno).toBe(11);
+    expect(current.verno).toBe(12);
     expect(await current.contrastGroups.count()).toBe(0);
     expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.pendingUploads.count()).toBe(1);
+    expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
+    current.close();
+  });
+});
+
+describe('migraciones de Dexie: registro de sueño (§5)', () => {
+  it('v11 → v12: aparece el registro de sueño; el cursor vuelve a 0; lo demás intacto', async () => {
+    const name = `migracion-${newId()}`;
+    names.push(name);
+    const v11 = openVersion1(name);
+    v11.version(2).stores({ userSettings: 'id, section' });
+    v11.version(3).stores({ notes: 'id, deckId', cards: 'id, noteId' });
+    v11.version(4).stores({ timerSessions: 'id, state', timerBlockLogs: 'id, timerSessionId, endedAt' });
+    v11.version(5).stores({});
+    v11.version(6).stores({ topics: 'id, deckId', selfExplanations: 'id, topicId' });
+    v11.version(7).stores({ exams: 'id, date' });
+    v11.version(8).stores({ studySessions: 'id, examId' });
+    v11.version(9).stores({});
+    v11.version(10).stores({ mediaAssets: 'id', pendingUploads: 'assetId' });
+    v11.version(11).stores({ contrastGroups: 'id' });
+    const group = { id: newId(), name: 'Pares craneales', noteIds: [newId(), newId()] };
+    const pending = { mutationId: newId(), op: 'upsert', entity: 'contrastGroup', row: group, createdAt: 1 };
+    await v11.table('contrastGroups').add(group);
+    await v11.table('outbox').add(pending);
+    await v11.table('meta').put({ key: 'syncCursor', value: '1200' });
+    v11.close();
+
+    const current = new EstudioDb(name);
+    await current.open();
+    expect(current.verno).toBe(12);
+    expect(await current.sleepLogs.count()).toBe(0);
+    expect(await current.contrastGroups.toArray()).toEqual([group]);
+    expect(await current.outbox.toArray()).toEqual([pending]);
     expect(await current.meta.get('syncCursor')).toEqual({ key: 'syncCursor', value: '0' });
     current.close();
   });
