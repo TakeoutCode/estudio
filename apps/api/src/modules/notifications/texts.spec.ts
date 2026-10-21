@@ -17,7 +17,9 @@ describe('textos de los avisos (NT5, NT6)', () => {
         studyPlan: { count: 12, topics: ['Huesos del carpo', 'Manguito rotador'] },
         due: { count: 23, topics: [] },
       }),
-    ).toBe('Parcial 1 en 1 día · Plan de hoy: 12 nuevas de Huesos del carpo y Manguito rotador · 23 tarjetas pendientes');
+    ).toBe(
+      'Parcial 1 en 1 día · Plan de hoy: 12 nuevas de Huesos del carpo y Manguito rotador · 23 tarjetas pendientes',
+    );
     expect(reminderBody({ examSoon: [], studyPlan: { count: 1, topics: [] }, due: null })).toBe(
       'Plan de hoy: 1 nueva',
     );

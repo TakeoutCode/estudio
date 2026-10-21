@@ -29,7 +29,11 @@ export function useBreakEndNotice(view: TimerView | undefined): void {
       }
       const current = latest.current;
       const session = current?.session;
-      if (!current?.isOwner || !session || (session.state !== 'break_short' && session.state !== 'break_long')) {
+      if (
+        !current?.isOwner ||
+        !session ||
+        (session.state !== 'break_short' && session.state !== 'break_long')
+      ) {
         return;
       }
       const serverNow = Date.now() + current.offsetMs; // las marcas del temporizador son del servidor (SY7)

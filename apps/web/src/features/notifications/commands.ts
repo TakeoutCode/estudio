@@ -56,12 +56,22 @@ export async function refreshDeviceSubscription(database: EstudioDb = defaultDb)
 
 /** NT4: al pasar a segundo plano durante un descanso. */
 export async function scheduleBreakEnd(input: BreakEndSchedule): Promise<void> {
-  await authorizedApi('/notifications/break-end', { method: 'PUT', body: input, schema: none, keepalive: true });
+  await authorizedApi('/notifications/break-end', {
+    method: 'PUT',
+    body: input,
+    schema: none,
+    keepalive: true,
+  });
 }
 
 /** NT4, NT-T7: al volver a la app. */
 export async function cancelBreakEnd(input: BreakEndCancel): Promise<void> {
-  await authorizedApi('/notifications/break-end', { method: 'DELETE', body: input, schema: none, keepalive: true });
+  await authorizedApi('/notifications/break-end', {
+    method: 'DELETE',
+    body: input,
+    schema: none,
+    keepalive: true,
+  });
 }
 
 const PENDING_OPENS_KEY = 'notificationOpens';
@@ -76,7 +86,10 @@ async function pendingOpens(database: EstudioDb): Promise<string[]> {
  * NT7: abrió la app desde un recordatorio. Sin red se guarda y se reporta después; un 404
  * (evento de otra cuenta o ya purgado) se descarta.
  */
-export async function reportOpened(eventIds: readonly string[], database: EstudioDb = defaultDb): Promise<void> {
+export async function reportOpened(
+  eventIds: readonly string[],
+  database: EstudioDb = defaultDb,
+): Promise<void> {
   const ids = [...new Set([...(await pendingOpens(database)), ...eventIds])];
   const left: string[] = [];
   for (const id of ids) {

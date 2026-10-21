@@ -4,7 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { z } from 'zod';
 import { updateNotificationPrefs, useNotificationPrefs } from '@/features/settings';
-import { answerBackoff, disableOnThisDevice, fetchNotificationState, refreshDeviceSubscription, reportOpened } from './commands';
+import {
+  answerBackoff,
+  disableOnThisDevice,
+  fetchNotificationState,
+  refreshDeviceSubscription,
+  reportOpened,
+} from './commands';
 import { useAtOpen } from './store';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';

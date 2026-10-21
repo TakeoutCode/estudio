@@ -37,7 +37,8 @@ export class WebPushSender extends PushSender {
     const privateKey = config.get('VAPID_PRIVATE_KEY');
     const subject = config.get('VAPID_SUBJECT');
     this.ready = publicKey !== undefined && privateKey !== undefined && subject !== undefined;
-    if (this.ready && publicKey && privateKey && subject) webpush.setVapidDetails(subject, publicKey, privateKey);
+    if (this.ready && publicKey && privateKey && subject)
+      webpush.setVapidDetails(subject, publicKey, privateKey);
     else this.logger.warn('Sin claves VAPID: los avisos se registran sin enviarse');
   }
 

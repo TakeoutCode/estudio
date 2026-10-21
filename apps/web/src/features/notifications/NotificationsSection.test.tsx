@@ -62,7 +62,9 @@ describe('Ajustes · Avisos (NOTIFICATIONS §1, NT8)', () => {
     await waitFor(async () => {
       expect((await readNotificationPrefs(db)).dailyReminderTime).toBe('19:30');
     });
-    expect(screen.getByText('Solo si tienes al menos 10 tarjetas pendientes. Déjalo vacío si no lo quieres.')).toBeTruthy();
+    expect(
+      screen.getByText('Solo si tienes al menos 10 tarjetas pendientes. Déjalo vacío si no lo quieres.'),
+    ).toBeTruthy();
 
     fireEvent.click(screen.getByRole('checkbox', { name: /Plan del día/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Antes de un examen/ }));
@@ -103,7 +105,9 @@ describe('Ajustes · Avisos (NOTIFICATIONS §1, NT8)', () => {
   it('sin conexión no se puede activar (requiere conexión)', async () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     render(<NotificationsSection />);
-    expect((await screen.findByRole<HTMLButtonElement>('button', { name: 'Activar avisos' })).disabled).toBe(true);
+    expect((await screen.findByRole<HTMLButtonElement>('button', { name: 'Activar avisos' })).disabled).toBe(
+      true,
+    );
     expect(screen.getByText('Requiere conexión.')).toBeTruthy();
   });
 });

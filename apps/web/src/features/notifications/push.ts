@@ -16,7 +16,8 @@ export type PushSupport = 'ready' | 'install' | 'unsupported';
 
 export function pushSupport(env: PushEnvironment): PushSupport {
   // iPadOS se presenta como Mac; lo delata la pantalla táctil.
-  const ios = /iPhone|iPad|iPod/.test(env.userAgent) || (env.userAgent.includes('Macintosh') && env.maxTouchPoints > 1);
+  const ios =
+    /iPhone|iPad|iPod/.test(env.userAgent) || (env.userAgent.includes('Macintosh') && env.maxTouchPoints > 1);
   if (ios && !env.standalone) return 'install';
   return env.hasPush && env.vapidKey !== undefined ? 'ready' : 'unsupported';
 }
@@ -55,7 +56,10 @@ export async function subscribeDevice(vapidKey: string): Promise<PushSubscriptio
   const existing = await registration.pushManager.getSubscription();
   return (
     existing ??
-    registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes(vapidKey) })
+    registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: vapidKeyBytes(vapidKey),
+    })
   );
 }
 

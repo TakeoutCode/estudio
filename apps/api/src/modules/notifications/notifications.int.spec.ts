@@ -71,8 +71,18 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
     const results = PushResponseSchema.parse(res.body).results;
     expect(results.filter((r) => r.status !== 'applied')).toEqual([]);
   };
-  const upsert = (entity: string, row: Record<string, unknown>) => ({ mutationId: newId(), op: 'upsert', entity, row });
-  const append = (entity: string, row: Record<string, unknown>) => ({ mutationId: newId(), op: 'append', entity, row });
+  const upsert = (entity: string, row: Record<string, unknown>) => ({
+    mutationId: newId(),
+    op: 'upsert',
+    entity,
+    row,
+  });
+  const append = (entity: string, row: Record<string, unknown>) => ({
+    mutationId: newId(),
+    op: 'append',
+    entity,
+    row,
+  });
 
   /** Una cuenta con `due` tarjetas vencidas de un tema y una suscripción; `pausedAt` pausa su mazo. */
   const seed = async (
@@ -125,7 +135,12 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
       .api()
       .post('/push/subscriptions')
       .set('Authorization', auth(as))
-      .send({ deviceId: PHONE, endpoint, keys: { p256dh: 'clave-p256dh', auth: 'clave-auth' }, userAgent: null })
+      .send({
+        deviceId: PHONE,
+        endpoint,
+        keys: { p256dh: 'clave-p256dh', auth: 'clave-auth' },
+        userAgent: null,
+      })
       .expect(204);
   const events = (userId: string) => server.prisma.$queryRaw<EventRow[]>`
     SELECT id, status, reason, kinds, exam_days AS "examDays", opened_at AS "openedAt"
@@ -150,7 +165,13 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
     const exam = { id: newId(), title: 'Parcial de Anatomía', date: startOfLocalDate('2026-10-27', TZ) };
     const wall = local(-1, 12);
     await push(user, [
-      upsert('exam', { ...exam, topicIds: [user.topicId], hlc: hlcAt(wall, PHONE), updatedAt: wall, deletedAt: null }),
+      upsert('exam', {
+        ...exam,
+        topicIds: [user.topicId],
+        hlc: hlcAt(wall, PHONE),
+        updatedAt: wall,
+        deletedAt: null,
+      }),
     ]);
 
     await tick(0, 18, 55);
@@ -309,7 +330,11 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
       .set('Authorization', auth(user))
       .send({ ...body, endpoint: 'http://push.ejemplo.mx/x' })
       .expect(422);
-    await server.api().post('/push/subscriptions').send({ ...body, endpoint: 'https://push.ejemplo.mx/x' }).expect(401);
+    await server
+      .api()
+      .post('/push/subscriptions')
+      .send({ ...body, endpoint: 'https://push.ejemplo.mx/x' })
+      .expect(401);
     await subscribe(user, 'https://push.ejemplo.mx/f');
     await server
       .api()

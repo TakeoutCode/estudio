@@ -67,9 +67,12 @@ afterEach(() => {
 
 /** Espera a que la preferencia guardada llegue al hook (useLiveQuery es asíncrono). */
 async function mounted(initial: TimerView) {
-  const hook = renderHook(({ v }) => {
-    useBreakEndNotice(v);
-  }, { initialProps: { v: initial } });
+  const hook = renderHook(
+    ({ v }) => {
+      useBreakEndNotice(v);
+    },
+    { initialProps: { v: initial } },
+  );
   await waitFor(() => {
     goTo('hidden');
     expect(mocks.schedule).toHaveBeenCalled();
@@ -84,7 +87,11 @@ describe('NT4, FE11: fin de descanso en segundo plano', () => {
   it('al salir programa la hora de fin (en hora del servidor); al volver la cancela (NT-T7)', async () => {
     await mounted(view());
     goTo('hidden');
-    expect(mocks.schedule).toHaveBeenCalledWith({ timerSessionId: SESSION_ID, blockIndex: 1, fireAt: T + 5 * MIN });
+    expect(mocks.schedule).toHaveBeenCalledWith({
+      timerSessionId: SESSION_ID,
+      blockIndex: 1,
+      fireAt: T + 5 * MIN,
+    });
     goTo('visible');
     expect(mocks.cancel).toHaveBeenCalledWith({ timerSessionId: SESSION_ID, blockIndex: 1 });
   });

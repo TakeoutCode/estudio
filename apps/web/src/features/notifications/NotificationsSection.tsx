@@ -68,7 +68,8 @@ function NotificationsBody({ prefs }: { readonly prefs: NotificationPrefs }) {
     };
   }, [support]);
 
-  if (support === 'install') return <p className="m-0 rounded-(--radius-card) bg-surface p-4">{t('notifications.install')}</p>;
+  if (support === 'install')
+    return <p className="m-0 rounded-(--radius-card) bg-surface p-4">{t('notifications.install')}</p>;
   if (support === 'unsupported') return <p className="m-0 text-muted">{t('notifications.unsupported')}</p>;
   if (device === 'checking') return null;
 
@@ -109,7 +110,9 @@ function NotificationsBody({ prefs }: { readonly prefs: NotificationPrefs }) {
             {t(prefs.enabled ? 'notifications.enableHere' : 'notifications.enable')}
           </button>
         )}
-        {!online && !blocked ? <p className="m-0 text-caption text-muted">{t('notifications.needsConnection')}</p> : null}
+        {!online && !blocked ? (
+          <p className="m-0 text-caption text-muted">{t('notifications.needsConnection')}</p>
+        ) : null}
         {problem === 'failed' ? (
           <p role="alert" className="m-0 text-caption">
             {t('notifications.failed')}
@@ -178,7 +181,11 @@ function PrefsFields({
   const commit = (next: { daily?: string; start?: string; end?: string }) => {
     const d = next.daily ?? daily;
     const quietHours = { start: next.start ?? quietStart, end: next.end ?? quietEnd };
-    const parsed = NotificationPrefsSchema.safeParse({ ...prefs, dailyReminderTime: d === '' ? null : d, quietHours });
+    const parsed = NotificationPrefsSchema.safeParse({
+      ...prefs,
+      dailyReminderTime: d === '' ? null : d,
+      quietHours,
+    });
     if (parsed.success) {
       onSave((p) => ({ ...p, dailyReminderTime: parsed.data.dailyReminderTime, quietHours }));
     }
