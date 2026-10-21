@@ -216,7 +216,10 @@ describe('Ajustes · apariencia (UX5)', () => {
     await waitFor(async () => {
       expect((await readUiSettings(db)).theme).toBe('dark');
     });
-    expect(screen.getByRole('button', { name: 'Oscuro' }).getAttribute('aria-pressed')).toBe('true');
+    // La consulta en vivo repinta después de la escritura: con la suite cargada, puede tardar.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Oscuro' }).getAttribute('aria-pressed')).toBe('true');
+    });
 
     const Layout = () => {
       useStoredTheme();
