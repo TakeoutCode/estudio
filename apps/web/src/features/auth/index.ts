@@ -1,8 +1,10 @@
 export { AccountMismatchError, accountUserId, bindDeviceToAccount } from './commands';
+export { DeleteAccountSection } from './DeleteAccountSection';
 export { LoginScreen } from './LoginScreen';
 export { RequireAccount } from './RequireAccount';
 export {
   authorizedApi,
+  deleteAccount,
   login,
   logout,
   refreshSession,

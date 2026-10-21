@@ -328,7 +328,8 @@
       "rateLimited": "Hubo varios intentos seguidos. Espera un minuto y vuelve a intentar.",
       "accountMismatch": "Este dispositivo tiene cambios de otra cuenta que aún no se enviaron. Entra con esa cuenta para guardarlos.",
       "generic": "No se pudo entrar. Intenta de nuevo en un momento."
-    }
+    },
+    "accountDeleted": "Tu cuenta y tus datos se borraron."
   },
   "dashboard": {
     "title": "Tu semana",
@@ -595,5 +596,21 @@
   "occlusion": {
     "targetHidden": "Etiqueta oculta {{position}} de {{total}}",
     "otherHidden": "Otra etiqueta oculta"
+  },
+  "account": {
+    "delete": {
+      "title": "Borrar tu cuenta",
+      "body": "Se borran tu cuenta, tus tarjetas, tus repasos y tus imágenes, en el servidor y en este dispositivo. No se puede deshacer: si quieres conservar algo, descarga antes un respaldo.",
+      "start": "Borrar mi cuenta…",
+      "password": "Escribe tu contraseña para confirmar",
+      "confirm": "Borrar mi cuenta y mis datos",
+      "cancel": "Cancelar",
+      "offline": "Requiere conexión.",
+      "error": {
+        "forbidden": "La contraseña no coincide.",
+        "rateLimited": "Hubo varios intentos seguidos. Espera un minuto y vuelve a intentarlo.",
+        "generic": "No se pudo borrar la cuenta. Tus datos siguen igual; intenta de nuevo."
+      }
+    }
   }
 }

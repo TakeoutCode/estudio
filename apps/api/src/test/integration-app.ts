@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import request from 'supertest';
 import { inject } from 'vitest';
+import type { MediaPurger } from '../modules/media/media-purger.js';
 import type { PushSender } from '../modules/notifications/push-sender.js';
 import type { PrismaService as PrismaServiceType } from '../prisma/prisma.service.js';
 
@@ -17,6 +18,9 @@ export class FakeClock {
     this.value += ms;
   }
 }
+
+/** QUALITY §1: ninguna prueba llama a Cloudinary; por defecto la purga no hace nada. */
+const noMediaPurger: MediaPurger = { purgeUser: () => Promise.resolve('unconfigured') };
 
 /** Sin límite de tasa: las pruebas inician sesión muchas veces desde la misma IP. */
 const unlimitedStorage = {
@@ -44,18 +48,31 @@ export interface IntegrationApp {
  * importar AppModule porque ConfigModule.forRoot valida al importarse.
  */
 export async function startIntegrationApp(
-  options: { readonly clock?: FakeClock; readonly throttle?: boolean; readonly pushSender?: PushSender } = {},
+  options: {
+    readonly clock?: FakeClock;
+    readonly throttle?: boolean;
+    readonly pushSender?: PushSender;
+    readonly mediaPurger?: MediaPurger;
+  } = {},
 ): Promise<IntegrationApp> {
   process.env.DATABASE_URL = inject('databaseUrl');
-  const [{ AppModule }, { configureApp }, { Clock }, { PrismaService }, { NotificationsScheduler }, push] =
-    await Promise.all([
-      import('../app.module.js'),
-      import('../bootstrap.js'),
-      import('../common/clock.js'),
-      import('../prisma/prisma.service.js'),
-      import('../modules/notifications/notifications.scheduler.js'),
-      import('../modules/notifications/push-sender.js'),
-    ]);
+  const [
+    { AppModule },
+    { configureApp },
+    { Clock },
+    { PrismaService },
+    { NotificationsScheduler },
+    push,
+    media,
+  ] = await Promise.all([
+    import('../app.module.js'),
+    import('../bootstrap.js'),
+    import('../common/clock.js'),
+    import('../prisma/prisma.service.js'),
+    import('../modules/notifications/notifications.scheduler.js'),
+    import('../modules/notifications/push-sender.js'),
+    import('../modules/media/media-purger.js'),
+  ]);
 
   const clock = options.clock ?? new FakeClock();
   // Sin cron: las pruebas corren los ticks a mano con el reloj falso.
@@ -63,7 +80,9 @@ export async function startIntegrationApp(
     .overrideProvider(Clock)
     .useValue(clock)
     .overrideProvider(NotificationsScheduler)
-    .useValue({});
+    .useValue({})
+    .overrideProvider(media.MediaPurger)
+    .useValue(options.mediaPurger ?? noMediaPurger);
   if (options.pushSender) builder = builder.overrideProvider(push.PushSender).useValue(options.pushSender);
   if (!options.throttle) builder = builder.overrideProvider(ThrottlerStorage).useValue(unlimitedStorage);
   const moduleRef = await builder.compile();

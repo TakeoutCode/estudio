@@ -21,6 +21,16 @@ export async function accountUserId(database: EstudioDb = db): Promise<string | 
 }
 
 /**
+ * QA6: tras borrar la cuenta, este dispositivo no guarda nada de ella: todas las tablas,
+ * también el outbox, el reloj y la cuenta ligada.
+ */
+export async function wipeDevice(database: EstudioDb = db): Promise<void> {
+  await database.transaction('rw', database.tables, async () => {
+    for (const table of database.tables) await table.clear();
+  });
+}
+
+/**
  * Liga los datos locales a la cuenta que inicia sesión. Si eran de otra cuenta se borran,
  * salvo que tengan cambios sin enviar: perderlos nunca es silencioso (SYNC SY8).
  */

@@ -7,7 +7,7 @@
 | Nivel | Herramienta | Alcance |
 |---|---|---|
 | Unitarias | Vitest + fast-check | `srs` (replay, planificador, temporizador, calificación, notificaciones, métricas, gamificación), `shared` (esquemas, HLC) |
-| Integración api | Vitest + Testcontainers (Postgres 17) + fakes de `AiProvider`, `MediaSigner` y `PushSender` | sync, auth, cron, triggers, migraciones, seeder |
+| Integración api | Vitest + Testcontainers (Postgres 17) + fakes de `AiProvider`, `MediaPurger` y `PushSender` (`MediaSigner` es una firma local y corre real) | sync, auth, cron, triggers, migraciones, seeder |
 | Integración web | Vitest + `fake-indexeddb` + Testing Library | comandos (entidad + outbox), migraciones de Dexie, fases de la sesión |
 | E2E | Playwright: proyecto `iphone` (`devices['iPhone 13']`, WebKit) y `desktop` (Chromium) | flujos completos sin red y entre dos contextos (dos "dispositivos") |
 
@@ -81,6 +81,8 @@ En la web, cabeceras de Vercel: `Content-Security-Policy` con `default-src 'self
 ## 7. Privacidad
 
 **QA6 · DEBE** cumplir: ninguna analítica de terceros ni rastreadores; logs y errores sin contenido de estudio; ningún servicio externo de errores (ADR-016): los errores del cliente llegan ya filtrados a `POST /diagnostics/errors` (FRONTEND FE13); `ai_usage` sin contenido. `DELETE /me` purga Postgres (con bypass del trigger) y la carpeta de Cloudinary, y una prueba de integración lo comprueba. *Razón:* son datos personales de una sola persona, y ella decide sobre ellos.
+- `DELETE /me` pide la contraseña en el cuerpo (otra contraseña: `403`, para que la web no lo confunda con una sesión vencida) y tiene el límite del login. Borra primero la carpeta `estudio/<userId>/` de Cloudinary, fuera de la transacción (BE7): si falla responde `503` y Postgres queda intacto. Después, en una transacción con el lock del usuario, `SET LOCAL app.allow_purge = 'on'` y `DELETE FROM "user"`, que borra todo en cascada (`users.int.spec.ts`).
+- En la web (Ajustes › Borrar tu cuenta, requiere conexión), solo si el servidor respondió `204` se vacían todas las tablas de Dexie y la caché `media` del service worker, y se cierra la sesión.
 
 ## 8. Respaldos
 

@@ -32,16 +32,35 @@ type MetricKey = (typeof METRIC_KEYS)[number];
 /**
  * Ajustes de estudio: retención objetivo con su carga (R2, LD8), temporizador (R7), hora de
  * dormir (P6), confianza en repasos (R6) y métricas visibles (UX9). `children`: secciones de
- * otras features (avisos), que el router compone para que `settings` no dependa de ellas.
+ * otras features (avisos), que el router compone para que `settings` no dependa de ellas;
+ * `end`: las que van al final (respaldo, borrar la cuenta).
  */
-export function SettingsScreen({ children }: { readonly children?: ReactNode }) {
+export function SettingsScreen({
+  children,
+  end,
+}: {
+  readonly children?: ReactNode;
+  readonly end?: ReactNode;
+}) {
   const config = useStudyConfig();
-  return config ? <SettingsForm config={config}>{children}</SettingsForm> : null;
+  return config ? (
+    <SettingsForm config={config} end={end}>
+      {children}
+    </SettingsForm>
+  ) : null;
 }
 
 type Status = 'idle' | 'saved' | 'failed';
 
-function SettingsForm({ config, children }: { readonly config: StudyConfig; readonly children?: ReactNode }) {
+function SettingsForm({
+  config,
+  children,
+  end,
+}: {
+  readonly config: StudyConfig;
+  readonly children?: ReactNode;
+  readonly end?: ReactNode;
+}) {
   const { t, i18n } = useTranslation();
   const ids = useId();
   const savedPoints = toPoints(config.fsrs.requestRetention);
@@ -239,6 +258,8 @@ function SettingsForm({ config, children }: { readonly config: StudyConfig; read
           />
         ))}
       </section>
+
+      {end}
 
       <ActionBar>
         {status === 'idle' ? null : (

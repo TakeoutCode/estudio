@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { ApiError, type ApiClient, createApiClient } from '@/lib/api';
 import { useAppStatus } from '@/lib/app-status';
 import { env } from '@/lib/env';
-import { type AccountDb, bindDeviceToAccount } from './commands';
+import { type AccountDb, bindDeviceToAccount, wipeDevice } from './commands';
 import { useAuth } from './store';
 
 export type RefreshOutcome = 'ok' | 'signed_out' | 'offline';
@@ -96,6 +96,24 @@ export async function logout(): Promise<void> {
   } finally {
     useAuth.getState().signOut();
   }
+}
+
+/** Caché del service worker con sus imágenes (FRONTEND §5). */
+const MEDIA_CACHE = 'media';
+
+/**
+ * QUALITY QA6: borra la cuenta en el servidor (con su contraseña) y, solo si eso funcionó,
+ * todo lo de este dispositivo: Dexie y las imágenes guardadas. Sin red, falla sin tocar nada.
+ */
+export async function deleteAccount(password: string, database?: AccountDb): Promise<void> {
+  await authorizedApi('/me', { method: 'DELETE', body: { password }, schema: z.undefined() });
+  await wipeDevice(database);
+  try {
+    if ('caches' in globalThis) await caches.delete(MEDIA_CACHE);
+  } catch {
+    // Sin Cache Storage (o bloqueada) no hay imágenes que borrar.
+  }
+  useAuth.getState().signOut();
 }
 
 /** Cliente para todo lo que exige sesión: agrega el Bearer y refresca una vez ante un 401. */

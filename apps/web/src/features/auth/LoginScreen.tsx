@@ -1,7 +1,7 @@
 import { CredentialsSchema } from '@estudio/shared';
 import { type SubmitEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { ApiError } from '@/lib/api';
 import { AccountMismatchError } from './commands';
 import { login, register } from './session';
@@ -26,6 +26,8 @@ const field =
 export function LoginScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  // QA6: al llegar después de borrar la cuenta, se confirma qué pasó.
+  const deleted = (useLocation().state as { notice?: string } | null)?.notice === 'accountDeleted';
   const [mode, setMode] = useState<Mode>('login');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -55,6 +57,11 @@ export function LoginScreen() {
       <h1 className="m-0 text-title font-semibold">
         {t(mode === 'login' ? 'auth.login.title' : 'auth.register.title')}
       </h1>
+      {deleted ? (
+        <p role="status" className="m-0">
+          {t('auth.accountDeleted')}
+        </p>
+      ) : null}
       <form className="flex flex-col gap-4" onSubmit={(event) => void submit(event)} noValidate>
         <label className="flex flex-col gap-1">
           <span>{t('auth.email')}</span>

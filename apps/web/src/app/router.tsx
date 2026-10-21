@@ -33,13 +33,15 @@ export const router = createBrowserRouter([
             path: 'settings',
             lazy: async () => {
               // `settings` no depende de `notifications`: la sección se compone aquí.
-              const [{ SettingsScreen }, { NotificationsSection }] = await Promise.all([
-                import('@/features/settings'),
-                import('@/features/notifications'),
-              ]);
+              const [{ SettingsScreen }, { NotificationsSection }, { DeleteAccountSection }] =
+                await Promise.all([
+                  import('@/features/settings'),
+                  import('@/features/notifications'),
+                  import('@/features/auth'),
+                ]);
               return {
                 Component: () => (
-                  <SettingsScreen>
+                  <SettingsScreen end={<DeleteAccountSection />}>
                     <NotificationsSection />
                   </SettingsScreen>
                 ),
