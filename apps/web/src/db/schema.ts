@@ -195,6 +195,17 @@ export class EstudioDb extends Dexie {
     // FE13: errores de este dispositivo esperando a enviarse; no se sincronizan, así que el
     // cursor no cambia.
     this.version(15).stores({ diagnostics: 'id, occurredAt, sent, sentAt' });
+    // R14: la mnemotecnia de cada nota (no indexada); las guardadas quedan sin ella.
+    this.version(16)
+      .stores({})
+      .upgrade((tx) =>
+        tx
+          .table<{ mnemonic?: string | null }, string>('notes')
+          .toCollection()
+          .modify((note) => {
+            note.mnemonic ??= null;
+          }),
+      );
   }
 }
 

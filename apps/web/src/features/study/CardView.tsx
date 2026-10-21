@@ -228,6 +228,7 @@ export function CardBody({
             {content.explanation ? (
               <p className="m-0 whitespace-pre-wrap text-muted">{content.explanation}</p>
             ) : null}
+            {card.mnemonic ? <Labeled label={t('mnemonic.shown')} text={card.mnemonic} /> : null}
           </section>
         ) : null}
       </div>

@@ -206,6 +206,8 @@ export interface StudyCardView {
   /** Solo se monta en el DOM tras el intento (FE10, R1). */
   readonly answer: string;
   readonly explanation: string;
+  /** R14: su mnemotecnia, si la escribió; como la respuesta, solo tras el intento (R1). */
+  readonly mnemonic: string | null;
 }
 
 export const useStudyCard = (cardId: string | null): StudyCardView | null | undefined =>
@@ -220,6 +222,7 @@ export const useStudyCard = (cardId: string | null): StudyCardView | null | unde
       ordinal: card.ordinal,
       ...cardFaces(note.content, card.ordinal),
       explanation: note.content.explanation,
+      mnemonic: note.mnemonic,
     };
   }, [cardId]);
 

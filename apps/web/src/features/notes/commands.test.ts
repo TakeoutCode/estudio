@@ -113,6 +113,36 @@ describe('comandos de notas (LEARNING-DESIGN §1, FRONTEND FE3)', () => {
     expect(await db.cards.get(cardId)).toMatchObject({ lapseBaseline: 6 });
     expect(await outboxEntities()).toEqual(['note']); // la Card no se reescribe
   });
+
+  it('R14: la mnemotecnia nace vacía; sin `mnemonic` se conserva, con null se quita', async () => {
+    const note = await createNote({ deck: { name: 'Hombro' }, content }, { now: T0 });
+    expect(note.mnemonic).toBeNull();
+    const withIt = await updateNote(
+      note.id,
+      { content, mnemonic: 'Axilar: atrás del húmero' },
+      { now: T0 + MIN },
+    );
+    expect(withIt.mnemonic).toBe('Axilar: atrás del húmero');
+    const kept = await updateNote(
+      note.id,
+      { content: { ...content, explanation: 'Otra.' } },
+      { now: T0 + 2 * MIN },
+    );
+    expect(kept.mnemonic).toBe('Axilar: atrás del húmero');
+    const removed = await updateNote(note.id, { content, mnemonic: null }, { now: T0 + 3 * MIN });
+    expect(removed.mnemonic).toBeNull();
+    const [entry] = (await db.outbox.toArray()).filter((e) => e.entity === 'note').slice(-1);
+    expect(MutationSchema.parse(entry).row).toMatchObject({ mnemonic: null });
+  });
+
+  it('P3: agregar una mnemotecnia a una tarjeta para reformular también la reformula', async () => {
+    const note = await createNote({ deck: { name: 'Hombro' }, content }, { now: T0 });
+    const cardId = cardIdFor(note.id, 0);
+    const state = await db.cardStates.get(cardId);
+    await db.cardStates.put({ ...state!, phase: 'review', lapses: 7 });
+    await updateNote(note.id, { content, mnemonic: 'Axilar: atrás' }, { now: T0 + MIN });
+    expect(await db.cards.get(cardId)).toMatchObject({ lapseBaseline: 7 });
+  });
 });
 
 describe('temas de las notas (LD5, P4)', () => {

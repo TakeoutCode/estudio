@@ -10,6 +10,7 @@ import {
   clozeNumbers,
   clozeSegments,
   EXPLANATION_MAX_LENGTH,
+  MNEMONIC_MAX_LENGTH,
   type NoteContent,
   NoteContentSchema,
   NoteSchema,
@@ -44,6 +45,17 @@ describe('Note y Card (LEARNING-DESIGN §1)', () => {
     const long = { ...note(), content: { ...content, explanation: 'x'.repeat(EXPLANATION_MAX_LENGTH + 1) } };
     expect(NoteSchema.safeParse(long).success).toBe(false);
     expect(NoteSchema.safeParse({ ...note(), content: { ...content, explanation: '' } }).success).toBe(true);
+  });
+
+  it('R14: la mnemotecnia es opcional, de ella y breve; un cliente anterior no la envía', () => {
+    expect(NoteSchema.parse(note()).mnemonic).toBeNull();
+    expect(NoteSchema.parse({ ...note(), mnemonic: '  Axilar: "A" de atrás  ' }).mnemonic).toBe(
+      'Axilar: "A" de atrás',
+    );
+    expect(NoteSchema.safeParse({ ...note(), mnemonic: '   ' }).success).toBe(false);
+    expect(NoteSchema.safeParse({ ...note(), mnemonic: 'x'.repeat(MNEMONIC_MAX_LENGTH + 1) }).success).toBe(
+      false,
+    );
   });
 
   it('exige frente y reverso con texto, y rechaza tipos que aún no existen', () => {

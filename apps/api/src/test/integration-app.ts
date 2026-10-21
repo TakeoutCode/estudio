@@ -162,6 +162,7 @@ export const noteRow = (
   },
   origin: 'manual',
   tagIds: [],
+  mnemonic: null, // R14: la API la devuelve aunque el cliente no la mande
   hlc: hlcAt(wall, node),
   updatedAt: wall,
   deletedAt: null,

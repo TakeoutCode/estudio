@@ -7,7 +7,7 @@ import { db } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { setDeckPaused } from '@/features/decks';
 import { createExam } from '@/features/exams';
-import { createNote, deleteNote } from '@/features/notes';
+import { createNote, deleteNote, updateNote } from '@/features/notes';
 import { updateProfile, updateStudyConfig } from '@/features/settings';
 import { saveSelfExplanation } from './commands';
 import { planSessionNow } from './queries';
@@ -67,6 +67,21 @@ describe('StudyScreen (LEARNING-DESIGN §4)', () => {
     expect(screen.getByText(humerus.back)).toBeTruthy();
     expect(screen.getByText(humerus.explanation)).toBeTruthy();
     expect(screen.getByRole('group', { name: /cómo te fue/i })).toBeTruthy();
+  });
+
+  it('R14 y R1: su mnemotecnia aparece solo después del intento, con la respuesta', async () => {
+    const note = (await db.notes.toArray()).find(
+      (n) => n.content.kind === 'basic' && n.content.front === humerus.front,
+    );
+    if (!note) throw new Error('sin nota');
+    const mnemonic = 'Radial: rodea el húmero por detrás';
+    await updateNote(note.id, { content: humerus, mnemonic }, { now: T0 });
+    const { container } = renderStudy();
+    expect(await screen.findByText(humerus.front)).toBeTruthy();
+    expect(container.textContent).not.toContain(mnemonic);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    expect(screen.getByRole('heading', { name: 'Tu mnemotecnia' })).toBeTruthy();
+    expect(screen.getByText(mnemonic)).toBeTruthy();
   });
 
   it('R3: calificar guarda el repaso con su duración y pasa a la siguiente tarjeta', async () => {

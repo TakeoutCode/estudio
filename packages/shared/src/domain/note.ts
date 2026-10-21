@@ -28,6 +28,9 @@ import { NoteTagIdsSchema } from './tag.js';
 
 export { EXPLANATION_MAX_LENGTH };
 
+/** R14: la mnemotecnia es un apoyo breve que ella escribe; límite técnico, no de estudio. */
+export const MNEMONIC_MAX_LENGTH = 300;
+
 /** `basic`: pregunta y respuesta; con `reverse`, también la tarjeta inversa (LD §1). */
 export const BasicContentSchema = z
   .object({
@@ -136,6 +139,12 @@ export const NoteSchema = SyncMetaSchema.extend({
   origin: z.enum(['manual', 'ai']),
   /** Etiquetas suyas, de cualquier mazo (*diseño*). Un cliente con el contrato 12 no lo envía. */
   tagIds: NoteTagIdsSchema.default([]),
+  /**
+   * R14: andamio opcional que ella crea cuando ya entiende el contenido (el editor la ofrece
+   * tras el primer acierto). Se muestra solo después del intento (R1). Un cliente con el
+   * contrato 20 no la envía.
+   */
+  mnemonic: text(MNEMONIC_MAX_LENGTH).nullable().default(null),
 }).strict();
 export type Note = z.infer<typeof NoteSchema>;
 

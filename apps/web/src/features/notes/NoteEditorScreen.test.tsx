@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cardIdFor, newId } from '@estudio/shared';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
@@ -524,5 +525,72 @@ describe('editor de notas · caso clínico (clinical_case)', () => {
         },
       ]);
     });
+  });
+});
+
+describe('editor de notas · mnemotecnia (R14)', () => {
+  const basic = {
+    kind: 'basic',
+    front: '¿Pares craneales?',
+    back: 'Doce',
+    explanation: '',
+    reverse: false,
+  } as const;
+  const renderNote = (noteId: string) =>
+    render(
+      <MemoryRouter initialEntries={[`/notes/${noteId}`]}>
+        <Routes>
+          <Route path="/notes/:noteId" element={<NoteEditorScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  const logFor = (cardId: string, rating: 1 | 2 | 3 | 4) => ({
+    id: newId(),
+    cardId,
+    cardKind: 'basic' as const,
+    reviewedAt: Date.now(),
+    rating,
+    durationMs: 4000,
+    type: 'review' as const,
+    confidence: null,
+    sessionId: newId(),
+    deviceId: newId(),
+  });
+
+  it('una tarjeta nueva o que todavía no acierta no la ofrece: primero se entiende', async () => {
+    renderEditor();
+    expect(await screen.findByLabelText('Pregunta')).toBeTruthy();
+    expect(screen.queryByLabelText('Mnemotecnia (opcional)')).toBeNull();
+
+    const note = await createNote({ deck: { name: 'Cabeza' }, content: basic });
+    await db.reviewLogs.add(logFor(cardIdFor(note.id, 0), 1));
+    cleanup();
+    renderNote(note.id);
+    expect(await screen.findByLabelText('Pregunta')).toBeTruthy();
+    expect(screen.queryByLabelText('Mnemotecnia (opcional)')).toBeNull();
+  });
+
+  it('tras el primer acierto se ofrece y se guarda con la nota', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    const note = await createNote({ deck: { name: 'Cabeza' }, content: basic });
+    await db.reviewLogs.add(logFor(cardIdFor(note.id, 0), 3));
+    renderNote(note.id);
+    const field = await screen.findByLabelText('Mnemotecnia (opcional)');
+    expect(screen.getByText(/no reemplaza recordar/)).toBeTruthy();
+    fireEvent.change(field, { target: { value: 'Oh, oh, oh, to touch and feel…' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect((await db.notes.get(note.id))?.mnemonic).toBe('Oh, oh, oh, to touch and feel…');
+    });
+  });
+
+  it('P3: en una tarjeta para reformular sugiere imagen, sus palabras o una mnemotecnia', async () => {
+    const note = await createNote({ deck: { name: 'Cabeza' }, content: basic });
+    const cardId = cardIdFor(note.id, 0);
+    const state = await db.cardStates.get(cardId);
+    if (!state) throw new Error('sin estado');
+    await db.cardStates.put({ ...state, phase: 'review', lapses: 6 });
+    renderNote(note.id);
+    expect(await screen.findByText(/Esta tarjeta se te olvida seguido/)).toBeTruthy();
   });
 });

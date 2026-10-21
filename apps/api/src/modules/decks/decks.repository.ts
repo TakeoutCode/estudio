@@ -53,6 +53,7 @@ export class DecksRepository {
       { name: 'content', value: JSON.stringify(note.content), cast: 'jsonb' },
       { name: 'origin', value: note.origin },
       { name: 'tag_ids', value: JSON.stringify(note.tagIds), cast: 'jsonb' },
+      { name: 'mnemonic', value: note.mnemonic },
       ...syncMetaColumns(note),
     ]);
   }

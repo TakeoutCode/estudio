@@ -40,6 +40,7 @@ export class NoteSyncHandler implements EntitySyncHandler<'note'> {
       content: d.content,
       origin: d.origin,
       tagIds: d.tag_ids,
+      mnemonic: d.mnemonic,
       hlc: d.hlc,
       updatedAt: dbNumber(d.updated_at),
       deletedAt: dbNumberOrNull(d.deleted_at),

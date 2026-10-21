@@ -5,6 +5,7 @@ import {
   isExerciseKind,
   noteImageAssetId,
   type ImageMime,
+  MNEMONIC_MAX_LENGTH,
   newId,
   type Note,
   NoteContentSchema,
@@ -44,7 +45,7 @@ import {
   updateNote,
 } from './commands';
 import { type EditorPicture, OcclusionEditor } from './OcclusionEditor';
-import { useDecks, useNote, useTags, useTopics } from './queries';
+import { useDecks, useMnemonicOffer, useNote, useTags, useTopics } from './queries';
 import { TagsField } from './TagsField';
 
 const NEW_DECK = 'new';
@@ -162,6 +163,9 @@ function NoteForm({
   const [groups, setGroups] = useState<OcclusionGroup[]>(occlusion ? [...occlusion.groups] : []);
   const [picked, setPicked] = useState<PickedImage | null>(null);
   const [explanation, setExplanation] = useState(initial?.explanation ?? '');
+  // R14: solo al editar, después del primer acierto (useMnemonicOffer).
+  const [mnemonic, setMnemonic] = useState(note?.mnemonic ?? '');
+  const mnemonicOffer = useMnemonicOffer(note);
   // LD5, P4: el tema es opcional y pertenece al mazo.
   const [topicId, setTopicId] = useState(note?.topicId ?? NO_TOPIC);
   const [topicName, setTopicName] = useState('');
@@ -265,6 +269,7 @@ function NoteForm({
           topic,
           deck: moving ? deck : undefined,
           tags: tagChoices,
+          mnemonic: mnemonicOffer?.ready ? mnemonic.trim() || null : undefined,
         });
         setDeckId(updated.deckId);
         setTopicId(updated.topicId ?? NO_TOPIC);
@@ -614,6 +619,11 @@ function NoteForm({
           />
         ) : null}
 
+        {mnemonicOffer?.reformulate ? (
+          <p className="m-0 rounded-(--radius-card) bg-blush px-4 py-3 text-caption">
+            {t('mnemonic.reformulate')}
+          </p>
+        ) : null}
         <label className="flex flex-col gap-1">
           <span>{t('notes.explanation')}</span>
           <textarea
@@ -630,6 +640,25 @@ function NoteForm({
             {t('notes.explanationCount', { count: explanation.length, max: EXPLANATION_MAX_LENGTH })}
           </span>
         </label>
+        {mnemonicOffer?.ready ? (
+          <div className="flex flex-col gap-1">
+            <label htmlFor={`${ids}-mnemonic`}>{t('mnemonic.label')}</label>
+            <textarea
+              id={`${ids}-mnemonic`}
+              className={field}
+              rows={2}
+              maxLength={MNEMONIC_MAX_LENGTH}
+              aria-describedby={`${ids}-mnemonic-hint`}
+              value={mnemonic}
+              onChange={(event) => {
+                setMnemonic(event.target.value);
+              }}
+            />
+            <span id={`${ids}-mnemonic-hint`} className="text-caption text-muted">
+              {t('mnemonic.hint')}
+            </span>
+          </div>
+        ) : null}
         {kind === 'basic' ? (
           <label className="flex min-h-11 items-center gap-3">
             <input

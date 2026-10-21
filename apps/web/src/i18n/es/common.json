@@ -1056,5 +1056,11 @@
       "denied": "El navegador no lo concedió por ahora. En iPhone, usar la app instalada en la pantalla de inicio ayuda.",
       "ask": "Pedir guardado persistente"
     }
+  },
+  "mnemonic": {
+    "label": "Mnemotecnia (opcional)",
+    "hint": "Un apoyo que creas tú ahora que ya la entiendes, por ejemplo un acróstico para una lista en orden. Aparece solo después de responder: no reemplaza recordar.",
+    "reformulate": "Esta tarjeta se te olvida seguido. Además de cambiar la explicación, puede ayudar agregar una imagen, explicarla con tus palabras o escribir una mnemotecnia.",
+    "shown": "Tu mnemotecnia"
   }
 }

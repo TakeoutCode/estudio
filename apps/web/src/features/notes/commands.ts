@@ -80,6 +80,8 @@ export function createNote(
     readonly topic?: TopicChoice;
     readonly tags?: readonly TagChoice[];
     readonly image?: StagedImage;
+    /** R14: casi siempre null al crearla; el editor la ofrece tras el primer acierto. */
+    readonly mnemonic?: string | null;
   },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
 ): Promise<Note> {
@@ -93,6 +95,7 @@ export function createNote(
       content: input.content,
       origin: 'manual',
       tagIds: await resolveTags(database, input.tags ?? [], now),
+      mnemonic: input.mnemonic ?? null,
       deletedAt: null,
       ...(await stamp(database, now)),
     });
@@ -119,6 +122,8 @@ export function updateNote(
     readonly deck?: DeckChoice;
     /** `undefined` deja las que tenía. */
     readonly tags?: readonly TagChoice[];
+    /** R14: `undefined` deja la que tenía; null la quita. Agregarla también reformula (P3). */
+    readonly mnemonic?: string | null;
   },
   { database = defaultDb, now = Date.now() }: CommandOptions = {},
 ): Promise<Note> {
@@ -139,6 +144,7 @@ export function updateNote(
       topicId,
       content: input.content,
       tagIds: input.tags === undefined ? current.tagIds : await resolveTags(database, input.tags, now),
+      mnemonic: input.mnemonic === undefined ? current.mnemonic : input.mnemonic,
       ...(await stamp(database, now)),
     });
     await writeAndQueue(database, 'note', note, now);

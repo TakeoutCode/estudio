@@ -193,6 +193,7 @@ model Note {
   content   Json
   origin    String
   tagIds    Json    @default("[]") @map("tag_ids") // uuid[] como JSON; cada una la valida el handler (BE2)
+  mnemonic  String? // R14: andamio opcional que ella escribe tras entender
   hlc       String
   updatedAt BigInt  @map("updated_at")
   deletedAt BigInt? @map("deleted_at")
