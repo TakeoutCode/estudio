@@ -1,0 +1,95 @@
+# QUALITY QA7 y ADR-017: volcado semanal de la base de producción, cifrado con age y guardado
+# como artifact privado por 90 días. Antes de cifrarlo se restaura en un Postgres efímero y se
+# comparan los conteos de filas: un respaldo que nunca se restauró no está probado.
+#
+# Secretos del repositorio (Settings › Secrets and variables › Actions):
+#   BACKUP_DATABASE_URL   la URL directa de Neon (no la del pooler); mejor con un rol de solo lectura
+#   BACKUP_AGE_RECIPIENT  la clave pública de age (age1…); la privada la guardas tú, fuera de GitHub
+name: Respaldo semanal
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # lunes 09:00 UTC (03:00 en la Ciudad de México)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      restore:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: restore
+          POSTGRES_DB: restore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      SOURCE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+      RESTORE_URL: postgresql://postgres:restore@localhost:5432/restore
+      # Postgres 17 en contenedor: pg_dump tiene que ser de la misma versión que Neon o mayor.
+      PG: docker run --rm --network host -v ${{ github.workspace }}:/w -w /w postgres:17
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Secretos configurados
+        run: |
+          if [ -z "$SOURCE_URL" ] || [ -z "$AGE_RECIPIENT" ]; then
+            echo "Faltan BACKUP_DATABASE_URL o BACKUP_AGE_RECIPIENT (QUALITY §10)" && exit 1
+          fi
+
+      - name: age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      - name: Conteos antes del volcado
+        run: $PG psql "$SOURCE_URL" -At -v ON_ERROR_STOP=1 -f /w/.github/backup/row-counts.sql > before.txt
+
+      - name: Volcado
+        run: $PG pg_dump "$SOURCE_URL" --format=custom --no-owner --no-privileges --file=/w/estudio.dump
+
+      - name: Conteos después del volcado
+        run: $PG psql "$SOURCE_URL" -At -v ON_ERROR_STOP=1 -f /w/.github/backup/row-counts.sql > after.txt
+
+      - name: Restauración de prueba
+        run: |
+          # Un aviso menor (un comentario de extensión, por ejemplo) no la invalida: la juzgan los conteos.
+          $PG pg_restore --no-owner --no-privileges --dbname="$RESTORE_URL" /w/estudio.dump \
+            || echo "::warning::pg_restore informó errores; se juzga por los conteos"
+          $PG psql "$RESTORE_URL" -At -v ON_ERROR_STOP=1 -f /w/.github/backup/row-counts.sql > restored.txt
+
+      - name: Los conteos coinciden
+        # Una tabla que cambió mientras se volcaba (p. ej. un aviso del cron) no se puede comparar;
+        # todas las demás tienen que tener las mismas filas en la copia restaurada.
+        run: |
+          stable=$(comm -12 <(sort before.txt) <(sort after.txt))
+          if [ -z "$stable" ]; then echo "Ninguna tabla quedó quieta durante el volcado" && exit 1; fi
+          missing=$(comm -23 <(echo "$stable") <(sort restored.txt))
+          if [ -n "$missing" ]; then
+            echo "La copia restaurada no coincide en:" && echo "$missing" && exit 1
+          fi
+          echo "Coinciden $(echo "$stable" | wc -l) tablas"
+
+      - name: Cifrado
+        run: |
+          age --encrypt --recipient "$AGE_RECIPIENT" --output "estudio-$(date -u +%F).dump.age" estudio.dump
+          shred -u estudio.dump
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: respaldo-${{ github.run_id }}
+          path: estudio-*.dump.age
+          retention-days: 90
+          if-no-files-found: error

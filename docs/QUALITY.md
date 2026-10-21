@@ -88,7 +88,7 @@ En la web, cabeceras de Vercel: `Content-Security-Policy` con `default-src 'self
 
 **QA7 · DEBE** mantener tres capas y probar la restauración. *Razón:* un respaldo que nunca se restauró no está probado.
 - **Neon:** restauración a un punto en el tiempo según la retención del plan contratado (verificarla y anotarla aquí).
-- **Volcado semanal:** un workflow programado de GitHub Actions hace `pg_dump`, lo cifra con `age` (la clave privada la guardas tú fuera de GitHub) y lo sube como artifact privado con 90 días de retención (ADR-017). Cada mes se restaura en una rama de Neon y se compara el conteo de filas.
+- **Volcado semanal:** el workflow `.github/workflows/backup.yml` (lunes 09:00 UTC) hace `pg_dump` con Postgres 17, lo restaura en un Postgres efímero y compara las filas de cada tabla (`.github/backup/row-counts.sql`; una tabla que cambió durante el volcado no se compara), lo cifra con `age` (la clave privada la guardas tú fuera de GitHub) y lo sube como artifact privado con 90 días de retención (ADR-017). Usa los secretos `BACKUP_DATABASE_URL` (la URL directa de Neon, mejor de solo lectura) y `BACKUP_AGE_RECIPIENT` (la clave pública). Además, cada mes se restaura uno en una rama de Neon y se compara el conteo de filas.
 - **Respaldo de ella** (Ajustes › Respaldo, sin red): JSON `{ format: 'estudio-backup', version, exportedAt, userId, entities }` con todas las entidades vivas y todos los `ReviewLog` (`BackupSchema` en `shared`), más un CSV por tabla (`notes`, `cards`, `review_logs`, `exams`) para planillas, juntos en un `.zip` sin compresión (`lib/zip.ts`). Los CSV llevan BOM, fechas en su zona horaria y un `'` delante de lo que empieza con `=`, `+`, `-` o `@`, para que no se ejecute como fórmula. La media va como `publicId`. Las imágenes que aún no se suben no van en el respaldo: la sección lo avisa y se suben solas con conexión.
 - **Importar:** se valida con zod (`parseBackup`; un respaldo de una versión más nueva se rechaza con su propio aviso) y se muestra qué trae antes de confirmar. Si es la misma cuenta, conserva los `id`; si es otra, se reasignan todos de forma consistente (las `Card` y `UserSettings` con su id determinista) y se omite lo que referencia algo que no vino; sus imágenes no se traen, porque son de otra carpeta. Cada fila LWW lleva un HLC nuevo, así que lo del respaldo reemplaza su versión actual; lo que no está en él se queda, y los `ReviewLog` que ya existían no se duplican. Un temporizador que no terminó no se revive. Siempre se genera un `deviceId` nuevo (SY-T4), todo entra por el outbox como cualquier escritura y la proyección de lo importado se rehace en la misma transacción.
 
@@ -108,7 +108,7 @@ Logs JSON de pino en Railway con `requestId`, incluidos los errores del cliente 
 ## 10. Checklist previo a producción
 
 - [ ] Dominio propio configurado: `app.<dominio>` en Vercel y `api.<dominio>` en Railway, con HTTPS (ADR-015).
-- [ ] Par de claves `age` generado y la privada guardada fuera de GitHub; `HEALTH_CHECK_TOKEN` cargado y el monitor configurado.
+- [ ] Par de claves `age` generado y la privada guardada fuera de GitHub; secretos `BACKUP_DATABASE_URL` y `BACKUP_AGE_RECIPIENT` cargados y el workflow de respaldo corrido una vez a mano; `HEALTH_CHECK_TOKEN` cargado y el monitor configurado.
 - [ ] Todas las variables de `EnvSchema` cargadas en Railway, y solo las 3 `VITE_*` en Vercel.
 - [ ] `ALLOWED_EMAILS` con su correo; registro abierto deshabilitado.
 - [ ] Claves VAPID generadas y respaldadas (si se pierden, todas las suscripciones dejan de servir).
