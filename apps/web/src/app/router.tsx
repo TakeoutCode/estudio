@@ -48,7 +48,7 @@ export const router = createBrowserRouter([
             lazy: async () => {
               // `settings` no depende de las otras features: sus secciones se componen aquí.
               const [
-                { SettingsScreen },
+                { SettingsScreen, SyncSection },
                 { NotificationsSection },
                 { DeleteAccountSection },
                 { BackupSection },
@@ -65,6 +65,7 @@ export const router = createBrowserRouter([
                   <SettingsScreen
                     end={
                       <>
+                        <SyncSection />
                         <BackupSection />
                         <DeleteAccountSection />
                       </>

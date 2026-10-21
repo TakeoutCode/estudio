@@ -84,6 +84,7 @@ export async function pushOutbox(
           await database.outbox.update(result.mutationId, {
             status: 'rejected',
             attempts: entry.attempts + 1,
+            ...(result.code ? { code: result.code } : {}),
           });
         } else {
           pushed += 1; // applied, duplicate o stale: el servidor ya tiene su versión

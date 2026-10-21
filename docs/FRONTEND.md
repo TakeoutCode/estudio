@@ -61,7 +61,7 @@ export async function renameDeck(id: DeckId, name: string) {
 
 **FE7 · DEBE** funcionar sin red en todo el estudio: sesión, temporizador, simulacros, edición de contenido, dashboard, exportar respaldo. Lo que necesita red (IA, login, suscribirse a push, subir media) se muestra deshabilitado con el texto "Requiere conexión" y nunca como error. *Razón:* local-first; ella estudia donde no hay señal.
 - Precaché del app shell; las navegaciones caen a `index.html`.
-- Llamar a `navigator.storage.persist()` tras la primera sesión completa y mostrar `navigator.storage.estimate()` en Ajustes.
+- Llamar a `navigator.storage.persist()` tras la primera sesión completa (al ver el resumen final) y mostrar `navigator.storage.estimate()` en Ajustes › Sincronización y almacenamiento, con un botón para pedir el guardado persistente si el navegador no lo concedió (`lib/storage.ts`).
 - Ante `QuotaExceededError` se libera primero la caché de media (de lo menos usado a lo más usado). **NO DEBE** borrarse nunca nada de Dexie para hacer espacio.
 
 ## 5. Multimedia

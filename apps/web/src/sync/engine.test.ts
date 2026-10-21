@@ -85,7 +85,12 @@ describe('push (SYNC SY8)', () => {
     expect(await pushOutbox(database, transport)).toEqual({ pushed: 1, rejected: 1 });
     const left = await database.outbox.toArray();
     expect(left).toHaveLength(1);
-    expect(left[0]).toMatchObject({ status: 'rejected', attempts: 1, row: { id: bad.id } });
+    expect(left[0]).toMatchObject({
+      status: 'rejected',
+      attempts: 1,
+      code: 'validation_failed', // SY8: Ajustes › Sincronización dice por qué
+      row: { id: bad.id },
+    });
     expect(sent[0]?.mutations.map((m) => m.row.id)).toEqual([ok.id, bad.id]); // orden de creación
 
     await pushOutbox(database, transport);

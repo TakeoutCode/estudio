@@ -1,4 +1,5 @@
 import type {
+  ApiErrorCode,
   Card,
   ContrastGroup,
   Deck,
@@ -28,6 +29,8 @@ export interface OutboxEntry extends Mutation {
   readonly createdAt: number;
   readonly attempts: number;
   readonly status: 'pending' | 'rejected';
+  /** Por qué la rechazó el servidor, para decírselo en Ajustes › Sincronización (SY8). */
+  readonly code?: ApiErrorCode;
 }
 
 export interface MetaEntry {

@@ -997,5 +997,64 @@
       "celebrations": "Celebraciones",
       "celebrationsHint": "Un aviso breve al subir de nivel o ganar un logro, sin sonido."
     }
+  },
+  "sync": {
+    "title": "Sincronización y almacenamiento",
+    "state": {
+      "waiting": "Todavía no se sincroniza en esta visita.",
+      "idle": "Al día · última sincronización a las {{time}}",
+      "syncing": "Sincronizando…",
+      "offline": "Sin conexión · tus cambios se guardan en este dispositivo y se envían al volver la red.",
+      "retrying": "No se pudo sincronizar; se reintenta sola en un momento.",
+      "signed_out": "Inicia sesión para sincronizar; lo de este dispositivo sigue guardado.",
+      "outdated": "Hay una versión nueva de la app; se sincroniza al actualizarla."
+    },
+    "pending_one": "{{count}} cambio por enviar",
+    "pending_other": "{{count}} cambios por enviar",
+    "rejected": {
+      "title_one": "El servidor no aceptó {{count}} cambio.",
+      "title_other": "El servidor no aceptó {{count}} cambios.",
+      "hint": "Siguen guardados en este dispositivo. Puedes reintentar (a veces faltaba algo que ya llegó) o descartarlos.",
+      "when": "Del {{date}}",
+      "retry": "Reintentar",
+      "discard": "Descartar",
+      "cancel": "Cancelar",
+      "confirmDiscard": "¿Descartar este cambio? Seguirá en este dispositivo, pero no llegará a tus otros dispositivos ni al servidor."
+    },
+    "reason": {
+      "validation_failed": "no pasó la validación",
+      "not_found": "falta algo a lo que apunta, como su mazo",
+      "forbidden": "no es de esta cuenta",
+      "conflict": "choca con otro cambio",
+      "other": "motivo desconocido"
+    },
+    "entity": {
+      "deck": "Mazo",
+      "topic": "Tema",
+      "tag": "Etiqueta",
+      "note": "Tarjeta",
+      "card": "Lado de una tarjeta",
+      "exam": "Examen",
+      "contrastGroup": "Grupo de tarjetas que se confunden",
+      "mediaAsset": "Imagen",
+      "userSettings": "Ajustes",
+      "studySession": "Simulacro",
+      "timerSession": "Temporizador",
+      "selfExplanation": "Autoexplicación",
+      "aiDraft": "Borrador",
+      "reward": "Premio",
+      "sleepLog": "Registro de sueño",
+      "reviewLog": "Repaso",
+      "timerBlockLog": "Bloque del temporizador",
+      "rewardRedemption": "Canje de premio",
+      "aiFeedback": "Retroalimentación"
+    },
+    "storage": {
+      "usage": "La app usa {{used}} de unos {{quota}} disponibles en este dispositivo.",
+      "persisted": "Guardado persistente: el navegador no borrará tus datos para hacer espacio.",
+      "notPersisted": "Si le falta espacio, el navegador podría borrar datos de la app que aún no se sincronizan.",
+      "denied": "El navegador no lo concedió por ahora. En iPhone, usar la app instalada en la pantalla de inicio ayuda.",
+      "ask": "Pedir guardado persistente"
+    }
   }
 }

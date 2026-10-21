@@ -7,7 +7,7 @@ import {
 } from '@estudio/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readPausedDeckIds } from '@/db/planner-cards';
-import { alive, db, type EstudioDb } from '@/db/schema';
+import { alive, db, type EstudioDb, type OutboxEntry } from '@/db/schema';
 import { readNotificationPrefs, readProfile, readStudyConfig, readUiSettings } from '@/db/settings';
 import type { BreakUsageInput, LoadProjectionInput } from '@/workers/projection-api';
 
@@ -58,3 +58,23 @@ export const useProfile = (): ProfileSettings | undefined => useLiveQuery(() => 
 /** NOTIFICATIONS §1: preferencias de avisos (apagados por defecto, NT8). */
 export const useNotificationPrefs = (): NotificationPrefs | undefined =>
   useLiveQuery(() => readNotificationPrefs(db), []);
+
+export interface OutboxSummary {
+  /** Cambios guardados aquí que todavía no llegan al servidor. */
+  readonly pending: number;
+  /** SY8: los que el servidor rechazó; se quedan hasta que ella decida, del más viejo al más nuevo. */
+  readonly rejected: readonly OutboxEntry[];
+}
+
+export async function readOutboxSummary(database: EstudioDb = db): Promise<OutboxSummary> {
+  // Una sola espera: liveQuery observa lo leído antes del primer `await`.
+  const [pending, rejected] = await Promise.all([
+    database.outbox.where('status').equals('pending').count(),
+    database.outbox.where('status').equals('rejected').sortBy('mutationId'),
+  ]);
+  return { pending, rejected };
+}
+
+/** SY8: lo que espera en el outbox, para Ajustes › Sincronización. */
+export const useOutboxSummary = (): OutboxSummary | undefined =>
+  useLiveQuery(() => readOutboxSummary(db), []);

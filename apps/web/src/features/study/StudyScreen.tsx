@@ -26,6 +26,7 @@ import {
 import { useContrastNames } from '@/features/contrast';
 import { CARD_IMAGE_WIDTH, usePrefetchCardImages } from '@/features/media';
 import { useBreakEndNotice } from '@/features/notifications';
+import { requestPersistentStorage } from '@/lib/storage';
 import { usePageVisibility } from '@/lib/use-page-visibility';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
@@ -726,6 +727,10 @@ function SessionDone({ bedtime }: { readonly bedtime: boolean }) {
   const navigate = useNavigate();
   const answered = useStudy((s) => s.answered);
   const end = useStudy((s) => s.end);
+  // FE7: con una sesión completa, se pide guardado persistente (si ya lo tiene, no vuelve a pedir).
+  useEffect(() => {
+    void requestPersistentStorage();
+  }, []);
   return (
     <>
       <section className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-5">

@@ -157,3 +157,24 @@ export function updateProfile(
     options,
   );
 }
+
+/** SY8: vuelve a enviar lo rechazado (p. ej. si faltaba algo que ya llegó). */
+export async function retryRejected({ database = defaultDb }: CommandOptions = {}): Promise<number> {
+  const count = await database.outbox.where('status').equals('rejected').modify({ status: 'pending' });
+  if (count > 0) syncScheduler.now();
+  return count;
+}
+
+/**
+ * SY8: descarta un cambio rechazado, solo porque ella lo pide después del aviso. El cambio sigue
+ * en este dispositivo, pero no llegará a los otros.
+ */
+export async function discardRejected(
+  mutationId: string,
+  { database = defaultDb }: CommandOptions = {},
+): Promise<void> {
+  await database.transaction('rw', database.outbox, async () => {
+    if ((await database.outbox.get(mutationId))?.status === 'rejected')
+      await database.outbox.delete(mutationId);
+  });
+}

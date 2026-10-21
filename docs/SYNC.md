@@ -112,7 +112,7 @@ syncScheduler.poke();
 - `401`: refrescar el token una vez.
 - `426`: pausar la sync hasta que la app se actualice (ARC6).
 - `429` o `503`: respetar `Retry-After`.
-- `rejected`: queda en el outbox, visible en Ajustes › Sincronización. **NO DEBE** borrarse sin avisar.
+- `rejected`: queda en el outbox con su `code`, visible en Ajustes › Sincronización y almacenamiento con el motivo, donde ella puede reintentarlo (a veces faltaba algo que ya llegó) o descartarlo después de un aviso: el cambio sigue en ese dispositivo pero no llega a los otros. **NO DEBE** borrarse sin avisar.
 
 ## 10. Migraciones del esquema de Dexie
 
