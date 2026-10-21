@@ -139,6 +139,16 @@
       "inPlace": "en su lugar",
       "youPut": "lo pusiste en el {{n}}"
     },
+    "matching": {
+      "board": "Pares para relacionar",
+      "choose": "Elige su pareja…",
+      "missing_one": "Falta {{count}} por relacionar",
+      "missing_other": "Faltan {{count}} por relacionar",
+      "ready": "Todo relacionado: puedes comprobar",
+      "score": "{{right}} de {{total}} pares correctos.",
+      "right": "correcta",
+      "youChose": "elegiste: {{pick}}"
+    },
     "tag": {
       "empty": "No hay tarjetas pendientes con esta etiqueta. Puedes añadir nuevas o elegir otra.",
       "missing": "Esta etiqueta ya no existe; puede que se haya borrado en otro dispositivo."
@@ -215,7 +225,8 @@
       "image_occlusion": "Imagen con etiquetas",
       "true_false_justify": "Verdadero o falso",
       "open_question": "Pregunta abierta",
-      "sequence": "Ordenar"
+      "sequence": "Ordenar",
+      "matching": "Relacionar columnas"
     },
     "kindHint": {
       "basic": "Recuerdas la respuesta, la ves y calificas cómo te fue.",
@@ -225,7 +236,8 @@
       "image_occlusion": "Tapas las etiquetas de una imagen tuya; cada una es una tarjeta.",
       "true_false_justify": "Decides si una afirmación es verdadera o falsa y lo justificas; luego la comparas con la de referencia.",
       "open_question": "Escribes tu respuesta y, al ver la clave, calificas cómo te fue.",
-      "sequence": "Pones en orden pasos o estructuras; cuenta cuántos pares quedan al revés."
+      "sequence": "Pones en orden pasos o estructuras; cuenta cuántos pares quedan al revés.",
+      "matching": "Relacionas cada elemento de una columna con el suyo de la otra."
     },
     "question": "Pregunta",
     "exactAnswer": "Respuesta (corta)",
@@ -393,6 +405,17 @@
       "add": "Agregar elemento",
       "hint": "De {{min}} a {{max}}. Al estudiar se muestran mezclados."
     },
+    "matching": {
+      "promptPlaceholder": "Por ejemplo: relaciona cada músculo con su inervación",
+      "pairs": "Pares correctos",
+      "left": "Columna A",
+      "right": "Columna B",
+      "leftN": "Columna A, par {{n}}",
+      "rightN": "Columna B, par {{n}}",
+      "remove": "Quitar el par {{n}}",
+      "add": "Agregar par",
+      "hint": "De {{min}} a {{max}} pares. Al estudiar, la columna B se muestra mezclada."
+    },
     "order": {
       "up": "Subir: {{label}}",
       "down": "Bajar: {{label}}"
@@ -400,7 +423,8 @@
     "error": {
       "true_false_justify": "Escribe la afirmación, elige si es verdadera o falsa y escribe la justificación de referencia.",
       "open_question": "Escribe la pregunta y la clave de respuesta.",
-      "sequence": "Escribe la consigna y de 3 a 10 elementos distintos."
+      "sequence": "Escribe la consigna y de 3 a 10 elementos distintos.",
+      "matching": "Escribe la consigna y de 3 a 8 pares completos, sin repetir en ninguna columna."
     }
   },
   "tags": {

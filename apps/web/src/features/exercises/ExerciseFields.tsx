@@ -1,4 +1,4 @@
-import { SEQUENCE_ITEMS } from '@estudio/shared';
+import { MATCHING_PAIRS, SEQUENCE_ITEMS } from '@estudio/shared';
 import { type RefObject, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EditableExerciseKind, ExerciseDraft } from './draft';
@@ -31,6 +31,92 @@ export function ExerciseFields({
   };
 
   switch (kind) {
+    case 'matching':
+      return (
+        <>
+          <label className="flex flex-col gap-1">
+            <span>{t('exercises.sequence.prompt')}</span>
+            <textarea
+              ref={firstRef}
+              className={field}
+              rows={2}
+              maxLength={500}
+              placeholder={t('exercises.matching.promptPlaceholder')}
+              value={draft.prompt}
+              onChange={(event) => {
+                set({ prompt: event.target.value });
+              }}
+            />
+          </label>
+          <fieldset className="m-0 flex flex-col gap-2 border-0 p-0" aria-describedby={`${ids}-pairs`}>
+            <legend className="mb-1">{t('exercises.matching.pairs')}</legend>
+            <div
+              className="grid grid-cols-[1fr_1fr_2.75rem] gap-2 text-caption text-muted"
+              aria-hidden="true"
+            >
+              <span>{t('exercises.matching.left')}</span>
+              <span>{t('exercises.matching.right')}</span>
+            </div>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {draft.pairs.map((pair, i) => {
+                const update = (patch: Partial<typeof pair>) => {
+                  set({ pairs: draft.pairs.map((p, j) => (j === i ? { ...p, ...patch } : p)) });
+                };
+                return (
+                  <li key={i} className="grid grid-cols-[1fr_1fr_2.75rem] items-center gap-2">
+                    <input
+                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-text ${focus}`}
+                      value={pair.left}
+                      maxLength={200}
+                      aria-label={t('exercises.matching.leftN', { n: i + 1 })}
+                      onChange={(event) => {
+                        update({ left: event.target.value });
+                      }}
+                    />
+                    <input
+                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-text ${focus}`}
+                      value={pair.right}
+                      maxLength={200}
+                      aria-label={t('exercises.matching.rightN', { n: i + 1 })}
+                      onChange={(event) => {
+                        update({ right: event.target.value });
+                      }}
+                    />
+                    {draft.pairs.length > MATCHING_PAIRS.min ? (
+                      <button
+                        type="button"
+                        className={`inline-flex size-11 items-center justify-center text-muted ${focus}`}
+                        aria-label={t('exercises.matching.remove', { n: i + 1 })}
+                        onClick={() => {
+                          set({ pairs: draft.pairs.filter((_, j) => j !== i) });
+                        }}
+                      >
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    ) : (
+                      <span />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {draft.pairs.length < MATCHING_PAIRS.max ? (
+              <button
+                type="button"
+                className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`}
+                onClick={() => {
+                  set({ pairs: [...draft.pairs, { left: '', right: '' }] });
+                }}
+              >
+                {t('exercises.matching.add')}
+              </button>
+            ) : null}
+            <p id={`${ids}-pairs`} className="m-0 text-caption text-muted">
+              {t('exercises.matching.hint', { min: MATCHING_PAIRS.min, max: MATCHING_PAIRS.max })}
+            </p>
+          </fieldset>
+        </>
+      );
     case 'sequence':
       return (
         <>

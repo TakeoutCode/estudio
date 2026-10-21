@@ -197,6 +197,7 @@ function NoteForm({
       case 'true_false_justify':
       case 'open_question':
       case 'sequence':
+      case 'matching':
         return exerciseContent(kind, exerciseDraft, explanation);
     }
   };
@@ -292,6 +293,7 @@ function NoteForm({
     true_false_justify: t('exercises.error.true_false_justify'),
     open_question: t('exercises.error.open_question'),
     sequence: t('exercises.error.sequence'),
+    matching: t('exercises.error.matching'),
   }[kind];
   const message = {
     idle: null,

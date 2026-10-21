@@ -376,3 +376,46 @@ describe('editor de notas · ordenar (sequence)', () => {
     });
   });
 });
+
+describe('editor de notas · relacionar columnas (matching)', () => {
+  it('pares en dos columnas; un par a medias no se guarda', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    await createDeck({ name: 'Brazo' });
+    render(
+      <MemoryRouter initialEntries={['/notes/new?tipo=ejercicio']}>
+        <NoteEditorScreen />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Relacionar columnas' }));
+    fireEvent.change(screen.getByLabelText('Consigna'), { target: { value: 'Músculo e inervación.' } });
+    const rows = [
+      ['Deltoides', 'Axilar'],
+      ['Bíceps braquial', 'Musculocutáneo'],
+      ['Tríceps braquial', ''],
+    ] as const;
+    rows.forEach(([left, right], i) => {
+      fireEvent.change(screen.getByLabelText(`Columna A, par ${String(i + 1)}`), { target: { value: left } });
+      fireEvent.change(screen.getByLabelText(`Columna B, par ${String(i + 1)}`), {
+        target: { value: right },
+      });
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(await screen.findByText(/de 3 a 8 pares completos/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Columna B, par 3'), { target: { value: 'Radial' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect((await db.notes.toArray()).map((n) => n.content)).toEqual([
+        {
+          kind: 'matching',
+          prompt: 'Músculo e inervación.',
+          pairs: [
+            { left: 'Deltoides', right: 'Axilar' },
+            { left: 'Bíceps braquial', right: 'Musculocutáneo' },
+            { left: 'Tríceps braquial', right: 'Radial' },
+          ],
+          explanation: '',
+        },
+      ]);
+    });
+  });
+});

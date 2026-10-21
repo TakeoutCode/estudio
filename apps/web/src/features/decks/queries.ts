@@ -64,6 +64,8 @@ const searchParts = (content: NoteContent): readonly string[] => {
       return [content.question, content.key];
     case 'sequence':
       return [content.prompt, ...content.items];
+    case 'matching':
+      return [content.prompt, ...content.pairs.flatMap((p) => [p.left, p.right])];
   }
 };
 

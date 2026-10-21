@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { SyncMetaSchema } from '../sync/contracts.js';
 import { EXPLANATION_MAX_LENGTH, explanation, text } from './content-parts.js';
 import {
+  MatchingContentSchema,
   OpenQuestionContentSchema,
   SequenceContentSchema,
   TrueFalseJustifyContentSchema,
@@ -133,6 +134,7 @@ export const NoteContentSchema = z.discriminatedUnion('kind', [
   TrueFalseJustifyContentSchema,
   OpenQuestionContentSchema,
   SequenceContentSchema,
+  MatchingContentSchema,
 ]);
 export type NoteContent = z.infer<typeof NoteContentSchema>;
 
@@ -176,6 +178,7 @@ export function cardOrdinals(content: NoteContent): number[] {
     case 'true_false_justify':
     case 'open_question':
     case 'sequence':
+    case 'matching':
       return [0];
   }
 }
@@ -252,6 +255,11 @@ export function cardFaces(content: NoteContent, ordinal: number): { prompt: stri
       return {
         prompt: content.prompt,
         answer: content.items.map((item, i) => `${String(i + 1)}. ${item}`).join('\n'),
+      };
+    case 'matching':
+      return {
+        prompt: content.prompt,
+        answer: content.pairs.map((p) => `${p.left} → ${p.right}`).join('\n'),
       };
   }
 }

@@ -1,6 +1,7 @@
 import { type CardKind, newId, type Rating } from '@estudio/shared';
 import {
   cardElapsedMs,
+  fractionScore,
   type CardState,
   isTypedAnswerCorrect,
   sequenceScore,
@@ -36,6 +37,7 @@ import {
   defaultObjectiveRating,
   RatingControls,
   revealsDirectly,
+  matchingPicks,
   sequenceOrder,
 } from './CardView';
 import { answerCard } from './commands';
@@ -518,6 +520,22 @@ function CurrentCard({
       answer: { order: [...order] },
     });
   };
+  // LD §2, LD2: pares correctos / total, con `toRating`.
+  const matching = () => {
+    const state = useStudy.getState();
+    const config = state.session?.ratingConfig;
+    if (card?.content.kind !== 'matching' || !config) return;
+    const picks = matchingPicks(card, state.work);
+    if (picks.some((p) => p === null)) return; // R1: elegir todas es el intento
+    const right = card.content.pairs.filter((pair, i) => picks[i] === pair.right).length;
+    const score = fractionScore(right, card.content.pairs.length);
+    reveal(null, {
+      kind: 'scored',
+      score,
+      rating: toRating({ kind: 'scored', score }, config),
+      answer: { picks: [...picks] },
+    });
+  };
   const direct = card ? revealsDirectly(card) : true;
   const fallback = attempt ? defaultObjectiveRating(attempt) : null;
 
@@ -604,6 +622,7 @@ function CurrentCard({
             onVerdict={verdict}
             onWritten={written}
             onSequence={sequence}
+            onMatching={matching}
           />
         ) : null}
         {phase === 'revealed' ? (

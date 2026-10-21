@@ -66,6 +66,8 @@ function faces(content: NoteContent): readonly [string, string] {
       return [content.question, content.key];
     case 'sequence':
       return [content.prompt, content.items.join(' → ')];
+    case 'matching':
+      return [content.prompt, content.pairs.map((p) => `${p.left} → ${p.right}`).join(' | ')];
   }
 }
 

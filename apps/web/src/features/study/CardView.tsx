@@ -55,6 +55,13 @@ export function sequenceOrder(
     : shuffledSequence(card.content.items, `${card.cardId}:${sessionId}`);
 }
 
+/** Relacionar: lo elegido para cada elemento de la columna A, en su orden (`null` sin elegir). */
+export function matchingPicks(card: StudyCardView, work: ExerciseWork | null): readonly (string | null)[] {
+  if (card.content.kind !== 'matching') return [];
+  const pairs = card.content.pairs;
+  return work?.kind === 'matching' && work.picks.length === pairs.length ? work.picks : pairs.map(() => null);
+}
+
 /** LD2: las calificaciones que se pueden elegir después del intento. */
 export function allowedRatings(card: StudyCardView, attempt: Attempt | null): readonly Rating[] {
   // Con puntaje: lo que da `toRating`; con el puntaje completo también puede subir a Fácil.
@@ -132,6 +139,7 @@ export function CardBody({
         />
       ) : null}
       {content.kind === 'sequence' && !revealed ? <SequenceBoard card={card} disabled={!canChoose} /> : null}
+      {content.kind === 'matching' && !revealed ? <MatchingBoard card={card} disabled={!canChoose} /> : null}
       <div aria-live="polite">
         {revealed ? (
           <section className="flex flex-col gap-2 border-t border-muted/30 pt-4">
@@ -160,6 +168,9 @@ export function CardBody({
             ) : null}
             {attempt?.kind === 'scored' && content.kind === 'sequence' ? (
               <SequenceResult items={content.items} answer={attempt.answer} />
+            ) : null}
+            {attempt?.kind === 'scored' && content.kind === 'matching' ? (
+              <MatchingResult pairs={content.pairs} answer={attempt.answer} />
             ) : null}
             {content.kind === 'basic' || content.kind === 'image_occlusion' ? (
               <>
@@ -194,6 +205,106 @@ function SequenceBoard({ card, disabled }: { readonly card: StudyCardView; reado
         }}
       />
     </section>
+  );
+}
+
+const select = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-body text-text disabled:opacity-60 ${focus}`;
+
+/**
+ * LD §2: cada elemento de la columna A con un selector de la B, mezclada con semilla (R1). Un
+ * selector nativo sirve con el pulgar, con teclado y con lector de pantalla (UX2, UX4).
+ */
+function MatchingBoard({ card, disabled }: { readonly card: StudyCardView; readonly disabled: boolean }) {
+  const { t } = useTranslation();
+  const work = useStudy((s) => s.work);
+  const sessionId = useStudy((s) => s.session?.id ?? '');
+  const setWork = useStudy((s) => s.setWork);
+  if (card.content.kind !== 'matching') return null;
+  const { pairs } = card.content;
+  const picks = matchingPicks(card, work);
+  const options = shuffledSequence(
+    pairs.map((p) => p.right),
+    `${card.cardId}:${sessionId}`,
+  );
+  return (
+    <ul aria-label={t('study.matching.board')} className="m-0 flex list-none flex-col gap-3 p-0">
+      {pairs.map((pair, i) => (
+        <li key={pair.left}>
+          <label className="flex flex-col gap-1">
+            <span className="font-medium">{pair.left}</span>
+            <select
+              className={select}
+              value={picks[i] ?? ''}
+              disabled={disabled}
+              onChange={(event) => {
+                const value = event.target.value === '' ? null : event.target.value;
+                setWork({ kind: 'matching', picks: picks.map((p, j) => (j === i ? value : p)) });
+              }}
+            >
+              <option value="">{t('study.matching.choose')}</option>
+              {options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** "Comprobar" espera a que cada elemento tenga pareja: elegir todas es el intento (R1). */
+function MatchingCheck({ card, onCheck }: { readonly card: StudyCardView; readonly onCheck: () => void }) {
+  const { t } = useTranslation();
+  const work = useStudy((s) => s.work);
+  const picks = matchingPicks(card, work);
+  const missing = picks.filter((p) => p === null).length;
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="m-0 text-center text-caption text-muted">
+        {missing > 0 ? t('study.matching.missing', { count: missing }) : t('study.matching.ready')}
+      </p>
+      <button type="button" className={primary} disabled={missing > 0} onClick={onCheck}>
+        {t('study.objective.check')}
+      </button>
+    </div>
+  );
+}
+
+/** R4: cada pareja correcta, con lo que eligió ella cuando no coincide (texto, no solo color). */
+function MatchingResult({
+  pairs,
+  answer,
+}: {
+  readonly pairs: readonly { readonly left: string; readonly right: string }[];
+  readonly answer: Readonly<Record<string, unknown>>;
+}) {
+  const { t } = useTranslation();
+  const picks = Array.isArray(answer.picks) ? answer.picks : [];
+  const right = pairs.filter((pair, i) => picks[i] === pair.right).length;
+  return (
+    <>
+      <p className="m-0 font-semibold">{t('study.matching.score', { right, total: pairs.length })}</p>
+      <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        {pairs.map((pair, i) => {
+          const pick: unknown = picks[i];
+          return (
+            <li key={pair.left} className="flex flex-col">
+              <span>
+                {pair.left} → <strong className="font-semibold">{pair.right}</strong>
+              </span>
+              <span className="text-caption text-muted">
+                {pick === pair.right
+                  ? t('study.matching.right')
+                  : t('study.matching.youChose', { pick: typeof pick === 'string' ? pick : '' })}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
 
@@ -343,6 +454,7 @@ export function AttemptControls({
   onVerdict,
   onWritten,
   onSequence,
+  onMatching,
 }: {
   readonly card: StudyCardView;
   readonly askConfidence: boolean;
@@ -354,6 +466,8 @@ export function AttemptControls({
   readonly onWritten: (text: string) => void;
   /** Ordenar: comprobar el orden que armó en la tarjeta. */
   readonly onSequence: () => void;
+  /** Relacionar: comprobar las parejas elegidas. */
+  readonly onMatching: () => void;
 }) {
   const { t } = useTranslation();
   const direct = revealsDirectly(card);
@@ -379,6 +493,9 @@ export function AttemptControls({
         </button>
       </div>
     );
+  }
+  if (card.content.kind === 'matching') {
+    return <MatchingCheck card={card} onCheck={onMatching} />;
   }
   if (card.content.kind === 'multiple_choice') {
     return <p className="m-0 text-center text-caption text-muted">{t('study.objective.choose')}</p>;

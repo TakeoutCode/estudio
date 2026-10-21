@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newId } from '../ids.js';
 import { encodeHlc } from '../sync/hlc.js';
-import { isExerciseKind, SEQUENCE_ITEMS } from './exercise.js';
+import { isExerciseKind, MATCHING_PAIRS, SEQUENCE_ITEMS } from './exercise.js';
 import { cardFaces, cardOrdinals, NoteContentSchema, NoteSchema } from './note.js';
 import { CardKindSchema } from './review.js';
 
@@ -77,5 +77,37 @@ describe('secuencia (LD §2)', () => {
     expect(cardOrdinals(parsed)).toEqual([0]);
     expect(cardFaces(parsed, 0).answer).toBe('1. Epidermis\n2. Dermis\n3. Hipodermis');
     expect(isExerciseKind('sequence')).toBe(true);
+  });
+});
+
+describe('relacionar columnas (LD §2)', () => {
+  const matching = {
+    kind: 'matching',
+    prompt: 'Relaciona cada músculo con su inervación.',
+    pairs: [
+      { left: 'Deltoides', right: 'Axilar' },
+      { left: 'Bíceps braquial', right: 'Musculocutáneo' },
+      { left: 'Tríceps braquial', right: 'Radial' },
+    ],
+    explanation: '',
+  } as const;
+
+  it('de 3 a 8 pares, sin repetir en ninguna columna; una Card', () => {
+    expect(NoteSchema.safeParse(note(matching)).success).toBe(true);
+    expect(NoteContentSchema.safeParse({ ...matching, pairs: matching.pairs.slice(0, 2) }).success).toBe(
+      false,
+    );
+    const repeatedRight = matching.pairs.map((p) => ({ ...p, right: 'Radial' }));
+    expect(NoteContentSchema.safeParse({ ...matching, pairs: repeatedRight }).success).toBe(false);
+    const many = Array.from({ length: MATCHING_PAIRS.max + 1 }, (_, i) => ({
+      left: `A${String(i)}`,
+      right: `B${String(i)}`,
+    }));
+    expect(NoteContentSchema.safeParse({ ...matching, pairs: many }).success).toBe(false);
+    const parsed = NoteContentSchema.parse(matching);
+    expect(cardOrdinals(parsed)).toEqual([0]);
+    expect(cardFaces(parsed, 0).answer).toBe(
+      'Deltoides → Axilar\nBíceps braquial → Musculocutáneo\nTríceps braquial → Radial',
+    );
   });
 });

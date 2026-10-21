@@ -204,3 +204,62 @@ describe('ordenar · al revés', () => {
     });
   });
 });
+
+describe('relacionar columnas (matching, LD §2, LD2)', () => {
+  const nerves: NoteContent = {
+    kind: 'matching',
+    prompt: 'Relaciona cada músculo con su inervación.',
+    pairs: [
+      { left: 'Deltoides', right: 'Axilar' },
+      { left: 'Bíceps braquial', right: 'Musculocutáneo' },
+      { left: 'Tríceps braquial', right: 'Radial' },
+      { left: 'Pronador redondo', right: 'Mediano' },
+    ],
+    explanation: '',
+  };
+  const pick = (left: string, right: string) => {
+    fireEvent.change(screen.getByLabelText(left), { target: { value: right } });
+  };
+
+  it('R1: comprobar espera a que todos tengan pareja; todos bien es Good o Fácil', async () => {
+    await only(nerves);
+    renderStudy();
+    await screen.findByText('Relaciona cada músculo con su inervación.');
+    const check = screen.getByRole('button', { name: 'Comprobar' });
+    expect(screen.getByText('Faltan 4 por relacionar')).toBeTruthy();
+    pick('Deltoides', 'Axilar');
+    pick('Bíceps braquial', 'Musculocutáneo');
+    pick('Tríceps braquial', 'Radial');
+    expect(check.hasAttribute('disabled')).toBe(true);
+    pick('Pronador redondo', 'Mediano');
+    fireEvent.click(check);
+    expect(screen.getByText('4 de 4 pares correctos.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await waitFor(async () => {
+      expect(await logs()).toMatchObject([
+        {
+          cardKind: 'matching',
+          rating: Rating.Good,
+          answer: { picks: ['Axilar', 'Musculocutáneo', 'Radial', 'Mediano'] },
+        },
+      ]);
+    });
+  });
+
+  it('LD2: 3 de 4 (s = 0.75 < hardMinScore) es Again y dice lo que eligió', async () => {
+    await only(nerves);
+    renderStudy();
+    await screen.findByText('Relaciona cada músculo con su inervación.');
+    pick('Deltoides', 'Axilar');
+    pick('Bíceps braquial', 'Musculocutáneo');
+    pick('Tríceps braquial', 'Mediano');
+    pick('Pronador redondo', 'Radial');
+    fireEvent.click(screen.getByRole('button', { name: 'Comprobar' }));
+    expect(screen.getByText('2 de 4 pares correctos.')).toBeTruthy();
+    expect(screen.getByText('elegiste: Mediano')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir' }));
+    await waitFor(async () => {
+      expect(await logs()).toMatchObject([{ rating: Rating.Again }]);
+    });
+  });
+});

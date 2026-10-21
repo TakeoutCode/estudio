@@ -50,6 +50,31 @@ export const SequenceContentSchema = z
   .strict();
 export type SequenceContent = z.infer<typeof SequenceContentSchema>;
 
+/** Límites de relacionar columnas (técnicos: lo que cabe en el teléfono). */
+export const MATCHING_PAIRS = { min: 3, max: 8 } as const;
+
+const distinct = (values: readonly string[]) =>
+  new Set(values.map((v) => v.toLowerCase())).size === values.length;
+
+/**
+ * `matching`: relacionar cada elemento de la columna A con el suyo de la B (p. ej. músculo e
+ * inervación). El puntaje es pares correctos / total (LD §2).
+ */
+export const MatchingContentSchema = z
+  .object({
+    kind: z.literal('matching'),
+    prompt: text(500),
+    pairs: z
+      .array(z.object({ left: text(200), right: text(200) }).strict())
+      .min(MATCHING_PAIRS.min)
+      .max(MATCHING_PAIRS.max)
+      .refine((pairs) => distinct(pairs.map((p) => p.left)), 'duplicate_left')
+      .refine((pairs) => distinct(pairs.map((p) => p.right)), 'duplicate_right'),
+    explanation: explanation(),
+  })
+  .strict();
+export type MatchingContent = z.infer<typeof MatchingContentSchema>;
+
 /** `open_question`: escribe su respuesta y se califica al compararla con la clave (LD2). */
 export const OpenQuestionContentSchema = z
   .object({

@@ -40,7 +40,10 @@ export type Attempt =
     };
 
 /** Lo que ella va armando en un ejercicio antes de comprobar (efímero, FE2). */
-export type ExerciseWork = { readonly kind: 'sequence'; readonly order: readonly string[] };
+export type ExerciseWork =
+  | { readonly kind: 'sequence'; readonly order: readonly string[] }
+  /** Por cada elemento de la columna A, en su orden, la pareja que eligió de la B. */
+  | { readonly kind: 'matching'; readonly picks: readonly (string | null)[] };
 
 /**
  * Qué se estudia: Hoy mezcla todos los mazos (R9, P4); `deck` aplica el plan a un solo mazo
