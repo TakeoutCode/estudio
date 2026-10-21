@@ -4,6 +4,7 @@ import {
   isSyncedEntity,
   MAX_MUTATIONS_PER_PUSH,
   type Mutation,
+  opForEntity,
   type PullResponse,
   type PushRequest,
   type PushResponse,
@@ -46,9 +47,13 @@ const loadProjection = async (): Promise<ProjectCards> => (await import('@/db/pr
 
 const OFFSET_KEY = SERVER_OFFSET_KEY;
 
-const toMutation = ({ mutationId, op, entity, row }: OutboxEntry): Mutation => ({
+/**
+ * SY1: la operación sale siempre de ENTITY_STRATEGY, no de la entrada guardada. Una versión
+ * anterior encolaba los TimerBlockLog como `upsert`, y el servidor rechazaba el lote entero.
+ */
+const toMutation = ({ mutationId, entity, row }: OutboxEntry): Mutation => ({
   mutationId,
-  op,
+  op: opForEntity(entity),
   entity,
   row,
 });
@@ -185,7 +190,7 @@ async function reapplyOutbox(database: EstudioDb, projectCards: ProjectCards): P
       const cardId = cardTouchedBy(entry.entity, row);
       if (cardId) touchedCards.push(cardId);
       const local = (await table.get(row.id)) as SyncMeta | undefined;
-      if (entry.op === 'append') {
+      if (ENTITY_STRATEGY[entry.entity] === 'append') {
         if (!local) await table.add(row);
       } else if (!local || (row.hlc && compareHlc(row.hlc, local.hlc) > 0)) {
         if (row.deletedAt === null) await table.put(row);

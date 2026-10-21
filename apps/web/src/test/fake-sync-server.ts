@@ -2,6 +2,7 @@ import {
   compareHlc,
   type PullResponse,
   type PushRequest,
+  PushRequestSchema,
   type PushResponse,
   type PushResult,
   type SyncedEntity,
@@ -41,6 +42,10 @@ export class FakeSyncServer {
   };
 
   push(request: PushRequest): Promise<PushResponse> {
+    // Como el ZodPipe de la API: un sobre inválido (p. ej. un `op` que no es el de la
+    // estrategia de su entidad) rechaza la petición entera con 400.
+    if (!PushRequestSchema.safeParse(request).success)
+      return Promise.reject(new ApiError(400, 'validation_failed'));
     const results = request.mutations.map((m): PushResult => {
       if (this.applied.has(m.mutationId)) return { mutationId: m.mutationId, status: 'duplicate' };
       const schema = SYNC_ROW_SCHEMAS[m.entity as SyncedEntity] as

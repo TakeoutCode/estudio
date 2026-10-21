@@ -1,4 +1,4 @@
-import { newId, type SyncedEntity, type SyncedRow } from '@estudio/shared';
+import { newId, opForEntity, type SyncedEntity, type SyncedRow } from '@estudio/shared';
 import { type EstudioDb, TABLE_FOR } from './schema';
 
 /**
@@ -12,11 +12,13 @@ export async function writeAndQueue<E extends SyncedEntity>(
   now: number,
 ): Promise<void> {
   const table = database.table<SyncedRow<E>, string>(TABLE_FOR[entity]);
-  if (entity === 'reviewLog') await table.add(row);
+  // SYNC SY1: la operación sale de la estrategia de la entidad, la misma que valida el servidor.
+  const op = opForEntity(entity);
+  if (op === 'append') await table.add(row);
   else await table.put(row);
   await database.outbox.add({
     mutationId: newId(),
-    op: entity === 'reviewLog' ? 'append' : 'upsert',
+    op,
     entity,
     row,
     createdAt: now,

@@ -6,6 +6,7 @@ import {
   type PushRequest,
   Rating,
   type ReviewLog,
+  type TimerBlockLog,
 } from '@estudio/shared';
 import fc from 'fast-check';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -102,6 +103,56 @@ describe('push (SYNC SY8)', () => {
     await syncOnce(database, server.transport);
     expect(await database.outbox.count()).toBe(0);
     expect(server.count('deck')).toBe(1);
+  });
+
+  const blockLog = (): TimerBlockLog => ({
+    id: newId(),
+    timerSessionId: newId(),
+    deviceId: OTHER_NODE,
+    kind: 'focus',
+    blockIndex: 0,
+    mode: 'flexible',
+    startedAt: T0,
+    endedAt: T0 + 25 * 60_000,
+    plannedMs: 25 * 60_000,
+    activeMs: 25 * 60_000,
+    outcome: 'completed',
+    extended: false,
+  });
+
+  it('SY1: un TimerBlockLog se encola como append, no como upsert, y el lote se acepta', async () => {
+    const database = replica();
+    const server = new FakeSyncServer();
+    await createDeck({ name: 'Carpo' }, { database, now: T0 });
+    await database.transaction('rw', [database.timerBlockLogs, database.outbox, database.meta], () =>
+      writeAndQueue(database, 'timerBlockLog', blockLog(), T0 + 1),
+    );
+    expect((await database.outbox.toArray()).map((e) => e.op)).toEqual(['upsert', 'append']);
+
+    await syncOnce(database, server.transport);
+    expect(await database.outbox.count()).toBe(0);
+    expect(server.count('deck')).toBe(1);
+    expect(server.count('timerBlockLog')).toBe(1);
+  });
+
+  it('SY1: una entrada guardada con otro op (versión anterior) se envía con el de su estrategia', async () => {
+    const database = replica();
+    const server = new FakeSyncServer();
+    const block = blockLog();
+    await database.timerBlockLogs.add(block);
+    await database.outbox.add({
+      mutationId: newId(),
+      op: 'upsert',
+      entity: 'timerBlockLog',
+      row: block,
+      createdAt: T0,
+      attempts: 0,
+      status: 'pending',
+    });
+
+    await syncOnce(database, server.transport);
+    expect(await database.outbox.count()).toBe(0);
+    expect(server.alive('timerBlockLog')).toEqual([block]);
   });
 });
 
