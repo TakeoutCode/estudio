@@ -133,6 +133,86 @@ describe('Tu semana (§5, UX9)', () => {
   });
 });
 
+describe('Tu semana · simulacros (§5, P7)', () => {
+  const meta = {
+    hlc: '0001760000000000:0000:0192f1a0-0000-7000-8000-00000000d001',
+    updatedAt: T0,
+    deletedAt: null,
+  };
+  const [carpo, hombro] = ['0192f1a0-0000-7000-8555-000000000001', '0192f1a0-0000-7000-8555-000000000002'];
+  const exam = '0192f1a0-0000-7000-8666-000000000001';
+  let card = 0;
+  /** `count` preguntas del tema, las primeras `right` acertadas. */
+  const items = (topicId: string, count: number, right: number) =>
+    Array.from({ length: count }, (_, i) => {
+      card += 1;
+      return {
+        cardId: `0192f1a0-0000-7000-8777-${String(card).padStart(12, '0')}`,
+        topicId,
+        confidence: 2 as const,
+        answer: null,
+        durationMs: 10_000,
+        answeredAt: T0,
+        correct: i < right,
+      };
+    });
+  const mock = (id: string, finishedAt: number, list: ReturnType<typeof items>) => ({
+    id,
+    mode: 'exam' as const,
+    examId: exam,
+    feedbackTiming: 'end' as const,
+    items: list,
+    startedAt: finishedAt - 600_000,
+    finishedAt,
+    ...meta,
+  });
+
+  beforeEach(async () => {
+    await db.reviewLogs.bulkAdd(today(120, 108));
+    await db.topics.bulkAdd([
+      { id: carpo, deckId: exam, name: 'Huesos del carpo', explanation: '', ...meta },
+      { id: hombro, deckId: exam, name: 'Manguito rotador', explanation: '', ...meta },
+    ]);
+    await db.exams.add({
+      id: exam,
+      title: 'Anatomía I',
+      date: T0 + 20 * DAY,
+      topicIds: [carpo, hombro],
+      ...meta,
+    });
+  });
+
+  it('sin simulacros terminados lo dice sin cifras', async () => {
+    renderDashboard();
+    const card = await screen.findByRole('region', { name: 'Simulacros' });
+    expect(within(card).getByText(/Cuando termines un simulacro/)).toBeTruthy();
+  });
+
+  it('el último de cada examen, por tema, con la tendencia frente al anterior y "pocos datos"', async () => {
+    await db.studySessions.bulkAdd([
+      mock('0192f1a0-0000-7000-8888-000000000001', T0 - 7 * DAY, items(carpo, 6, 3)),
+      mock('0192f1a0-0000-7000-8888-000000000002', T0 - DAY, [...items(carpo, 6, 5), ...items(hombro, 2, 1)]),
+    ]);
+    renderDashboard();
+    const card = await screen.findByRole('region', { name: 'Simulacros' });
+    expect(within(card).getByText(/^Anatomía I · /)).toBeTruthy();
+    expect(within(card).getByText('Acertaste 6 de 8 preguntas.')).toBeTruthy();
+    const [first, second] = within(card).getAllByRole('listitem') as [HTMLElement, HTMLElement];
+    expect(first.textContent).toBe('Huesos del carpo5 de 6antes: 3 de 6');
+    expect(second.textContent).toBe('Manguito rotador1 de 2pocos datos');
+  });
+
+  it('UX9: se apaga en Ajustes como las demás', async () => {
+    await updateStudyConfig((c) => ({
+      ...c,
+      metrics: { ...c.metrics, visible: { ...c.metrics.visible, mockExams: false } },
+    }));
+    renderDashboard();
+    expect(await screen.findByRole('region', { name: 'Tiempo activo' })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Simulacros' })).toBeNull();
+  });
+});
+
 describe('Tu semana · mazos en pausa', () => {
   it('la carga deja fuera los mazos en pausa, como Hoy; el historial queda completo', async () => {
     const basic = (front: string) =>

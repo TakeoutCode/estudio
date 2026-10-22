@@ -1,5 +1,5 @@
-import { DAY_MS, localDateOf } from '@estudio/shared';
-import type { WeeklyMetricsInput } from '@estudio/srs';
+import { DAY_MS, type Exam, localDateOf } from '@estudio/shared';
+import { type MockResult, mockResults, type WeeklyMetricsInput } from '@estudio/srs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readPausedDeckIds } from '@/db/planner-cards';
 import { alive, db, type EstudioDb } from '@/db/schema';
@@ -51,3 +51,46 @@ export async function loadMetricsInput(
 /** Se vuelve a leer cuando cambian sus datos (p. ej. tras un pull). */
 export const useMetricsInput = (): WeeklyMetricsInput | undefined =>
   useLiveQuery(() => loadMetricsInput(db), []);
+
+export interface MockSummary {
+  readonly exam: Exam;
+  readonly takenAt: number;
+  readonly result: MockResult;
+}
+
+export interface MockSummaries {
+  /** Del simulacro más reciente al más viejo. */
+  readonly items: readonly MockSummary[];
+  /** Nombres de tema, también de los borrados: el simulacro los usó. */
+  readonly topics: ReadonlyMap<string, string>;
+}
+
+/**
+ * §5 (simulacros): el último simulacro terminado de cada examen vivo, por tema y con la
+ * tendencia frente al anterior del mismo examen (`mockResults` de srs, como al terminarlo).
+ */
+export async function loadMockSummaries(database: EstudioDb = db): Promise<MockSummaries> {
+  // Una sola espera: liveQuery observa lo leído antes del primer `await`.
+  const [config, exams, sessions, topics] = await Promise.all([
+    readStudyConfig(database),
+    alive(database.exams.toCollection()).toArray(),
+    alive(database.studySessions.toCollection()).toArray(),
+    database.topics.toArray(),
+  ]);
+  const items = exams.flatMap((exam) => {
+    const [last, previous] = sessions
+      .filter((s) => s.examId === exam.id && s.finishedAt !== null)
+      .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
+    if (!last?.finishedAt) return [];
+    return [
+      { exam, takenAt: last.finishedAt, result: mockResults(last.items, previous?.items ?? null, config) },
+    ];
+  });
+  return {
+    items: items.sort((a, b) => b.takenAt - a.takenAt),
+    topics: new Map(topics.map((t) => [t.id, t.name])),
+  };
+}
+
+export const useMockSummaries = (): MockSummaries | undefined =>
+  useLiveQuery(() => loadMockSummaries(db), []);

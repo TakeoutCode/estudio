@@ -582,6 +582,11 @@
       "baseline_other": "Tus semanas anteriores: {{median}} de 5 en {{count}} noches.",
       "few": "Pocos datos todavía: aparece cuando anotes {{min}} noches o más en la semana.",
       "hint": "Es contexto para tus semanas, no una meta. Lo anotas en Hoy con un toque."
+    },
+    "mocks": {
+      "title": "Simulacros",
+      "none": "Cuando termines un simulacro, aquí verás cómo te fue en cada tema.",
+      "exam": "{{title}} · {{date}}"
     }
   },
   "settings": {
@@ -642,6 +647,7 @@
       "calibration": "Tu intuición frente a lo que pasó",
       "load": "Pendientes",
       "improveList": "Para mejorar",
+      "mockExams": "Simulacros",
       "sleep": "Tu sueño",
       "sleepHint": "Opcional. Si lo activas, Hoy te pregunta cómo dormiste, con un toque."
     },

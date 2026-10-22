@@ -7,6 +7,7 @@ import { Link } from 'react-router';
 import { useTodayPlan } from '@/features/study';
 import { EmptyState } from '@/ui/EmptyState';
 import { useWeeklyMetrics } from './use-weekly-metrics';
+import { useMockSummaries } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const link = `inline-flex min-h-11 items-center px-2 text-primary ${focus}`;
@@ -67,6 +68,7 @@ function Summary({
       visible.load,
       visible.improveList,
       visible.sleep,
+      visible.mockExams,
     ].some(Boolean)
   ) {
     return (
@@ -89,6 +91,7 @@ function Summary({
       {visible.load ? <Load metrics={metrics} timeZone={timeZone} /> : null}
       {visible.improveList ? <Improve /> : null}
       {visible.sleep ? <Sleep metrics={metrics} config={config} /> : null}
+      {visible.mockExams ? <MockExams timeZone={timeZone} /> : null}
     </>
   );
 }
@@ -276,6 +279,62 @@ function Improve() {
           {t('dashboard.improve.link')}
         </Link>
       ) : null}
+    </Card>
+  );
+}
+
+/**
+ * §5 (simulacros): el último de cada examen, por tema y con la tendencia frente al anterior;
+ * "pocos datos" por tema (UX9) y la calibración como frase. Sin nota de aprobado (LD13).
+ */
+function MockExams({ timeZone }: { readonly timeZone: string }) {
+  const { t, i18n } = useTranslation();
+  const summaries = useMockSummaries();
+  if (!summaries) return null;
+  const date = new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short', timeZone });
+  return (
+    <Card title={t('dashboard.mocks.title')}>
+      {summaries.items.length === 0 ? <p className="m-0">{t('dashboard.mocks.none')}</p> : null}
+      {summaries.items.map(({ exam, takenAt, result }) => (
+        <div
+          key={exam.id}
+          className="flex flex-col gap-1 border-t-2 border-dashed border-line pt-2 first-of-type:border-0 first-of-type:pt-0"
+        >
+          <p className="m-0 font-bold wrap-break-word">
+            {t('dashboard.mocks.exam', { title: exam.title, date: date.format(takenAt) })}
+          </p>
+          <p className="m-0">{t('mock.total', { correct: result.correct, count: result.graded })}</p>
+          <ul className="m-0 flex list-none flex-col gap-1 p-0">
+            {result.topics.map((topic) => (
+              <li key={topic.topicId ?? 'none'} className="flex flex-col">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 wrap-break-word">
+                    {(topic.topicId && summaries.topics.get(topic.topicId)) ?? t('notes.noTopic')}
+                  </span>
+                  <span className="shrink-0 tabular-nums">
+                    {t('mock.topicScore', { correct: topic.correct, count: topic.graded })}
+                  </span>
+                </span>
+                {topic.fewData || topic.previous ? (
+                  <span className="text-caption text-muted">
+                    {[
+                      topic.fewData ? t('mock.fewData') : null,
+                      topic.previous
+                        ? t('mock.before', { correct: topic.previous.correct, count: topic.previous.graded })
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {result.calibration ? (
+            <p className="m-0 text-caption">{t(`mock.calibration.${result.calibration.tendency}`)}</p>
+          ) : null}
+        </div>
+      ))}
     </Card>
   );
 }
