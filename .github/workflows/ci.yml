@@ -30,6 +30,10 @@ jobs:
       - name: Instalar
         run: pnpm install --frozen-lockfile
 
+      # El cliente de Prisma no se versiona (apps/api/src/generated): sin él la api no compila.
+      - name: Cliente de Prisma
+        run: pnpm db:generate
+
       - name: Tipos
         run: pnpm typecheck
 
