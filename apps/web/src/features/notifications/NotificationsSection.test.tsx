@@ -50,7 +50,10 @@ describe('Ajustes · Avisos (NOTIFICATIONS §1, NT8)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Activar avisos' }));
     const daily = await screen.findByLabelText<HTMLInputElement>('Recordatorio diario');
     expect(mocks.enable).toHaveBeenCalledOnce();
-    expect(await readNotificationPrefs(db)).toMatchObject({ enabled: true, dailyReminderTime: null });
+    // La pantalla cambia al tocar; lo guardado en Dexie puede llegar un instante después.
+    await waitFor(async () => {
+      expect(await readNotificationPrefs(db)).toMatchObject({ enabled: true, dailyReminderTime: null });
+    });
     const profile = await db.userSettings.where('section').equals('profile').first();
     expect(profile?.data).toMatchObject({ timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
 
@@ -84,7 +87,9 @@ describe('Ajustes · Avisos (NOTIFICATIONS §1, NT8)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar avisos' }));
     expect(await screen.findByRole('button', { name: 'Activar avisos' })).toBeTruthy();
     expect(mocks.disable).toHaveBeenCalledOnce();
-    expect((await readNotificationPrefs(db)).enabled).toBe(false);
+    await waitFor(async () => {
+      expect((await readNotificationPrefs(db)).enabled).toBe(false);
+    });
   });
 
   it('NT8: si no da el permiso, explica dónde cambiarlo; nada queda activado', async () => {

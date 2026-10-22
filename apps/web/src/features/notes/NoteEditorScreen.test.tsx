@@ -73,7 +73,9 @@ describe('editor de notas · desde un mazo (?mazo=)', () => {
     await waitFor(async () => {
       expect(await db.notes.get(note.id)).toMatchObject({ deckId: tarsus.id, topicId: null });
     });
-    expect(screen.queryByText(/pasa a ese mazo con todo su historial/)).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText(/pasa a ese mazo con todo su historial/)).toBeNull();
+    });
   });
 
   it('borrar pide confirmación; al confirmar borra y vuelve al mazo de donde vino', async () => {
@@ -322,8 +324,9 @@ describe('editor de notas · etiquetas', () => {
       'Mano',
       'Parcial 2',
     ]);
-    // La siguiente nota conserva las etiquetas, como el mazo y el tema.
-    expect(screen.getByRole('button', { name: 'Quitar la etiqueta Mano' })).toBeTruthy();
+    // La siguiente nota conserva las etiquetas, como el mazo y el tema (tras volver a pintar el
+    // formulario: la escritura en Dexie termina antes que el render).
+    expect(await screen.findByRole('button', { name: 'Quitar la etiqueta Mano' })).toBeTruthy();
   });
 });
 
