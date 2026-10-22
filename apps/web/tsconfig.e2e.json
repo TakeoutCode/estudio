@@ -1,0 +1,11 @@
+{
+  "extends": "@estudio/config/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    // Las funciones de page.evaluate corren en el navegador (IndexedDB).
+    "lib": ["es2023", "dom", "dom.iterable"]
+  },
+  "include": ["playwright.config.ts", "e2e/**/*.ts"]
+}

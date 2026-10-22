@@ -44,14 +44,14 @@ También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medi
 
 | Regla | Prueba |
 |---|---|
-| R1 | E2E: antes de revelar, la respuesta no está en el DOM |
+| R1 | E2E (`e2e/study.spec.ts`): antes de revelar, la respuesta no está en el DOM |
 | R2 | Cambiar `requestRetention` cambia la carga proyectada |
-| R3 | SY-T2: cerrar la pestaña después de calificar no pierde el log |
+| R3 | SY-T2 (`e2e/study.spec.ts`): cerrar la pestaña después de calificar no pierde el log; sin red, el repaso queda en el outbox y se envía al volver la red |
 | R17, R19, R20 | `pnpm lint:copy` (UI-UX UX8) |
 | R21 | Los minutos de una sesión con un hueco de 10 min suman solo hasta `metrics.inactivityCutoffSec` |
 | §3 | NT-T1 a NT-T12 |
 | §5 | Las métricas están ocultas con menos de `metrics.minReviewsToShow` repasos |
-| Gamificación | Con `gamification.enabled = false`, ningún nodo con `data-gamification` en ninguna ruta (E2E). Mientras no exista la suite de Playwright, lo cubre `Gamification.test.tsx` sobre Hoy, Premios y logros, Ajustes y la celebración de la sesión |
+| Gamificación | Con `gamification.enabled = false`, ningún nodo con `data-gamification` en ninguna ruta (E2E, `e2e/gamification.spec.ts`); `Gamification.test.tsx` lo cubre también en la celebración de la sesión |
 
 ## 5. CI (GitHub Actions)
 
@@ -61,7 +61,7 @@ También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medi
 3. `pnpm test` con cobertura mínima: `srs` 90 % de líneas y ramas; módulos `sync` (api y web) 85 % de líneas y ramas (en la api, unitarias e integración juntas).
 4. Integración de la api con Testcontainers (Docker de `ubuntu-latest`) y `prisma migrate deploy` desde cero.
 5. `pnpm build`, `size-limit` y escaneo de `apps/web/dist` buscando `sk-`, `CLOUDINARY_API_SECRET` y `VAPID_PRIVATE`.
-6. Playwright `iphone` y `desktop`, y Lighthouse sobre el preview de Vercel.
+6. Playwright `iphone` y `desktop` (job `e2e`: un Postgres de servicio, y `playwright.config.ts` migra la base y levanta la api y la vista previa de la PWA), y Lighthouse sobre el preview de Vercel (pendiente: todavía no hay preview).
 7. `gitleaks` y `pnpm audit --prod --audit-level high`.
 
 Despliegue: Vercel crea un preview por PR. Railway despliega desde `main` con `prisma migrate deploy` antes del arranque. Una migración que falla detiene el deploy.
