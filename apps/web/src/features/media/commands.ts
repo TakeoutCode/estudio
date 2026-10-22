@@ -59,6 +59,25 @@ export async function stageImageAsset(
   return asset;
 }
 
+/**
+ * SY5: la imagen se borra con su nota (cada una es de una sola nota). Deja de subirse, y 90
+ * días después la purga del servidor la borra de Cloudinary (SYNC §6). Llamar dentro de una
+ * transacción `rw` que incluya `mediaTables`, `outbox` y `meta`.
+ */
+export async function softDeleteImageAsset(database: EstudioDb, assetId: string, now: number): Promise<void> {
+  await database.pendingUploads.delete(assetId);
+  const asset = await database.mediaAssets.get(assetId);
+  if (asset?.deletedAt !== null) return;
+  const hlc = await nextHlc(database, now);
+  const updatedAt = hlcWall(hlc);
+  await writeAndQueue(
+    database,
+    'mediaAsset',
+    MediaAssetSchema.parse({ ...asset, hlc, updatedAt, deletedAt: updatedAt }),
+    now,
+  );
+}
+
 /** Red para subir: la firma de la API y el POST directo a Cloudinary (ARC8). */
 export interface MediaUploadTransport {
   readonly sign: (assetId: string) => Promise<MediaSignature>;

@@ -19,7 +19,7 @@ import { projectCards } from '@/db/projection';
 import { alive, db as defaultDb, type EstudioDb } from '@/db/schema';
 import { readStudyConfig } from '@/db/settings';
 import { writeAndQueue } from '@/db/write';
-import { mediaTables, type StagedImage, stageImageAsset } from '@/features/media';
+import { mediaTables, softDeleteImageAsset, type StagedImage, stageImageAsset } from '@/features/media';
 import { syncScheduler } from '@/sync';
 
 interface CommandOptions {
@@ -212,6 +212,9 @@ async function softDeleteNote(database: EstudioDb, note: Note, now: number): Pro
   const deleted = NoteSchema.parse({ ...note, ...meta, deletedAt: meta.updatedAt });
   await writeAndQueue(database, 'note', deleted, now);
   await syncCards(database, deleted, now);
+  // SY5: su imagen (FE8) se va con ella.
+  const imageAssetId = noteImageAssetId(note.content);
+  if (imageAssetId !== null) await softDeleteImageAsset(database, imageAssetId, now);
   return deleted;
 }
 

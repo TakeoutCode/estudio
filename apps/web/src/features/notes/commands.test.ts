@@ -297,6 +297,29 @@ describe('notas de oclusión con su imagen (R10, FE8)', () => {
     expect(cards.find((c) => c.ordinal === 3)?.deletedAt).toBe(T0 + MIN);
     expect(await db.mediaAssets.count()).toBe(1);
   });
+
+  it('SY5: borrar la nota borra su imagen y deja de subirla; con el mazo, igual', async () => {
+    const [first, second] = [newId(), newId()];
+    const note = await createNote(
+      { deck: { name: 'Mano' }, content: occlusion(first), image: image(first) },
+      { now: T0 },
+    );
+    await createNote(
+      { deck: { id: note.deckId }, content: occlusion(second), image: image(second) },
+      { now: T0 },
+    );
+    await db.outbox.clear();
+    await deleteNote(note.id, { now: T0 + MIN });
+    expect(await db.mediaAssets.get(first)).toMatchObject({ deletedAt: T0 + MIN });
+    expect(await db.pendingUploads.get(first)).toBeUndefined();
+    expect(await db.pendingUploads.get(second)).toBeDefined();
+    const deletedAsset = (await db.outbox.toArray()).find((e) => e.entity === 'mediaAsset');
+    expect(deletedAsset?.row).toMatchObject({ id: first, deletedAt: T0 + MIN });
+
+    await deleteDeck(note.deckId, { now: T0 + 2 * MIN });
+    expect(await db.mediaAssets.get(second)).toMatchObject({ deletedAt: T0 + 2 * MIN });
+    expect(await db.pendingUploads.count()).toBe(0);
+  });
 });
 
 describe('etiquetas de la nota (diseño)', () => {

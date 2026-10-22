@@ -78,7 +78,7 @@ Cada ciclo envía el outbox hasta vaciarlo y luego hace pull hasta `hasMore = fa
 
 ## 6. Borrados lógicos
 
-**SY5 · DEBE** borrar en cascada en el cliente, dentro de la misma transacción: borrar un `Deck` escribe `deletedAt` en sus `Topic`, `Note` (con sus ejercicios) y `Card`; borrar una `Tag` la quita del `tagIds` de sus notas, cada una con su escritura LWW. **NO DEBE** el servidor borrar en cascada por su cuenta. *Razón:* cada borrado es su propia escritura LWW y viaja a los otros dispositivos.
+**SY5 · DEBE** borrar en cascada en el cliente, dentro de la misma transacción: borrar un `Deck` escribe `deletedAt` en sus `Topic`, `Note` (con sus ejercicios) y `Card`; borrar una `Note` lo escribe en sus `Card` y en el `MediaAsset` de su imagen (cada imagen es de una sola nota) y saca sus bytes de `pendingUploads`; borrar una `Tag` la quita del `tagIds` de sus notas, cada una con su escritura LWW. **NO DEBE** el servidor borrar en cascada por su cuenta. *Razón:* cada borrado es su propia escritura LWW y viaja a los otros dispositivos.
 
 Las lecturas pasan por `alive()`, que excluye borrados. Cuando llega un borrado remoto con HLC mayor, el cliente borra la fila local. Al borrar una `Card` se elimina también su fila de `cardStates`, porque la proyección solo cubre tarjetas vivas. `ReviewLog` nunca se purga, salvo cuando se borra la cuenta.
 
