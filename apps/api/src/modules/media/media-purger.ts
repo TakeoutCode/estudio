@@ -1,12 +1,22 @@
+import { mediaPublicId } from '@estudio/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { AppConfig } from '../../config/app-config.js';
 import { parseCloudinaryUrl } from './media-signer.js';
 
-/** BE13: puerto hacia Cloudinary para borrar todo lo de una cuenta (QUALITY QA6). */
+/**
+ * BE13: puerto hacia Cloudinary para borrar todo lo de una cuenta (QUALITY QA6) y las imágenes
+ * de assets borrados antes de purgarlos (SYNC §6).
+ */
 export abstract class MediaPurger {
   /** Borra todo bajo `estudio/<userId>/`; `unconfigured` si no hay Cloudinary (desarrollo). */
   abstract purgeUser(userId: string): Promise<'purged' | 'unconfigured'>;
+  /**
+   * Borra la imagen de cada asset (`estudio/<userId>/<assetId>`, aunque su fila no alcanzara a
+   * guardar el `publicId`) y devuelve los que ya no están allá. Sin Cloudinary no se subió nada:
+   * devuelve todos.
+   */
+  abstract deleteAssets(userId: string, assetIds: readonly string[]): Promise<readonly string[]>;
 }
 
 /** BE13: timeout explícito; reintentos solo ante 429/5xx, con espera creciente. */
@@ -15,11 +25,16 @@ const RETRIES = 3;
 const BACKOFF_MS = 500;
 /** Cloudinary borra hasta 1000 por llamada; con `partial` hay que volver a pedir. */
 const MAX_ROUNDS = 50;
+/** Cloudinary acepta hasta 100 `public_ids` por llamada. */
+const IDS_PER_CALL = 100;
 
 const DeleteResponseSchema = z.object({
   partial: z.boolean().optional(),
   next_cursor: z.string().optional(),
 });
+
+/** Por cada `public_id`: `deleted`, `not_found` u otro estado (que se reintenta mañana). */
+const DeleteByIdsResponseSchema = z.object({ deleted: z.record(z.string(), z.string()).default({}) });
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -56,6 +71,24 @@ export class CloudinaryPurger extends MediaPurger {
     if (!folderRes.ok && folderRes.status !== 404)
       this.logger.warn({ status: folderRes.status }, 'Carpeta sin borrar');
     return 'purged';
+  }
+
+  async deleteAssets(userId: string, assetIds: readonly string[]): Promise<readonly string[]> {
+    if (!this.account) return [...assetIds];
+    const gone: string[] = [];
+    for (let i = 0; i < assetIds.length; i += IDS_PER_CALL) {
+      const batch = assetIds.slice(i, i + IDS_PER_CALL);
+      const query = new URLSearchParams();
+      for (const id of batch) query.append('public_ids[]', mediaPublicId(userId, id));
+      const res = await this.call('DELETE', `resources/image/upload?${query.toString()}`);
+      if (!res.ok) throw new Error(`cloudinary_delete_failed_${String(res.status)}`);
+      const { deleted } = DeleteByIdsResponseSchema.parse(await res.json());
+      for (const id of batch) {
+        const status = deleted[mediaPublicId(userId, id)];
+        if (status === 'deleted' || status === 'not_found') gone.push(id);
+      }
+    }
+    return gone;
   }
 
   private async call(method: 'DELETE', path: string): Promise<Response> {

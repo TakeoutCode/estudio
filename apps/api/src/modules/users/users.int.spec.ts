@@ -30,7 +30,10 @@ const TABLES = [
 
 describe('DELETE /me: borrado total de la cuenta (QUALITY QA6)', () => {
   let server: IntegrationApp;
-  const purger = { purgeUser: vi.fn<MediaPurger['purgeUser']>() };
+  const purger = {
+    purgeUser: vi.fn<MediaPurger['purgeUser']>(),
+    deleteAssets: vi.fn<MediaPurger['deleteAssets']>(),
+  };
   let now: number;
 
   const push = async (token: string, mutations: unknown[]): Promise<PushResponse> => {

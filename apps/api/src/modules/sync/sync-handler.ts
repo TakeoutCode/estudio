@@ -23,6 +23,12 @@ export interface EntitySyncHandler<E extends SyncedEntity> {
   apply(userId: string, row: SyncedRow<E>): Promise<ApplyStatus>;
   /** Fila de `to_jsonb(tabla)` → forma del contrato (luego se valida con su esquema). */
   fromDb(data: Readonly<Record<string, unknown>>): unknown;
+  /**
+   * SYNC §6: lo que hay que limpiar fuera de Postgres antes de purgar estos borrados (la imagen
+   * de un `MediaAsset` en Cloudinary). Corre fuera de transacción (BE7) y devuelve los ids que
+   * ya se pueden purgar; los demás esperan a la próxima vuelta.
+   */
+  beforePurge?(userId: string, ids: readonly string[]): Promise<readonly string[]>;
 }
 
 export const SyncHandler = DiscoveryService.createDecorator<SyncedEntity>();

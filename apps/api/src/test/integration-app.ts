@@ -20,7 +20,10 @@ export class FakeClock {
 }
 
 /** QUALITY §1: ninguna prueba llama a Cloudinary; por defecto la purga no hace nada. */
-const noMediaPurger: MediaPurger = { purgeUser: () => Promise.resolve('unconfigured') };
+const noMediaPurger: MediaPurger = {
+  purgeUser: () => Promise.resolve('unconfigured'),
+  deleteAssets: (_userId, ids) => Promise.resolve([...ids]),
+};
 
 /** Sin límite de tasa: las pruebas inician sesión muchas veces desde la misma IP. */
 const unlimitedStorage = {
@@ -65,6 +68,7 @@ export async function startIntegrationApp(
     push,
     media,
     { EmailThrottleGuard },
+    { SyncPurgeScheduler },
   ] = await Promise.all([
     import('../app.module.js'),
     import('../bootstrap.js'),
@@ -74,6 +78,7 @@ export async function startIntegrationApp(
     import('../modules/notifications/push-sender.js'),
     import('../modules/media/media-purger.js'),
     import('../modules/auth/email-throttle.guard.js'),
+    import('../modules/sync/sync-purge.scheduler.js'),
   ]);
 
   const clock = options.clock ?? new FakeClock();
@@ -82,6 +87,8 @@ export async function startIntegrationApp(
     .overrideProvider(Clock)
     .useValue(clock)
     .overrideProvider(NotificationsScheduler)
+    .useValue({})
+    .overrideProvider(SyncPurgeScheduler)
     .useValue({})
     .overrideProvider(media.MediaPurger)
     .useValue(options.mediaPurger ?? noMediaPurger);

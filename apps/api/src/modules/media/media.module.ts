@@ -7,8 +7,8 @@ import { MediaRepository } from './media.repository.js';
 import { MediaService } from './media.service.js';
 
 /**
- * Firma de subida, `MediaAsset` y purga de la carpeta al borrar la cuenta (BACKEND §1). La
- * limpieza de huérfanos en Cloudinary falta.
+ * Firma de subida, `MediaAsset`, purga de la carpeta al borrar la cuenta y, antes de que la
+ * purga de sync borre un asset, su imagen en Cloudinary (BACKEND §1, SYNC §6).
  */
 @Module({
   controllers: [MediaController],

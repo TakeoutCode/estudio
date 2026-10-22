@@ -61,3 +61,48 @@ describe('purga de la carpeta en Cloudinary (QUALITY QA6, BE13)', () => {
     await expect(purger.purgeUser('u')).rejects.toThrow('cloudinary_purge_failed_401');
   });
 });
+
+describe('imágenes de assets borrados antes de purgarlos (SYNC §6)', () => {
+  const USER = '0192f1a0-0000-7000-8000-000000000001';
+  const ids = Array.from({ length: 101 }, (_, i) => `0192f1a0-0000-7000-8000-${String(i).padStart(12, '0')}`);
+  const publicId = (id: string) => `estudio/${USER}/${id}`;
+
+  it('sin CLOUDINARY_URL no se subió nada: todos se pueden purgar', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    expect(await new CloudinaryPurger(configWith(undefined)).deleteAssets(USER, ids)).toEqual(ids);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('borra de a 100 por su public_id; deleted y not_found cuentan, lo demás espera', async () => {
+    const [first, second, ...rest] = ids;
+    const last = ids.at(-1) ?? '';
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        json(200, {
+          deleted: {
+            [publicId(first ?? '')]: 'deleted',
+            [publicId(second ?? '')]: 'not_found',
+            ...Object.fromEntries(rest.slice(0, 98).map((id) => [publicId(id), 'error'])),
+          },
+        }),
+      )
+      .mockResolvedValueOnce(json(200, { deleted: { [publicId(last)]: 'deleted' } }));
+    vi.stubGlobal('fetch', fetch);
+    const purger = new CloudinaryPurger(configWith('cloudinary://123:secreto@mi-nube'));
+    expect(await purger.deleteAssets(USER, ids)).toEqual([first, second, last]);
+    const urls = fetch.mock.calls.map(
+      ([url]) => new URL(typeof url === 'string' ? url : url instanceof URL ? url.href : url.url),
+    );
+    expect(urls.map((u) => u.searchParams.getAll('public_ids[]').length)).toEqual([100, 1]);
+    expect(urls[1]?.searchParams.getAll('public_ids[]')).toEqual([publicId(last)]);
+    expect(fetch.mock.calls[0]?.[1]?.method).toBe('DELETE');
+  });
+
+  it('si Cloudinary rechaza, lanza: la purga deja esos assets para mañana', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof globalThis.fetch>().mockResolvedValue(json(401)));
+    const purger = new CloudinaryPurger(configWith('cloudinary://123:secreto@mi-nube'));
+    await expect(purger.deleteAssets(USER, ids.slice(0, 1))).rejects.toThrow('cloudinary_delete_failed_401');
+  });
+});
