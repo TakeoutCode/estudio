@@ -69,7 +69,6 @@ export class SyncRepository {
     ids: readonly string[],
     cutoff: number,
   ): Promise<bigint[]> {
-    if (ids.length === 0) return [];
     const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>`
       DELETE FROM ${ident(table)}
       WHERE "user_id" = ${userId}::uuid AND "id" = ANY(${ids}::uuid[])

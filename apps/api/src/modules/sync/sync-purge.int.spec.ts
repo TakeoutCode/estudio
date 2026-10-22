@@ -4,7 +4,6 @@ import {
   PullResponseSchema,
   type PushResponse,
   PushResponseSchema,
-  type SyncedEntity,
 } from '@estudio/shared';
 import { ClsService } from 'nestjs-cls';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -16,7 +15,8 @@ import {
   startIntegrationApp,
 } from '../../test/integration-app.js';
 import type { MediaPurger } from '../media/media-purger.js';
-import { SyncPurgeService } from './sync-purge.service.js';
+import { SyncHandlerRegistry } from './sync-handler.js';
+import { type PurgeBatch, SyncPurgeService } from './sync-purge.service.js';
 
 const NODE = '0192f1a0-0000-7000-8000-00000000000b';
 const DAY = 86_400_000;
@@ -161,11 +161,13 @@ describe('SYNC §3 y §6: purga diaria del servidor', () => {
     // Fuera de un request no hay contexto de CLS: el cron lo abre con @UseCls en `run`.
     const cls = server.app.get(ClsService);
     const claim = await cls.run(() => purge.claim(now));
-    const ids = claim?.candidates.get(c.userId)?.get('deck') ?? [];
+    const decks = server.app.get(SyncHandlerRegistry).get('deck');
+    if (!decks) throw new Error('sin handler de deck');
+    const ids = claim?.candidates.get(c.userId)?.get(decks) ?? [];
     expect(ids).toContain(deck.id);
     // Otro dispositivo lo edita después de borrarlo (SYNC §5: lo revive).
     await push(c.token, [upsert({ ...deck, name: 'Revivido', hlc: hlcAt(now, NODE), updatedAt: now })]);
-    const allowed = new Map<SyncedEntity, readonly string[]>([['deck', ids]]);
+    const allowed: PurgeBatch = new Map([[decks, ids]]);
     expect(await cls.run(() => purge.purgeUser(c.userId, allowed, claim?.cutoff ?? 0))).toBe(0);
     expect(await exists('deck', deck.id)).toBe(true);
   });

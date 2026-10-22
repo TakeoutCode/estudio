@@ -2,7 +2,7 @@ import { ENTITY_STRATEGY, type SyncedEntity } from '@estudio/shared';
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
 import { UseCls } from 'nestjs-cls';
-import { SyncHandlerRegistry } from './sync-handler.js';
+import { type EntitySyncHandler, SyncHandlerRegistry } from './sync-handler.js';
 import { SyncRepository } from './sync.repository.js';
 
 const DAY_MS = 86_400_000;
@@ -14,7 +14,10 @@ export const APPLIED_MUTATION_RETENTION_DAYS = 30;
 const PURGE_BATCH = 5000;
 const PURGE_LOCK = 'sync:purge';
 
-type Candidates = Map<string, Map<SyncedEntity, string[]>>;
+type Handler = EntitySyncHandler<SyncedEntity>;
+/** Por cuenta, los ids de cada entidad (con su handler) que se pueden purgar. */
+export type PurgeBatch = ReadonlyMap<Handler, readonly string[]>;
+type Candidates = Map<string, Map<Handler, string[]>>;
 
 export interface PurgeSummary {
   readonly appliedMutations: number;
@@ -46,11 +49,11 @@ export class SyncPurgeService {
     let tombstones = 0;
     let deferred = 0;
     for (const [userId, byEntity] of claim.candidates) {
-      const allowed = new Map<SyncedEntity, readonly string[]>();
-      for (const [entity, ids] of byEntity) {
-        const ready = await this.readyToPurge(entity, userId, ids);
+      const allowed = new Map<Handler, readonly string[]>();
+      for (const [handler, ids] of byEntity) {
+        const ready = await this.readyToPurge(handler, userId, ids);
         deferred += ids.length - ready.length;
-        if (ready.length > 0) allowed.set(entity, ready);
+        if (ready.length > 0) allowed.set(handler, ready);
       }
       tombstones += await this.purgeUser(userId, allowed, claim.cutoff);
     }
@@ -73,10 +76,10 @@ export class SyncPurgeService {
     for (const handler of this.registry.all()) {
       if (ENTITY_STRATEGY[handler.entity] !== 'lww') continue;
       for (const row of await this.repo.tombstones(handler.table, cutoff, PURGE_BATCH)) {
-        const byEntity = candidates.get(row.user_id) ?? new Map<SyncedEntity, string[]>();
+        const byEntity = candidates.get(row.user_id) ?? new Map<Handler, string[]>();
         candidates.set(row.user_id, byEntity);
-        const ids = byEntity.get(handler.entity) ?? [];
-        byEntity.set(handler.entity, ids);
+        const ids = byEntity.get(handler) ?? [];
+        byEntity.set(handler, ids);
         ids.push(row.id);
       }
     }
@@ -85,36 +88,28 @@ export class SyncPurgeService {
 
   /** BE7: la limpieza externa corre fuera de transacción; si falla, se reintenta mañana. */
   private async readyToPurge(
-    entity: SyncedEntity,
+    handler: Handler,
     userId: string,
     ids: readonly string[],
   ): Promise<readonly string[]> {
-    const handler = this.registry.get(entity);
-    if (!handler) return [];
     if (!handler.beforePurge) return ids;
     try {
       const ready = new Set(await handler.beforePurge(userId, ids));
       return ids.filter((id) => ready.has(id));
     } catch {
-      this.logger.warn({ entity, count: ids.length }, 'Limpieza externa sin terminar');
+      this.logger.warn({ entity: handler.entity, count: ids.length }, 'Limpieza externa sin terminar');
       return [];
     }
   }
 
   /** ADR-005: con el lock de la cuenta, como un push, para no cruzarse con su `server_seq`. */
   @Transactional()
-  async purgeUser(
-    userId: string,
-    allowed: ReadonlyMap<SyncedEntity, readonly string[]>,
-    cutoff: number,
-  ): Promise<number> {
+  async purgeUser(userId: string, allowed: PurgeBatch, cutoff: number): Promise<number> {
     if (allowed.size === 0) return 0;
     await this.repo.lockUser(userId);
     let newest: bigint | null = null;
     let count = 0;
-    for (const [entity, ids] of allowed) {
-      const handler = this.registry.get(entity);
-      if (!handler) continue;
+    for (const [handler, ids] of allowed) {
       for (const seq of await this.repo.purgeTombstones(userId, handler.table, ids, cutoff)) {
         count += 1;
         if (newest === null || seq > newest) newest = seq;
