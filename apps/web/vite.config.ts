@@ -49,5 +49,14 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/test/setup.ts'],
     env: { VITE_API_URL: 'http://localhost:3180' },
+    // Con la cobertura activa (QA4) una pantalla con el worker de proyección pasa de 5 s.
+    testTimeout: 15_000,
+    // QUALITY QA4: el módulo sync de la web, al menos 85 % de líneas y ramas.
+    coverage: {
+      provider: 'v8',
+      include: ['src/sync/**/*.ts'],
+      exclude: ['src/**/*.test.ts'],
+      thresholds: { lines: 85, branches: 85 },
+    },
   },
 });

@@ -58,7 +58,7 @@ También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medi
 **QA4 · DEBE** correr en cada PR, como checks obligatorios para fusionar a `main`, en este orden. *Razón:* AGENTS AG10; es la única barrera automática.
 1. `pnpm install --frozen-lockfile` (con caché de pnpm y de Turbo).
 2. `pnpm typecheck` y `pnpm lint`. Incluye `lint:copy`, los `no-restricted-imports` de ARC1 y `vitest/no-disabled-tests` y `no-focused-tests` como error, más `it.todo` y `test.todo` prohibidos con `no-restricted-properties`.
-3. `pnpm test` con cobertura mínima: `srs` 90 % de líneas y ramas; módulos `sync` (api y web) 85 %.
+3. `pnpm test` con cobertura mínima: `srs` 90 % de líneas y ramas; módulos `sync` (api y web) 85 % de líneas y ramas (en la api, unitarias e integración juntas).
 4. Integración de la api con Testcontainers (Docker de `ubuntu-latest`) y `prisma migrate deploy` desde cero.
 5. `pnpm build`, `size-limit` y escaneo de `apps/web/dist` buscando `sk-`, `CLOUDINARY_API_SECRET` y `VAPID_PRIVATE`.
 6. Playwright `iphone` y `desktop`, y Lighthouse sobre el preview de Vercel.

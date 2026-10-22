@@ -265,6 +265,58 @@ describe('pull (SYNC SY4)', () => {
     expect(await database.decks.get(offline.id)).toMatchObject({ name: 'Creado sin red' });
     expect(await database.outbox.count()).toBe(1);
   });
+
+  it('SY-T9: tras el pull completo vuelve a poner lo del outbox: repasos, borrados y lo más nuevo', async () => {
+    const database = replica();
+    const server = new FakeSyncServer();
+    const kept = await createDeck({ name: 'Original' }, { database, now: T0 });
+    const dropped = await createDeck({ name: 'Se borra sin red' }, { database, now: T0 });
+    await syncOnce(database, server.transport, () => T0);
+    // Sin red: dos repasos (uno ya llegó al servidor por otro camino), un borrado y un cambio
+    // que pierde frente al del otro dispositivo.
+    const pending = await reviewLog(database);
+    const known = await reviewLog(database);
+    await deleteDeck(dropped.id, { database, now: T0 + 1000 });
+    await renameDeck(kept.id, 'Mío, más viejo', { database, now: T0 + 2000 });
+    const ghost = remoteDeck(T0 + 500);
+    await server.push({
+      deviceId: OTHER_NODE,
+      mutations: [
+        { mutationId: newId(), op: 'append', entity: 'reviewLog', row: known },
+        { mutationId: newId(), op: 'upsert', entity: 'deck', row: remoteDeck(T0 + 9000, { id: kept.id }) },
+        { mutationId: newId(), op: 'upsert', entity: 'deck', row: ghost },
+        {
+          mutationId: newId(),
+          op: 'upsert',
+          entity: 'deck',
+          row: { ...ghost, ...remoteDeck(T0 + 600, { id: ghost.id, deletedAt: T0 + 600 }) },
+        },
+      ],
+    });
+    server.purgeTombstones(); // el cursor viejo ya no sirve: 410
+    await database.meta.put({ key: 'syncCursor', value: '1' });
+
+    await pullAll(database, server.transport, () => T0);
+    expect(await database.reviewLogs.get(pending.id)).toEqual(pending);
+    expect(await database.reviewLogs.get(known.id)).toEqual(known);
+    expect(await database.decks.get(dropped.id)).toBeUndefined(); // su borrado sigue en el outbox
+    expect((await database.decks.get(kept.id))?.name).toBe('Remoto'); // gana el HLC mayor (SY2)
+    expect(await database.outbox.count()).toBe(4); // dos repasos, el borrado y el cambio
+  });
+
+  it('SY-T9: un error del pull que no es 410 se propaga, y un segundo 410 seguido también', async () => {
+    const database = replica();
+    const failing = (error: ApiError): SyncTransport => ({
+      push: () => Promise.reject(new Error('sin uso')),
+      pull: () => Promise.reject(error),
+    });
+    await expect(pullAll(database, failing(new ApiError(503, 'unavailable')), () => T0)).rejects.toThrow(
+      'unavailable',
+    );
+    await expect(pullAll(database, failing(new ApiError(410, 'cursor_expired')), () => T0)).rejects.toThrow(
+      'cursor_expired',
+    );
+  });
 });
 
 describe('proyección de tarjetas tras el pull (ARC5)', () => {

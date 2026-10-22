@@ -7,6 +7,13 @@ export default defineConfig({
   plugins: [swc.vite({ module: { type: 'es6' } })],
   test: {
     setupFiles: ['reflect-metadata'],
+    // QUALITY QA4: el módulo sync, con unitarias e integración juntas, al menos 85 %.
+    coverage: {
+      provider: 'v8',
+      include: ['src/modules/sync/**/*.ts'],
+      exclude: ['src/**/*.spec.ts'],
+      thresholds: { lines: 85, branches: 85 },
+    },
     env: {
       NODE_ENV: 'test',
       LOG_LEVEL: 'silent',

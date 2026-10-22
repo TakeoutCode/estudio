@@ -1,5 +1,5 @@
-# QUALITY QA4: checks obligatorios para fusionar a main. Los pasos de integración con
-# Testcontainers, Playwright y Lighthouse se agregan cuando existan sync y los flujos de estudio.
+# QUALITY QA4: checks obligatorios para fusionar a main. La integración de la api con
+# Testcontainers corre dentro de `pnpm test`; Playwright y Lighthouse todavía no (deuda).
 name: CI
 
 on:
@@ -39,7 +39,7 @@ jobs:
       - name: Formato
         run: pnpm format:check
 
-      - name: Pruebas (con cobertura mínima en shared y srs)
+      - name: Pruebas (con cobertura mínima en shared, srs y los módulos sync de api y web)
         run: pnpm test
 
       - name: Build
