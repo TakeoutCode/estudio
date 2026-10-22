@@ -130,7 +130,7 @@ function TeachForm({ view }: { readonly view: TeachView }) {
             {prompts.length > 0 ? (
               <>
                 <p className="m-0 mt-2 font-bold">{t('teach.prompts', { count: prompts.length })}</p>
-                <ul className="m-0 flex flex-col gap-1 pl-5">
+                <ul className="m-0 flex list-disc flex-col gap-1 pl-5">
                   {prompts.slice(0, PROMPTS_SHOWN).map((prompt, i) => (
                     // Las preguntas pueden repetirse; su posición no cambia mientras compara.
                     <li key={i} className="whitespace-pre-wrap wrap-break-word">

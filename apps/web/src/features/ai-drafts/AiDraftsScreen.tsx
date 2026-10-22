@@ -471,7 +471,7 @@ function ClinicalCaseDraftItem({
         <span className="text-caption text-muted">{t('ai.field.vignette')}</span>
         <textarea
           className={field}
-          rows={4}
+          rows={6}
           maxLength={3000}
           value={draft.vignette}
           onChange={(event) => {
