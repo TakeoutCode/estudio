@@ -145,6 +145,11 @@ export const router = createBrowserRouter([
             lazy: async () => ({ Component: (await import('@/features/decks')).TopicScreen }),
           },
           {
+            // STUDY-METHODS §1: "Explícaselo a alguien".
+            path: 'topics/:topicId/explicar',
+            lazy: async () => ({ Component: (await import('@/features/decks')).TeachScreen }),
+          },
+          {
             path: 'notes/new',
             lazy: async () => ({ Component: (await import('@/features/notes')).NoteEditorScreen }),
           },

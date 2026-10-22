@@ -294,6 +294,36 @@ export function noteImageAssetId(content: NoteContent): string | null {
   return content.kind === 'image_occlusion' || content.kind === 'label_image' ? content.imageAssetId : null;
 }
 
+/**
+ * La pregunta de una nota sin ninguna respuesta (R1), para listarla junto a otras (p. ej. al
+ * comparar lo que ella explicó con las tarjetas del tema). Un cloze va con todos sus huecos
+ * tapados, no solo el de una Card.
+ */
+export function notePrompt(content: NoteContent): string {
+  switch (content.kind) {
+    case 'cloze':
+      return content.text.replace(CLOZE, (...match: unknown[]) => {
+        const hint = typeof match[3] === 'string' ? match[3].trim() : '';
+        return `[${hint === '' ? '…' : hint}]`;
+      });
+    case 'basic':
+    case 'type_answer':
+      return content.front;
+    case 'multiple_choice':
+    case 'open_question':
+      return content.question;
+    case 'true_false_justify':
+      return content.statement;
+    case 'image_occlusion':
+    case 'sequence':
+    case 'matching':
+    case 'label_image':
+      return content.prompt;
+    case 'clinical_case':
+      return content.vignette;
+  }
+}
+
 // Espacio de nombres fijo para los IDs de Card. No cambiar: los ReviewLog ya guardados los
 // referencian.
 const CARD_NAMESPACE = 'b3d1a6e2-7c4f-4e8a-9f0b-5d2c8e1a4b7f';

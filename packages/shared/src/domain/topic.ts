@@ -16,10 +16,21 @@ export const TopicSchema = SyncMetaSchema.extend({
 }).strict();
 export type Topic = z.infer<typeof TopicSchema>;
 
-/** LD5: "Explícalo con tus palabras". No es un repaso (R15): no genera ReviewLog. */
+/**
+ * `self`: "Explícalo con tus palabras" antes de la primera tarjeta nueva del tema (LD5).
+ * `teach`: "Explícaselo a alguien" (técnica Feynman, STUDY-METHODS §1), cuando ella quiera.
+ */
+export const SelfExplanationKindSchema = z.enum(['self', 'teach']);
+export type SelfExplanationKind = z.infer<typeof SelfExplanationKindSchema>;
+
+/** LD5 y STUDY-METHODS §1. No es un repaso (R15): no genera ReviewLog. */
 export const SelfExplanationSchema = SyncMetaSchema.extend({
   topicId: z.uuid(),
+  /** Las guardadas antes del contrato 25 son todas `self`. */
+  kind: SelfExplanationKindSchema.default('self'),
   text: z.string().trim().min(1).max(SELF_EXPLANATION_MAX_LENGTH),
+  /** `teach`: lo que notó que le faltó al compararla con sus apuntes; opcional. */
+  gaps: z.string().trim().min(1).max(SELF_EXPLANATION_MAX_LENGTH).nullable().default(null),
   /** Cuándo la escribió; `updatedAt` cambia si después la edita. */
   writtenAt: z.number().int().nonnegative(),
 }).strict();

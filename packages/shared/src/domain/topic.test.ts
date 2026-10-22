@@ -38,6 +38,20 @@ describe('Topic y SelfExplanation (LD5, R5)', () => {
     ).toBe(false);
   });
 
+  it('§1 (Feynman): "explícaselo a alguien" es otra autoexplicación, con lo que le faltó opcional', () => {
+    const base = { ...meta, topicId: newId(), writtenAt: 1, text: 'Se lo expliqué a mi hermana' };
+    // Las de antes del contrato 25 (y los clientes viejos) quedan como `self`, sin huecos.
+    expect(SelfExplanationSchema.parse(base)).toMatchObject({ kind: 'self', gaps: null });
+    expect(SelfExplanationSchema.parse({ ...base, kind: 'teach', gaps: 'De qué raíces sale' })).toMatchObject(
+      {
+        kind: 'teach',
+        gaps: 'De qué raíces sale',
+      },
+    );
+    expect(SelfExplanationSchema.safeParse({ ...base, kind: 'teach', gaps: '  ' }).success).toBe(false);
+    expect(SelfExplanationSchema.safeParse({ ...base, kind: 'resumen' }).success).toBe(false); // R15
+  });
+
   it('SYNC SY1: ambos viajan por sync con su esquema', () => {
     expect(SYNC_ROW_SCHEMAS.topic).toBe(TopicSchema);
     expect(SYNC_ROW_SCHEMAS.selfExplanation).toBe(SelfExplanationSchema);

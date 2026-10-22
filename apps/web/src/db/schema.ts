@@ -221,6 +221,19 @@ export class EstudioDb extends Dexie {
     this.version(18)
       .stores({ aiFeedback: 'id, cardId' })
       .upgrade((tx) => tx.table<MetaEntry, string>('meta').put({ key: SYNC_CURSOR_KEY, value: '0' }));
+    // STUDY-METHODS §1: "Explícaselo a alguien" es otra autoexplicación (no indexada); las
+    // guardadas son todas "Explícalo con tus palabras" (LD5), sin huecos. El cursor no cambia.
+    this.version(19)
+      .stores({})
+      .upgrade((tx) =>
+        tx
+          .table<{ kind?: string; gaps?: string | null }, string>('selfExplanations')
+          .toCollection()
+          .modify((explanation) => {
+            explanation.kind ??= 'self';
+            explanation.gaps ??= null;
+          }),
+      );
   }
 }
 

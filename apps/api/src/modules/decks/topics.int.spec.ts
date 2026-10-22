@@ -115,7 +115,12 @@ describe('temas y autoexplicaciones por sync (LD5, BE2)', () => {
       ['rejected', 'not_found'],
       ['applied', undefined],
     ]);
-    expect((await rows('selfExplanation')).find((s) => s.id === mine.id)).toEqual(mine);
+    // Un cliente con el contrato 24 no manda `kind` ni `gaps`: queda como `self` (LD5).
+    expect((await rows('selfExplanation')).find((s) => s.id === mine.id)).toEqual({
+      ...mine,
+      kind: 'self',
+      gaps: null,
+    });
 
     // Editarla con un HLC mayor gana; con el mismo, es `stale` (SYNC §5).
     const edited = {
@@ -129,5 +134,18 @@ describe('temas y autoexplicaciones por sync (LD5, BE2)', () => {
     expect((await rows('selfExplanation')).find((s) => s.id === mine.id)).toMatchObject({
       text: 'Otra forma de decirlo.',
     });
+  });
+
+  it('STUDY-METHODS §1: "Explícaselo a alguien" llega y vuelve con su tipo y lo que le faltó', async () => {
+    const deck = deckRow(now, PHONE);
+    const topic = topicRow(deck.id);
+    const teach = {
+      ...selfRow(topic.id),
+      kind: 'teach',
+      gaps: 'No supe decir de qué raíces sale el nervio axilar.',
+    };
+    await push(user, [upsert('deck', deck), upsert('topic', topic)]);
+    expect((await push(user, [upsert('selfExplanation', teach)])).results[0]?.status).toBe('applied');
+    expect((await rows('selfExplanation')).find((s) => s.id === teach.id)).toEqual(teach);
   });
 });

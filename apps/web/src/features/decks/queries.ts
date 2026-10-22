@@ -1,4 +1,12 @@
-import { cardFaces, cardOrdinals, type Deck, type NoteContent, type Tag, type Topic } from '@estudio/shared';
+import {
+  cardFaces,
+  cardOrdinals,
+  type Deck,
+  type NoteContent,
+  notePrompt,
+  type Tag,
+  type Topic,
+} from '@estudio/shared';
 import { type LoadSummary, loadSummary, normalizeAnswer } from '@estudio/srs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readPlannerCards } from '@/db/planner-cards';
@@ -12,6 +20,33 @@ export const useTopic = (id: string | undefined): Topic | null | undefined =>
     const topic = await db.topics.get(id);
     return topic?.deletedAt === null ? topic : null;
   }, [id]);
+
+export interface TeachView {
+  readonly topic: Topic;
+  /** R1: la pregunta de cada nota viva del tema, sin respuestas, en el orden en que se crearon. */
+  readonly prompts: readonly string[];
+  /** Cuándo se lo explicó a alguien la última vez; null si nunca. */
+  readonly lastTaughtAt: number | null;
+}
+
+/** STUDY-METHODS §1: lo que muestra "Explícaselo a alguien"; `null` si el tema no existe. */
+export const useTeachView = (topicId: string | undefined): TeachView | null | undefined =>
+  useLiveQuery(async () => {
+    if (!topicId) return null;
+    // Una sola espera: liveQuery observa lo leído antes del primer `await`.
+    const [topic, notes, explanations] = await Promise.all([
+      db.topics.get(topicId),
+      alive(db.notes.filter((n) => n.topicId === topicId)).toArray(),
+      alive(db.selfExplanations.where('topicId').equals(topicId)).toArray(),
+    ]);
+    if (topic?.deletedAt !== null) return null;
+    const taught = explanations.filter((e) => e.kind === 'teach').map((e) => e.writtenAt);
+    return {
+      topic,
+      prompts: notes.sort((a, b) => a.id.localeCompare(b.id)).map((n) => notePrompt(n.content)),
+      lastTaughtAt: taught.length > 0 ? Math.max(...taught) : null,
+    };
+  }, [topicId]);
 
 export interface DeckOverview {
   readonly deck: Deck;

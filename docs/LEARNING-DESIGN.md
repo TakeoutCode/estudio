@@ -62,6 +62,8 @@ Cada tipo es un contenido de `Note` (§1) y se crea desde un mazo con "Nuevo eje
 
 **LD5 · DEBE** mostrar `Topic.explanation` y pedir una autoexplicación ("Explícalo con tus palabras", que se guarda como `SelfExplanation`) antes de la primera Card nueva de un tema. Esto no cuenta como repaso. *Razón:* R5 y R15.
 
+**Explícaselo a alguien** (técnica Feynman de STUDY-METHODS §1, por analogía con [11]; la forma es *diseño*): modo opcional desde la pantalla de un tema (`/topics/:id/explicar`), cuando ella quiera. Primero escribe la explicación sin ver sus apuntes, como si se la diera a alguien que no conoce el tema (o anota lo esencial de lo que dijo en voz alta). Después la compara con `Topic.explanation` y con la pregunta de cada nota del tema (`notePrompt`: sin respuestas y con todos los huecos de un cloze tapados, R1) y, si quiere, anota lo que le faltó. Se guarda como `SelfExplanation` con `kind: 'teach'` y `gaps` (las de LD5 son `kind: 'self'`). Como LD5, no escribe `ReviewLog` ni toca FSRS (R15), y la siguiente vez dice cuándo lo explicó por última vez.
+
 **LD6 · DEBE** pedir la confianza (1-3) antes de revelar: siempre en simulacros y, en repasos, solo si `review.askConfidence` (inicial `false`). *Razón:* R6.
 
 **LD7 · NO DEBE** existir un modo de releer, subrayar o resumir que genere `ReviewLog` o que se presente como forma principal de estudiar. *Razón:* R15.

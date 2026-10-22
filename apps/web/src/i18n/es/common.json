@@ -500,7 +500,29 @@
     "missing": "Este tema ya no existe.",
     "error": {
       "name": "Escribe el nombre del tema."
-    }
+    },
+    "teach": "Explícaselo a alguien",
+    "teachHint": "Enseñar un tema es una forma de notar lo que todavía no está claro. No cuenta como repaso."
+  },
+  "teach": {
+    "back": "Volver al tema",
+    "title": "Explícaselo a alguien",
+    "intro": "Explícale este tema a alguien que no lo conoce: qué es, para qué sirve y con qué se relaciona. Hazlo sin mirar tus apuntes. Si se lo cuentas en voz alta a alguien, anota aquí lo esencial.",
+    "notReview": "No cuenta como repaso: tus tarjetas siguen igual.",
+    "last": "La última vez lo explicaste el {{date}}. No cuenta como repaso.",
+    "yours": "Tu explicación",
+    "compare": "Comparar con tus apuntes",
+    "notesTitle": "Tus apuntes de este tema",
+    "noExplanation": "Este tema todavía no tiene explicación; puedes agregarla en el tema.",
+    "prompts_one": "¿Lo que explicaste responde esta pregunta?",
+    "prompts_other": "¿Lo que explicaste responde estas {{count}} preguntas?",
+    "more_one": "Y {{count}} pregunta más.",
+    "more_other": "Y {{count}} preguntas más.",
+    "gaps": "¿Qué te faltó o no quedó claro?",
+    "gapsHint": "Opcional. Anotarlo te ayuda a saber a qué volver.",
+    "save": "Guardar",
+    "saved": "Guardado. Explicarlo así ayuda a notar lo que aún no está claro.",
+    "savedGaps": "Guardado. Ya sabes a qué volver: puedes agregar o reformular tarjetas de este tema."
   },
   "auth": {
     "email": "Correo",

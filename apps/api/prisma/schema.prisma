@@ -173,7 +173,9 @@ model SelfExplanation {
   id        String  @id @db.Uuid
   userId    String  @map("user_id") @db.Uuid
   topicId   String  @map("topic_id") @db.Uuid // sin FK: lo valida el handler (BE2)
+  kind      String  @default("self") // 'self' (LD5) | 'teach' ("Explícaselo a alguien")
   text      String
+  gaps      String?
   writtenAt BigInt  @map("written_at")
   hlc       String
   updatedAt BigInt  @map("updated_at")

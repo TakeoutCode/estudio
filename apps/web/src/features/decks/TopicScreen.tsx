@@ -124,6 +124,16 @@ function TopicForm({ topic }: { readonly topic: Topic }) {
           {t('topics.save')}
         </button>
       </form>
+      {/* STUDY-METHODS §1: modo opcional, cuando ella quiera. */}
+      <section className="flex flex-col gap-1">
+        <Link
+          className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 font-bold text-primary ${focus}`}
+          to={`/topics/${topic.id}/explicar`}
+        >
+          {t('topics.teach')}
+        </Link>
+        <p className="m-0 text-caption text-muted">{t('topics.teachHint')}</p>
+      </section>
       {confirming ? (
         <div role="alertdialog" aria-labelledby={`${ids}-confirm`} className="flex flex-col gap-2">
           <p id={`${ids}-confirm`} className="m-0">

@@ -14,6 +14,7 @@ import {
   type NoteContent,
   NoteContentSchema,
   NoteSchema,
+  notePrompt,
   occlusionTarget,
 } from './note.js';
 
@@ -96,6 +97,31 @@ describe('tipos de LD §1', () => {
     expect(cardOrdinals(cloze)).toEqual([1, 2]);
     expect(clozeNumbers('Sin huecos')).toEqual([]);
     expect(NoteContentSchema.safeParse({ ...cloze, text: 'Sin huecos' }).success).toBe(false);
+  });
+
+  it('R1: notePrompt tapa todos los huecos de un cloze (con su pista) y nunca trae una respuesta', () => {
+    expect(notePrompt(cloze)).toBe('El […] inerva el [músculo] y el […].');
+    expect(notePrompt({ kind: 'basic', front: '¿C1?', back: 'Atlas', explanation: '', reverse: true })).toBe(
+      '¿C1?',
+    );
+    expect(
+      notePrompt({
+        kind: 'multiple_choice',
+        question: '¿Nervio?',
+        options: ['A', 'B', 'C'],
+        correct: 1,
+        explanation: '',
+      }),
+    ).toBe('¿Nervio?');
+    expect(
+      notePrompt({
+        kind: 'true_false_justify',
+        statement: 'El axilar es motor',
+        isTrue: false,
+        justification: 'x',
+        explanation: '',
+      }),
+    ).toBe('El axilar es motor');
   });
 
   it('cloze: el hueco de la Card se oculta (con su pista) y los otros se ven completos', () => {

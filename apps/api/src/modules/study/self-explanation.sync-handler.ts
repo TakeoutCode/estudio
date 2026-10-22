@@ -5,7 +5,10 @@ import { dbNumber, dbNumberOrNull } from '../sync/sql.js';
 import { type ApplyStatus, type EntitySyncHandler, SyncHandler } from '../sync/sync-handler.js';
 import { StudyRepository } from './study.repository.js';
 
-/** LD5: "Explícalo con tus palabras". No es un repaso (R15): no toca ReviewLog ni FSRS. */
+/**
+ * LD5: "Explícalo con tus palabras" y "Explícaselo a alguien" (STUDY-METHODS §1). No es un
+ * repaso (R15): no toca ReviewLog ni FSRS.
+ */
 @Injectable()
 @SyncHandler('selfExplanation')
 export class SelfExplanationSyncHandler implements EntitySyncHandler<'selfExplanation'> {
@@ -33,7 +36,9 @@ export class SelfExplanationSyncHandler implements EntitySyncHandler<'selfExplan
     return {
       id: d.id,
       topicId: d.topic_id,
+      kind: d.kind,
       text: d.text,
+      gaps: d.gaps,
       writtenAt: dbNumber(d.written_at),
       hlc: d.hlc,
       updatedAt: dbNumber(d.updated_at),

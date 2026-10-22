@@ -5,6 +5,7 @@ import {
   type ReviewLog,
   ReviewLogSchema,
   type SelfExplanation,
+  type SelfExplanationKind,
   SelfExplanationSchema,
 } from '@estudio/shared';
 import { type CardState, createScheduler, newCardState, reviewTypeFor } from '@estudio/srs';
@@ -81,11 +82,17 @@ export async function answerCard(
 }
 
 /**
- * LD5: "Explícalo con tus palabras" antes de la primera tarjeta nueva de un tema. No es un
+ * LD5: "Explícalo con tus palabras" antes de la primera tarjeta nueva de un tema, o
+ * "Explícaselo a alguien" (`teach`, STUDY-METHODS §1) con lo que notó que le faltó. No es un
  * repaso (R15): no escribe ReviewLog ni toca FSRS.
  */
 export async function saveSelfExplanation(
-  input: { readonly topicId: string; readonly text: string },
+  input: {
+    readonly topicId: string;
+    readonly text: string;
+    readonly kind?: SelfExplanationKind;
+    readonly gaps?: string | null;
+  },
   { database = defaultDb, now = Date.now() }: { readonly database?: EstudioDb; readonly now?: number } = {},
 ): Promise<SelfExplanation> {
   const saved = await database.transaction(
@@ -98,7 +105,9 @@ export async function saveSelfExplanation(
       const row = SelfExplanationSchema.parse({
         id: newId(),
         topicId: topic.id,
+        kind: input.kind ?? 'self',
         text: input.text,
+        gaps: input.gaps?.trim() ? input.gaps : null,
         writtenAt: now,
         hlc,
         updatedAt: hlcWall(hlc),
