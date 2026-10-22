@@ -18,12 +18,15 @@ export function ExerciseFields({
   draft,
   onDraft,
   firstRef,
+  aiDeckId = null,
 }: {
   readonly kind: DraftExerciseKind;
   readonly draft: ExerciseDraft;
   readonly onDraft: (next: ExerciseDraft) => void;
   /** El primer campo: recibe el foco tras guardar, para escribir el siguiente. */
   readonly firstRef: RefObject<HTMLTextAreaElement | null>;
+  /** LD14: el mazo para pedir distractores con IA; null si el mazo todavía no existe. */
+  readonly aiDeckId?: string | null;
 }) {
   const { t } = useTranslation();
   const ids = useId();
@@ -33,7 +36,7 @@ export function ExerciseFields({
 
   switch (kind) {
     case 'clinical_case':
-      return <ClinicalCaseFields draft={draft} onDraft={onDraft} firstRef={firstRef} />;
+      return <ClinicalCaseFields draft={draft} onDraft={onDraft} firstRef={firstRef} aiDeckId={aiDeckId} />;
     case 'matching':
       return (
         <>

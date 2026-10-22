@@ -176,3 +176,38 @@ describe('LD14: retroalimentación de respuestas abiertas', () => {
     expect(repo.usage.map((u) => u.status)).toEqual(['invalid', 'invalid']);
   });
 });
+
+describe('LD14: distractores de opción múltiple', () => {
+  const request = {
+    question: '¿Qué nervio inerva el deltoides?',
+    correct: 'Axilar',
+    existing: ['Radial'],
+    context: null,
+  };
+
+  it('manda pregunta, correcta y lo que ya escribió; devuelve solo los que sirven', async () => {
+    const { service, run, repo } = setup([ok({ distractors: ['axilar', 'Mediano', 'radial', 'Cubital'] })]);
+    expect(await service.distractors(USER, request)).toEqual({ distractors: ['Mediano', 'Cubital'] });
+    const task = run.mock.calls[0]?.[0];
+    expect(task?.name).toBe('distractors');
+    expect(task?.input).toContain('Opción correcta:\nAxilar');
+    expect(task?.input).toContain('Otras opciones que ya escribió:\nRadial');
+    expect(task?.input).not.toContain('Caso:');
+    expect(task?.instructions).toMatch(/claramente incorrecto/);
+    expect(repo.usage.map((u) => u.task)).toEqual(['distractors']);
+  });
+
+  it('en un caso clínico manda también la viñeta', async () => {
+    const { service, run } = setup([ok({ distractors: ['Mediano'] })]);
+    await service.distractors(USER, { ...request, existing: [], context: 'Luxación anterior del hombro.' });
+    const input = run.mock.calls[0]?.[0].input ?? '';
+    expect(input.startsWith('Caso:\nLuxación anterior del hombro.')).toBe(true);
+    expect(input).not.toContain('Otras opciones');
+  });
+
+  it('LD17: si ninguno sirve se reintenta una vez y luego 503', async () => {
+    const { service, repo } = setup([ok({ distractors: ['Axilar'] }), ok({ distractors: [] })]);
+    expect(await code(service.distractors(USER, request))).toBe('unavailable');
+    expect(repo.usage.map((u) => u.status)).toEqual(['invalid', 'invalid']);
+  });
+});

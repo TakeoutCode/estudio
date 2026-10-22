@@ -1,4 +1,7 @@
 import {
+  type AiDistractorsRequest,
+  AiDistractorsRequestSchema,
+  type AiDistractorsResponse,
   type AiDraftRequest,
   AiDraftRequestSchema,
   type AiDraftResponse,
@@ -30,6 +33,18 @@ export class AiController {
     @Body(new ZodPipe(AiDraftRequestSchema)) body: AiDraftRequest,
   ): Promise<AiDraftResponse> {
     return this.ai.draftNotes(user.id, body);
+  }
+
+  /** LD14: distractores para su pregunta de opción múltiple; ella elige cuáles usa (LD16). */
+  @Post('distractors')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  @Throttle(AI_CALLS)
+  distractors(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(AiDistractorsRequestSchema)) body: AiDistractorsRequest,
+  ): Promise<AiDistractorsResponse> {
+    return this.ai.distractors(user.id, body);
   }
 
   /** LD14: retroalimentación de su respuesta abierta frente a su clave; ella se califica. */

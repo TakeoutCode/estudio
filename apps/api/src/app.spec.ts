@@ -112,6 +112,27 @@ describe('app (integración HTTP, sin base)', () => {
     expect(res.body).toMatchObject({ code: 'unavailable' });
   });
 
+  it('LD14: casos clínicos y distractores también responden 503 sin IA, tras validar el pedido', async () => {
+    const { token } = await tokens.issueAccess(newId());
+    const post = (path: string) =>
+      request(app.getHttpServer())
+        .post(path)
+        .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
+        .set('Authorization', 'Bearer ' + token);
+    await post('/ai/clinical-cases').send({ sourceText: 'El deltoides lo inerva el axilar.' }).expect(503);
+    const distractors = {
+      question: '¿Qué nervio inerva el deltoides?',
+      correct: 'Axilar',
+      existing: [],
+      context: null,
+    };
+    await post('/ai/distractors').send(distractors).expect(503);
+    const invalid = await post('/ai/distractors')
+      .send({ ...distractors, correct: '' })
+      .expect(422);
+    expect(invalid.body).toMatchObject({ code: 'validation_failed' });
+  });
+
   it('ARC6: sin cabecera de contrato responde 426', async () => {
     const res = await request(app.getHttpServer()).get('/probe').expect(426);
     expect(res.body).toMatchObject({ code: 'contract_outdated' });

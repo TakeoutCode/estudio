@@ -16,6 +16,8 @@ import {
   type ChangeEvent,
   type RefObject,
   type SubmitEvent,
+  lazy,
+  Suspense,
   useEffect,
   useId,
   useRef,
@@ -51,6 +53,9 @@ import { TagsField } from './TagsField';
 const NEW_DECK = 'new';
 const NO_TOPIC = '';
 const NEW_TOPIC = 'new';
+
+// LD14: los distractores con IA se cargan aparte, como la retroalimentación en el estudio.
+const AiDistractors = lazy(async () => ({ default: (await import('@/features/ai-drafts')).AiDistractors }));
 
 /** LD §1: los tipos de tarjeta que se crean aquí; los ejercicios (LD §2), con `?tipo=ejercicio`. */
 const KINDS = ['basic', 'cloze', 'type_answer', 'multiple_choice', 'image_occlusion'] as const;
@@ -605,6 +610,17 @@ function NoteForm({
               />
             </label>
             <OptionsField options={options} correct={correct} onChange={setOptions} onCorrect={setCorrect} />
+            {deckId === NEW_DECK ? null : (
+              <Suspense fallback={null}>
+                <AiDistractors
+                  deckId={deckId}
+                  question={question}
+                  options={options}
+                  correct={correct}
+                  onOptions={setOptions}
+                />
+              </Suspense>
+            )}
           </>
         ) : null}
         {isDraftExerciseKind(kind) ? (
@@ -612,6 +628,7 @@ function NoteForm({
             kind={kind}
             draft={exerciseDraft}
             firstRef={firstRef}
+            aiDeckId={deckId === NEW_DECK ? null : deckId}
             onDraft={(next) => {
               setExerciseDraft(next);
               setStatus('idle');

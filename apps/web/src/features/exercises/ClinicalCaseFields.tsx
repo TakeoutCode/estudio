@@ -1,7 +1,10 @@
 import { CLINICAL_QUESTIONS } from '@estudio/shared';
-import { type RefObject, useId } from 'react';
+import { lazy, type RefObject, Suspense, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type ClinicalQuestionDraft, emptyClinicalQuestion, type ExerciseDraft } from './draft';
+
+// LD14: los distractores con IA se cargan aparte, como en el editor de tarjetas.
+const AiDistractors = lazy(async () => ({ default: (await import('@/features/ai-drafts')).AiDistractors }));
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
@@ -20,10 +23,13 @@ export function ClinicalCaseFields({
   draft,
   onDraft,
   firstRef,
+  aiDeckId = null,
 }: {
   readonly draft: ExerciseDraft;
   readonly onDraft: (next: ExerciseDraft) => void;
   readonly firstRef: RefObject<HTMLTextAreaElement | null>;
+  /** LD14: el mazo para pedir distractores con IA; null si el mazo todavía no existe. */
+  readonly aiDeckId?: string | null;
 }) {
   const { t } = useTranslation();
   const { questions } = draft;
@@ -52,6 +58,8 @@ export function ClinicalCaseFields({
           key={q.n}
           position={i + 1}
           question={q}
+          vignette={draft.vignette}
+          aiDeckId={aiDeckId}
           removable={questions.length > CLINICAL_QUESTIONS.min}
           onChange={(patch) => {
             update(q.n, patch);
@@ -79,12 +87,16 @@ export function ClinicalCaseFields({
 function QuestionFields({
   position,
   question: q,
+  vignette,
+  aiDeckId,
   removable,
   onChange,
   onRemove,
 }: {
   readonly position: number;
   readonly question: ClinicalQuestionDraft;
+  readonly vignette: string;
+  readonly aiDeckId: string | null;
   readonly removable: boolean;
   readonly onChange: (patch: Partial<ClinicalQuestionDraft>) => void;
   readonly onRemove: () => void;
@@ -158,6 +170,20 @@ function QuestionFields({
               {t('exercises.clinical.addOption')}
             </button>
           ) : null}
+          {aiDeckId === null ? null : (
+            <Suspense fallback={null}>
+              <AiDistractors
+                deckId={aiDeckId}
+                question={q.question}
+                options={q.options}
+                correct={q.correct}
+                context={vignette}
+                onOptions={(options) => {
+                  onChange({ options });
+                }}
+              />
+            </Suspense>
+          )}
         </fieldset>
       ) : null}
       {q.type === 'type_answer' ? (

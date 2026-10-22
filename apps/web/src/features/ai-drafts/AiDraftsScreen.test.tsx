@@ -123,4 +123,56 @@ describe('Borradores con IA (LEARNING-DESIGN §8)', () => {
     });
     expect(await db.notes.count()).toBe(0);
   });
+
+  it('LD14: casos clínicos: los pide a su ruta, se editan y aceptarlos crea el caso', async () => {
+    api.authorizedApi.mockResolvedValue({
+      drafts: [
+        {
+          vignette: 'Paciente de 34 años con debilidad para abducir el brazo tras una luxación anterior.',
+          questions: [
+            {
+              type: 'multiple_choice',
+              question: '¿Qué nervio se lesionó?',
+              answer: 'Axilar',
+              options: ['Radial', 'Axilar', 'Mediano'],
+            },
+            {
+              type: 'type_answer',
+              question: '¿Qué músculo pierde fuerza?',
+              answer: 'Deltoides',
+              options: null,
+            },
+          ],
+          explanation: 'El axilar inerva el deltoides.',
+          sourceQuote: 'Inventado',
+        },
+      ],
+      discarded: 0,
+    });
+    renderScreen();
+    await paste(SOURCE);
+    fireEvent.click(screen.getByRole('button', { name: 'Casos clínicos' }));
+    expect(screen.getByRole('button', { name: 'Casos clínicos' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Generar borradores' }));
+    expect(await screen.findByText('Listo: 1 borrador para revisar.')).toBeTruthy();
+    expect(api.authorizedApi).toHaveBeenCalledWith(
+      '/ai/clinical-cases',
+      expect.objectContaining({ method: 'POST', body: { sourceText: SOURCE } }),
+    );
+
+    const item = await screen.findByRole('listitem');
+    expect(within(item).getByText('Caso clínico')).toBeTruthy();
+    expect(within(item).getByText('Sin respaldo en tu texto')).toBeTruthy();
+    expect(
+      within(item).getByRole<HTMLInputElement>('radio', { name: 'La opción 2 es la correcta' }).checked,
+    ).toBe(true);
+    // Quitar una subpregunta cuenta como edición: ya se puede aceptar.
+    fireEvent.click(within(item).getByRole('button', { name: 'Quitar la pregunta 2' }));
+    fireEvent.click(within(item).getByRole('button', { name: 'Aceptar' }));
+    await waitFor(async () => {
+      expect((await db.notes.toArray()).map((n) => [n.origin, n.content.kind])).toEqual([
+        ['ai', 'clinical_case'],
+      ]);
+    });
+  });
 });

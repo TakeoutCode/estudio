@@ -1,5 +1,7 @@
 import {
   AI_DRAFTS_MAX,
+  type AiDistractorsRequest,
+  type AiDistractorsResponse,
   type AiDraftRequest,
   type AiDraftResponse,
   type AiFeedbackRequest,
@@ -9,6 +11,7 @@ import {
   AiNoteDraftSchema,
   localDateOf,
   ProfileSettingsSchema,
+  usableDistractors,
 } from '@estudio/shared';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -56,6 +59,28 @@ const FEEDBACK_INSTRUCTIONS = [
   'Escribe en español neutro, en frases breves, sin juicios ni culpa. Deja vacías las listas que no apliquen.',
 ].join('\n');
 
+/** LD17: 4 opciones breves caben con margen. Parámetro de costo. */
+const DISTRACTORS_MAX_OUTPUT_TOKENS = 600;
+
+/** La forma que se le pide al modelo; lo que sirve lo filtra `usableDistractors`. */
+const DistractorsOutputSchema = z.object({ distractors: z.array(z.string()) }).strict();
+const DISTRACTORS_SCHEMA = strictJsonSchema(DistractorsOutputSchema);
+
+/**
+ * LD14: distractores para su pregunta. A diferencia de los borradores, salen del conocimiento
+ * general del modelo (son opciones incorrectas): por eso ella elige cada uno y la app le pide
+ * revisar que ninguno sea también correcto (LD16).
+ */
+const DISTRACTORS_INSTRUCTIONS = [
+  'Propones distractores para una pregunta de opción múltiple que escribió una estudiante de Quiropráctica.',
+  'Un distractor es una opción incorrecta pero plausible: del mismo tema y de la misma categoría que la correcta',
+  '(si la correcta es un nervio, otros nervios cercanos o que se confunden), con largo y estilo parecidos.',
+  'Cada distractor tiene que ser claramente incorrecto para esa pregunta; si dudas de uno, no lo incluyas.',
+  'No repitas la opción correcta ni las otras opciones que ella ya escribió, ni con otras palabras.',
+  'Nunca uses "todas las anteriores", "ninguna de las anteriores" ni combinaciones de opciones.',
+  'Escribe en español neutro, solo el texto de cada opción. Propón 4.',
+].join('\n');
+
 /** La salida del modelo, ítem por ítem: los inválidos se descartan y se cuentan (LD17). */
 function parseNoteDrafts(output: unknown): AiDraftResponse | null {
   const shape = z.object({ drafts: z.array(z.unknown()) }).safeParse(output);
@@ -85,7 +110,7 @@ export class AiService {
   ) {}
 
   async draftNotes(userId: string, { sourceText }: AiDraftRequest): Promise<AiDraftResponse> {
-    return this.run(
+    return this.generate(
       userId,
       {
         name: 'note_drafts',
@@ -100,7 +125,7 @@ export class AiService {
 
   /** LD14: retroalimentación de una respuesta abierta; no toca FSRS ni califica. */
   async feedback(userId: string, request: AiFeedbackRequest): Promise<AiOpenFeedback> {
-    return this.run(
+    return this.generate(
       userId,
       {
         name: 'open_feedback',
@@ -116,7 +141,40 @@ export class AiService {
     );
   }
 
-  private async run<T>(userId: string, task: AiTask, parse: (output: unknown) => T | null): Promise<T> {
+  /** LD14: distractores para su pregunta de opción múltiple; ella elige cuáles usa (LD16). */
+  async distractors(userId: string, request: AiDistractorsRequest): Promise<AiDistractorsResponse> {
+    const parts = [
+      ...(request.context === null ? [] : [`Caso:\n${request.context}`]),
+      `Pregunta:\n${request.question}`,
+      `Opción correcta:\n${request.correct}`,
+      ...(request.existing.length === 0
+        ? []
+        : [`Otras opciones que ya escribió:\n${request.existing.join('\n')}`]),
+    ];
+    return this.generate(
+      userId,
+      {
+        name: 'distractors',
+        instructions: DISTRACTORS_INSTRUCTIONS,
+        input: parts.join('\n\n'),
+        schema: DISTRACTORS_SCHEMA,
+        maxOutputTokens: DISTRACTORS_MAX_OUTPUT_TOKENS,
+      },
+      (output) => {
+        const shape = DistractorsOutputSchema.safeParse(output);
+        if (!shape.success) return null;
+        const distractors = usableDistractors(shape.data.distractors, request);
+        // LD17: si ninguno sirve, la salida es inválida y se reintenta una vez.
+        return distractors.length > 0 ? { distractors } : null;
+      },
+    );
+  }
+
+  /**
+   * LD17: cuota del día, un reintento y registro de uso sin contenido. `parse` valida la salida
+   * con zod (LD15) y devuelve null si no sirve. También lo usan los casos clínicos (`exercises`).
+   */
+  async generate<T>(userId: string, task: AiTask, parse: (output: unknown) => T | null): Promise<T> {
     if (!this.provider.configured) throw new DomainError('unavailable');
     const localDate = await this.localDate(userId);
     const before = await this.repo.usageOn(userId, localDate);

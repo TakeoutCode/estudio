@@ -18,5 +18,7 @@ import { AiService } from './ai.service.js';
     AiFeedbackSyncHandler,
     { provide: AiProvider, useClass: OpenAiProvider },
   ],
+  // Los casos clínicos (`exercises`) usan la misma cuota, reintento y registro de uso.
+  exports: [AiService],
 })
 export class AiModule {}

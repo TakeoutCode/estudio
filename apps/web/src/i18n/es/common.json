@@ -1068,6 +1068,11 @@
     "title": "Borradores con IA",
     "backToDeck": "Volver al mazo",
     "privacy": "Tu texto se envía a OpenAI solo para proponer borradores, y no queda guardado allá. No pegues datos de pacientes. La IA puede equivocarse: revisa cada borrador antes de aceptarlo.",
+    "kindLabel": "¿Qué quieres crear?",
+    "request": {
+      "note": "Tarjetas",
+      "clinical_case": "Casos clínicos"
+    },
     "sourceLabel": "Pega un fragmento de tus apuntes",
     "sourceCount": "{{count}} de {{max}} caracteres",
     "generate": "Generar borradores",
@@ -1083,13 +1088,14 @@
     "failed": "No se pudo generar el borrador. Tu texto sigue aquí.",
     "pending_one": "{{count}} borrador por revisar",
     "pending_other": "{{count}} borradores por revisar",
-    "reviewHint": "Edita lo que haga falta. Solo lo que aceptes se vuelve tarjeta; lo demás no se estudia.",
+    "reviewHint": "Edita lo que haga falta. Solo lo que aceptes se agrega a tu mazo; lo demás no se estudia.",
     "accepted_one": "Ya aceptaste {{count}} borrador en este mazo.",
     "accepted_other": "Ya aceptaste {{count}} borradores en este mazo.",
     "kind": {
       "basic": "Pregunta y respuesta",
       "cloze": "Con huecos",
-      "multiple_choice": "Opción múltiple"
+      "multiple_choice": "Opción múltiple",
+      "clinical_case": "Caso clínico"
     },
     "unsupported": "Sin respaldo en tu texto",
     "quote": "Según tu texto: «{{quote}}»",
@@ -1101,14 +1107,32 @@
       "correct": "Respuesta correcta",
       "options": "Opciones (incluye la correcta)",
       "option": "Opción {{n}}",
-      "explanation": "Explicación breve"
+      "explanation": "Explicación breve",
+      "vignette": "Caso (viñeta)",
+      "caseQuestion": "Pregunta {{n}} · {{type}}"
     },
     "accept": "Aceptar",
     "save": "Guardar cambios",
     "reject": "Descartar",
     "editFirst": "Esta cita no aparece tal cual en tu texto: revisa y edita el borrador antes de aceptarlo.",
     "invalid": "Así no forma una tarjeta válida: revisa los huecos {{c1::…}} o que la respuesta correcta esté entre las opciones.",
-    "saveFailed": "No se pudo guardar. Intenta de nuevo."
+    "invalidCase": "Así no forma un caso válido: revisa que cada opción múltiple tenga marcada la correcta y que las respuestas breves no pasen de 200 caracteres.",
+    "saveFailed": "No se pudo guardar. Intenta de nuevo.",
+    "distractors": {
+      "ask": "Sugerir distractores con IA",
+      "asking": "Pidiendo sugerencias…",
+      "needs": "Escribe la pregunta y marca la opción correcta para pedir distractores.",
+      "privacy": "Se envían a OpenAI la pregunta y sus opciones, sin quedar guardadas allá.",
+      "title": "Distractores sugeridos",
+      "check": "Revisa que ninguno sea también correcto. Los que uses pasan a tus opciones y puedes editarlos.",
+      "use": "Usar",
+      "useNamed": "Usar «{{option}}»",
+      "used": "Agregado",
+      "usedNamed": "Agregado: «{{option}}»",
+      "dismiss": "Descartar sugerencias",
+      "close": "Listo",
+      "failed": "No se pudieron sugerir distractores."
+    }
   },
   "aiFeedback": {
     "ask": "Pedir retroalimentación con IA",

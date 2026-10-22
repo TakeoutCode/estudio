@@ -7,6 +7,12 @@ import { createDeck } from '@/features/decks';
 import { createNote } from './commands';
 import { NoteEditorScreen } from './NoteEditorScreen';
 
+const api = vi.hoisted(() => ({ authorizedApi: vi.fn() }));
+vi.mock('@/features/auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/auth')>()),
+  authorizedApi: api.authorizedApi,
+}));
+
 const renderEditor = () =>
   render(
     <MemoryRouter initialEntries={['/notes/new']}>
@@ -162,6 +168,39 @@ describe('editor de notas · tipos de LD §1', () => {
         explanation: '',
       });
     });
+  });
+
+  it('LD14: opción múltiple en un mazo que ya existe: los distractores con IA llenan sus opciones', async () => {
+    api.authorizedApi.mockResolvedValue({ distractors: ['Mediano', 'Cubital'] });
+    const deck = await createDeck({ name: 'Brazo' });
+    render(
+      <MemoryRouter initialEntries={[`/notes/new?mazo=${deck.id}`]}>
+        <NoteEditorScreen />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Opción múltiple' }));
+    fireEvent.change(screen.getByLabelText('Pregunta'), { target: { value: '¿Nervio del deltoides?' } });
+    fireEvent.change(screen.getByLabelText('Opción 1'), { target: { value: 'Axilar' } });
+    fireEvent.click(screen.getByLabelText('La opción 1 es la correcta'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Sugerir distractores con IA' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Usar «Mediano»' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Usar «Cubital»' }));
+    expect(screen.getByLabelText<HTMLInputElement>('Opción 2').value).toBe('Mediano');
+    expect(screen.getByLabelText<HTMLInputElement>('Opción 3').value).toBe('Cubital');
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(async () => {
+      expect((await db.notes.toArray())[0]).toMatchObject({
+        origin: 'manual', // la pregunta y la correcta son suyas
+        content: { kind: 'multiple_choice', options: ['Axilar', 'Mediano', 'Cubital'], correct: 0 },
+      });
+    });
+  });
+
+  it('LD14: con un mazo nuevo todavía no ofrece distractores con IA', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: 'Opción múltiple' }));
+    expect(screen.getByLabelText('Nombre del mazo nuevo')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Sugerir distractores con IA' })).toBeNull();
   });
 
   it('escribir respuesta: pregunta y respuesta corta', async () => {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SyncMetaSchema } from '../sync/contracts.js';
+import { CLINICAL_QUESTIONS, type ClinicalCaseContent, ClinicalCaseContentSchema } from './exercise.js';
 import { clozeNumbers, type NoteContent, NoteContentSchema } from './note.js';
 
 // IA opcional (LEARNING-DESIGN §8): borradores que ella revisa y edita antes de aceptarlos. La
@@ -81,23 +82,151 @@ export function aiDraftToNoteContent(draft: AiNoteDraft): NoteContent | null {
   return parsed.success ? parsed.data : null;
 }
 
+/** Casos por pedido: cada uno trae varias subpreguntas que revisar. Límite de diseño. */
+export const AI_CASES_MAX = 5;
+
 /**
- * LD16: lo generado, guardado como borrador (LWW, SYNC §1). Aceptarlo crea la nota con
- * `origin: 'ai'` y guarda su id; nunca se acepta solo.
+ * LD15: una subpregunta de un caso. `answer` es la opción correcta tal cual (`multiple_choice`),
+ * la respuesta breve (`type_answer`) o la clave (`open`); `options` solo en `multiple_choice`.
  */
-export const AiDraftSchema = SyncMetaSchema.extend({
-  kind: z.literal('note'),
+export const AiClinicalQuestionDraftSchema = z
+  .object({
+    type: z.enum(['multiple_choice', 'type_answer', 'open']),
+    question: z.string().trim().min(1).max(1000),
+    answer: z.string().trim().min(1).max(2000),
+    options: z.array(z.string().trim().min(1).max(200)).min(3).max(5).nullable(),
+  })
+  .strict();
+export type AiClinicalQuestionDraft = z.infer<typeof AiClinicalQuestionDraftSchema>;
+
+/** LD14, LD15: un borrador de caso clínico (LD §2) con la cita de su texto que lo respalda. */
+export const AiClinicalCaseDraftSchema = z
+  .object({
+    vignette: z.string().trim().min(1).max(3000),
+    questions: z.array(AiClinicalQuestionDraftSchema).min(CLINICAL_QUESTIONS.min).max(CLINICAL_QUESTIONS.max),
+    explanation: z.string().trim().max(400), // R4
+    /** Debe aparecer literal en el texto de entrada (LD16). */
+    sourceQuote: z.string().trim().min(1).max(300),
+  })
+  .strict();
+export type AiClinicalCaseDraft = z.infer<typeof AiClinicalCaseDraftSchema>;
+
+/** `POST /ai/clinical-cases`: los borradores válidos y cuántos se descartaron (LD17). */
+export const AiClinicalCasesResponseSchema = z
+  .object({
+    drafts: z.array(AiClinicalCaseDraftSchema).max(AI_CASES_MAX),
+    discarded: z.number().int().nonnegative(),
+  })
+  .strict();
+export type AiClinicalCasesResponse = z.infer<typeof AiClinicalCasesResponseSchema>;
+
+const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * El caso clínico que sale de un borrador, o null si no forma uno válido (una opción múltiple
+ * sin la correcta entre sus opciones, una respuesta breve de más de 200 caracteres). Las
+ * subpreguntas se numeran desde 1, como en un caso nuevo.
+ */
+export function aiClinicalCaseToNoteContent(draft: AiClinicalCaseDraft): ClinicalCaseContent | null {
+  const questions = draft.questions.map((q, i) => {
+    const n = i + 1;
+    if (q.type === 'multiple_choice') {
+      const options = q.options ?? [];
+      return {
+        n,
+        type: q.type,
+        question: q.question,
+        options,
+        correct: options.findIndex((o) => sameText(o, q.answer)),
+      };
+    }
+    return q.type === 'type_answer'
+      ? { n, type: q.type, question: q.question, answer: q.answer }
+      : { n, type: q.type, question: q.question, key: q.answer };
+  });
+  const parsed = ClinicalCaseContentSchema.safeParse({
+    kind: 'clinical_case',
+    vignette: draft.vignette,
+    questions,
+    explanation: draft.explanation,
+  });
+  return parsed.success ? parsed.data : null;
+}
+
+/** Distractores por pedido: con la correcta llenan las 5 opciones de LD §1. */
+export const AI_DISTRACTORS_MAX = 4;
+
+/**
+ * `POST /ai/distractors`: la pregunta y su opción correcta, las otras opciones que ella ya
+ * escribió (para no repetirlas) y, en un caso clínico, la viñeta.
+ */
+export const AiDistractorsRequestSchema = z
+  .object({
+    question: z.string().trim().min(1).max(1000),
+    correct: z.string().trim().min(1).max(200),
+    existing: z.array(z.string().trim().min(1).max(200)).max(AI_DISTRACTORS_MAX),
+    context: z.string().trim().min(1).max(3000).nullable(),
+  })
+  .strict();
+export type AiDistractorsRequest = z.infer<typeof AiDistractorsRequestSchema>;
+
+/** LD15: distractores, sin repetir la correcta ni lo que ya escribió. */
+export const AiDistractorsResponseSchema = z
+  .object({ distractors: z.array(z.string().trim().min(1).max(200)).min(1).max(AI_DISTRACTORS_MAX) })
+  .strict();
+export type AiDistractorsResponse = z.infer<typeof AiDistractorsResponseSchema>;
+
+/** Lo propuesto que sirve: distinto de la correcta, de lo que ya escribió y entre sí. */
+export function usableDistractors(
+  proposed: readonly string[],
+  request: Pick<AiDistractorsRequest, 'correct' | 'existing'>,
+): string[] {
+  const taken = [request.correct, ...request.existing];
+  const out: string[] = [];
+  for (const raw of proposed) {
+    const option = raw.trim();
+    if (option === '' || option.length > 200) continue;
+    if ([...taken, ...out].some((t) => sameText(t, option))) continue;
+    out.push(option);
+  }
+  return out.slice(0, AI_DISTRACTORS_MAX);
+}
+
+/** LD16: los distractores que la IA propuso para una pregunta; ella elige cuáles usa. */
+export const AiDistractorsDraftSchema = z
+  .object({
+    question: z.string().trim().min(1).max(1000),
+    correct: z.string().trim().min(1).max(200),
+    distractors: z.array(z.string().trim().min(1).max(200)).min(1).max(AI_DISTRACTORS_MAX),
+  })
+  .strict();
+export type AiDistractorsDraft = z.infer<typeof AiDistractorsDraftSchema>;
+
+const AiDraftBaseSchema = SyncMetaSchema.extend({
   /** El mazo donde ella pidió los borradores. */
   deckId: z.uuid(),
-  draft: AiNoteDraftSchema,
-  /** LD16: la cita estaba literal en el texto; si no, se acepta solo después de editarlo. */
+  /** LD16: la cita estaba literal en el texto; si no, se acepta solo editado. Distractores: sin cita, `true`. */
   supported: z.boolean(),
   edited: z.boolean(),
   status: z.enum(['draft', 'accepted', 'rejected']),
   noteId: z.uuid().nullable(),
   createdAt: z.number().int().nonnegative(),
-}).strict();
+});
+
+/**
+ * LD16: lo generado, guardado como borrador (LWW, SYNC §1); nunca se acepta solo. Aceptar una
+ * nota o un caso clínico crea la nota con `origin: 'ai'` y guarda su id. Los distractores no
+ * crean nota: ella elige en el editor cuáles pasan a sus opciones (`accepted`, sin `noteId`,
+ * porque la pregunta y la correcta son suyas) o los descarta (`rejected`).
+ */
+export const AiDraftSchema = z.discriminatedUnion('kind', [
+  AiDraftBaseSchema.extend({ kind: z.literal('note'), draft: AiNoteDraftSchema }).strict(),
+  AiDraftBaseSchema.extend({ kind: z.literal('clinical_case'), draft: AiClinicalCaseDraftSchema }).strict(),
+  AiDraftBaseSchema.extend({ kind: z.literal('distractors'), draft: AiDistractorsDraftSchema }).strict(),
+]);
 export type AiDraft = z.infer<typeof AiDraftSchema>;
+/** Los borradores que se revisan en la pantalla de un mazo y, al aceptarlos, crean una nota. */
+export type AiNoteLikeDraft = Extract<AiDraft, { kind: 'note' | 'clinical_case' }>;
 
 /** LD16: sin respaldo y sin editar no se puede aceptar. */
 export const canAcceptAiDraft = (draft: Pick<AiDraft, 'supported' | 'edited' | 'status'>): boolean =>
