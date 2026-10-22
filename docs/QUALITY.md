@@ -52,6 +52,7 @@ También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medi
 | §3 | NT-T1 a NT-T12 |
 | §5 | Las métricas están ocultas con menos de `metrics.minReviewsToShow` repasos |
 | Gamificación | Con `gamification.enabled = false`, ningún nodo con `data-gamification` en ninguna ruta (E2E, `e2e/gamification.spec.ts`); `Gamification.test.tsx` lo cubre también en la celebración de la sesión |
+| UX4 | E2E (`e2e/a11y.spec.ts`): sin violaciones de axe (WCAG 2.2 AA) en claro y en oscuro, en las pantallas principales, un mazo, sus borradores de IA y el estudio |
 
 ## 5. CI (GitHub Actions)
 
