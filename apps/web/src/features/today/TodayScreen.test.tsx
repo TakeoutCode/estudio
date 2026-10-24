@@ -1,10 +1,11 @@
-import { Rating, type ReviewLog } from '@estudio/shared';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Rating, type ReviewLog, startOfLocalDate } from '@estudio/shared';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
 import { readProfile, readStudyConfig } from '@/db/settings';
 import { setDeckPaused } from '@/features/decks';
+import { createExam } from '@/features/exams';
 import { createNote } from '@/features/notes';
 import { TodayScreen } from './TodayScreen';
 
@@ -55,6 +56,45 @@ describe('TodayScreen', () => {
     renderToday();
     expect(await screen.findByText('Y 1 nueva para aprender')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Tus mazos · 1 en pausa' }).getAttribute('href')).toBe('/decks');
+  });
+});
+
+describe('TodayScreen · LD12: repaso previo al examen', () => {
+  it('LD12: en la ventana final ofrece el repaso previo, aunque los exámenes se carguen aparte (FE9)', async () => {
+    const T0 = Date.UTC(2026, 9, 20, 15); // martes 20 de octubre, 09:00 en CDMX
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(T0);
+    const note = await createNote({
+      deck: { name: 'Hombro' },
+      content,
+      topic: { name: 'Plexo braquial', explanation: '' },
+    });
+    const [card] = await db.cards.toArray();
+    await db.cardStates.put({
+      cardId: card?.id ?? '',
+      due: T0 + 30 * 86_400_000,
+      stability: 40,
+      difficulty: 5,
+      scheduledDays: 40,
+      learningSteps: 0,
+      reps: 4,
+      lapses: 0,
+      phase: 'review',
+      lastReview: T0 - 20 * 86_400_000,
+    });
+    const exam = await createExam({
+      title: 'Parcial 1',
+      date: startOfLocalDate('2026-10-24', 'America/Mexico_City'),
+      topicIds: [note.topicId ?? ''],
+    });
+    renderToday();
+    const offer = (await screen.findByText('Repaso previo para Parcial 1: 1 tarjeta.')).closest(
+      '[role=status]',
+    );
+    if (!(offer instanceof HTMLElement)) throw new Error('sin aviso');
+    expect(within(offer).getByRole('link', { name: 'Empezar' }).getAttribute('href')).toBe(
+      `/study?examen=${exam.id}`,
+    );
   });
 });
 

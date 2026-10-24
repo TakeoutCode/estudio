@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useExamsOverview } from '@/features/exams';
 import { NotificationsAtOpen } from '@/features/notifications';
 import { SleepCheckIn } from '@/features/sleep';
 import { type PlanSnapshot, useTodayPlan } from '@/features/study';
@@ -13,6 +12,10 @@ import { FewerNewOffer } from './FewerNewOffer';
 // FE9: la gamificación no entra en el JS inicial de Hoy; apagada, ni siquiera se muestra.
 const GamificationCard = lazy(async () => ({
   default: (await import('@/features/gamification')).GamificationCard,
+}));
+// FE9: los exámenes tampoco; Hoy solo muestra su repaso previo (LD12).
+const FinalReviewOffers = lazy(async () => ({
+  default: (await import('@/features/exams')).FinalReviewOffers,
 }));
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
@@ -83,7 +86,9 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
           days={plan.retention.lowStreakDays}
         />
       )}
-      <FinalReviewOffers />
+      <Suspense fallback={null}>
+        <FinalReviewOffers />
+      </Suspense>
       {toImprove.length > 0 ? (
         <section className="flex flex-col gap-2" aria-labelledby="today-improve">
           <h2 id="today-improve" className="m-0 text-body font-semibold">
@@ -122,36 +127,6 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
           {t('today.addCard')}
         </Link>
       </ActionBar>
-    </>
-  );
-}
-
-/** LD12: en los últimos días antes de un examen, la vuelta de repaso previa. */
-function FinalReviewOffers() {
-  const { t } = useTranslation();
-  const overview = useExamsOverview();
-  if (!overview) return null;
-  const offers = overview.exams.flatMap((exam) => {
-    const count = overview.finalReviews.get(exam.id) ?? 0;
-    return count > 0 ? [{ exam, count }] : [];
-  });
-  return (
-    <>
-      {offers.map(({ exam, count }) => (
-        <Banner
-          key={exam.id}
-          action={
-            <Link
-              className={`inline-flex min-h-11 shrink-0 items-center px-2 text-primary ${focus}`}
-              to={`/study?examen=${exam.id}`}
-            >
-              {t('today.finalReviewStart')}
-            </Link>
-          }
-        >
-          {t('today.finalReview', { exam: exam.title, count })}
-        </Banner>
-      ))}
     </>
   );
 }

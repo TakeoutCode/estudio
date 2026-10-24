@@ -2,7 +2,7 @@
 // el arranque (`boot`) y la ruta inicial, con todo lo que importan sin `import()`; se saca del
 // manifiesto de Vite (`vite build --manifest`) porque los nombres de los chunks llevan hash.
 //
-// FE9 pide 170 kB. Hoy mide unos 269 kB: el límite está justo arriba para que no crezca
+// FE9 pide 170 kB. Hoy mide unos 264 kB: el límite está justo arriba para que no crezca
 // mientras esa deuda se paga (ver FRONTEND FE9).
 import { readFileSync } from 'node:fs';
 
@@ -37,6 +37,6 @@ export default [
     name: 'JS inicial hasta Hoy (FE9)',
     path: [...initial].map((key) => `dist/${manifest[key]?.file ?? key}`),
     gzip: true,
-    limit: '270 kB',
+    limit: '265 kB',
   },
 ];

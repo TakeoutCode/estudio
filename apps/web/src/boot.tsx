@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { router } from './app/router';
 import { accountUserId, refreshSession } from './features/auth';
-import { retryOpenedWhenOnline } from './features/notifications';
 import { applyTheme } from './lib/theme';
 import { captureClientErrors, startSync } from './sync';
 
@@ -17,8 +16,11 @@ export function boot(root: HTMLElement): void {
   // pedir la contraseña. Sin cuenta, la pantalla de login lo resuelve.
   void accountUserId().then((userId) => (userId ? refreshSession() : undefined));
   startSync();
-  // NOTIFICATIONS NT7: las aperturas de avisos que no se pudieron reportar sin red.
-  retryOpenedWhenOnline();
+  // NOTIFICATIONS NT7: las aperturas de avisos que no se pudieron reportar sin red. Con import
+  // dinámico, para no sumar los avisos al JS inicial (FE9); el chunk es el mismo de Hoy.
+  void import('./features/notifications').then(({ retryOpenedWhenOnline }) => {
+    retryOpenedWhenOnline();
+  });
   createRoot(root).render(
     <StrictMode>
       <RouterProvider router={router} />
