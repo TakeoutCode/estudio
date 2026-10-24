@@ -12,7 +12,13 @@ import {
   type ContrastPlanGroup,
   firstCorrectByCard,
 } from './contrast.js';
-import { type RetentionStatus, retentionStatus, sessionTiming, type SessionTiming } from './history.js';
+import {
+  newStartedToday,
+  type RetentionStatus,
+  retentionStatus,
+  sessionTiming,
+  type SessionTiming,
+} from './history.js';
 
 // Cola de la sesión (STUDY-METHODS §3 "Integración con FSRS" y §4 P1-P4, P8). La cola no
 // cambia fechas de FSRS: solo elige qué vencidas y nuevas entran y en qué orden.
@@ -72,6 +78,10 @@ export interface SessionPlan {
   readonly reformulate: readonly string[];
   /** P3: la retención baja persistió; tope de nuevas para proponerle, nunca aplicado solo. */
   readonly proposedNewPerSessionMax: number | null;
+  /** P1 por día: nuevas que ya empezó hoy, en cualquier sesión; se descuentan del tope. */
+  readonly newStartedToday: number;
+  /** P1 por día: hay nuevas esperando, pero hoy ya empezó las del tope. */
+  readonly newCapReached: boolean;
 }
 
 interface DueCard {
@@ -132,7 +142,8 @@ export function buildSessionQueue(input: SessionPlanInput): SessionPlan {
     cfg.contrast.maxSetSize,
   );
 
-  // P2 y P3 bloquean las nuevas; P1 las limita al presupuesto que sobra y al tope.
+  // P2 y P3 bloquean las nuevas; P1 las limita al presupuesto que sobra y al tope del día: lo que
+  // ya empezó hoy en otras sesiones cuenta (LD §6), como en la carga proyectada (LD8).
   const retention = retentionStatus(input.logs, now, input.timeZone, cfg);
   const newBlockedBy: NewCardsBlock | null =
     due.length > p.overdueFactorForZeroNew * capacity
@@ -141,7 +152,8 @@ export function buildSessionQueue(input: SessionPlanInput): SessionPlan {
         ? 'low_retention'
         : null;
   const fits = Math.max(0, Math.floor((budgetMs - reviews.length * timing.reviewMs) / timing.newMs));
-  const newCount = newBlockedBy ? 0 : Math.min(p.newPerSessionMax, fits);
+  const startedToday = newStartedToday(input.logs, now, input.timeZone);
+  const newCount = newBlockedBy ? 0 : Math.min(Math.max(0, p.newPerSessionMax - startedToday), fits);
   const news = byTopicChunks(fresh, p.newMaxSameTopicRun).slice(0, newCount);
 
   return {
@@ -159,6 +171,8 @@ export function buildSessionQueue(input: SessionPlanInput): SessionPlan {
       retention.lowStreakDays >= p.lowRetentionPersistDays
         ? Math.floor(p.newPerSessionMax * p.persistNewFactor)
         : null,
+    newStartedToday: startedToday,
+    newCapReached: newBlockedBy === null && fresh.length > 0 && startedToday >= p.newPerSessionMax,
   };
 }
 

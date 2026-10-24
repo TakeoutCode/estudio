@@ -27,7 +27,7 @@
     },
     "fewerNew": {
       "title": "Una propuesta para estos días",
-      "body": "Tu retención en los repasos lleva al menos {{days}} días por debajo de tu objetivo. Te proponemos bajar las nuevas por sesión de {{current}} a {{proposed}} mientras afianzas lo que ya tienes. Lo decides tú.",
+      "body": "Tu retención en los repasos lleva al menos {{days}} días por debajo de tu objetivo. Te proponemos bajar las nuevas por día de {{current}} a {{proposed}} mientras afianzas lo que ya tienes. Lo decides tú.",
       "hint": "También puede ayudar revisar tu carga y cómo vienes durmiendo.",
       "week": "Ver Tu semana",
       "accept_one": "Bajar a {{count}} nueva",
@@ -110,7 +110,9 @@
     "notice": {
       "overdue": "Hoy toca repasar lo pendiente; las nuevas esperan a otro día.",
       "lowRetention": "Esta sesión es solo de repaso, para afianzar lo reciente.",
-      "spread": "Repartimos lo pendiente en los próximos {{days}} días."
+      "spread": "Repartimos lo pendiente en los próximos {{days}} días.",
+      "newCap_one": "Hoy ya empezaste {{count}} nueva; las siguientes entran mañana.",
+      "newCap_other": "Hoy ya empezaste {{count}} nuevas; las siguientes entran mañana."
     },
     "shortcuts": {
       "toggle": "Atajos de teclado",
@@ -341,8 +343,8 @@
     "suggested_one": "≈ {{count}} nueva por día alcanza para ver todo antes del examen.",
     "suggested_other": "≈ {{count}} nuevas por día alcanzan para ver todo antes del examen.",
     "allStarted": "Ya empezaste todas las tarjetas de estos temas.",
-    "beyondCap_one": "Con el tope de {{cap}} nuevas por sesión, {{count}} tarjeta no alcanza a entrar antes del examen.",
-    "beyondCap_other": "Con el tope de {{cap}} nuevas por sesión, {{count}} tarjetas no alcanzan a entrar antes del examen.",
+    "beyondCap_one": "Con el tope de {{cap}} nuevas por día, {{count}} tarjeta no alcanza a entrar antes del examen.",
+    "beyondCap_other": "Con el tope de {{cap}} nuevas por día, {{count}} tarjetas no alcanzan a entrar antes del examen.",
     "topicNew_one": "{{count}} nueva",
     "topicNew_other": "{{count}} nuevas",
     "topicStarted": "todo empezado",
@@ -652,8 +654,8 @@
     },
     "newCards": {
       "title": "Tarjetas nuevas",
-      "hint": "Las nuevas entran después de lo pendiente, si caben en el tiempo de la sesión (bloques × enfoque). Ningún número está probado: ajústalo con lo que veas en Tu semana.",
-      "newPerSessionMax": "Nuevas por sesión (máx.)",
+      "hint": "Cuántas nuevas empiezas como máximo al día, sumando tus sesiones. En cada sesión entran después de lo pendiente, si caben en su tiempo (bloques × enfoque). Ningún número está probado: ajústalo con lo que veas en Tu semana.",
+      "newPerSessionMax": "Nuevas por día (máx.)",
       "sessionBlocksDefault": "Bloques por sesión"
     },
     "timer": {

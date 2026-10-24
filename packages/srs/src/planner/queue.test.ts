@@ -87,6 +87,30 @@ describe('P1: nuevas por sesión', () => {
     expect(news(buildSessionQueue(input({ cards, config: twoByDefault })))).toHaveLength(10);
   });
 
+  it('P1 por día: el tope descuenta las nuevas que ya empezó hoy en otras sesiones', () => {
+    // 4 tarjetas con su primer repaso hoy (otra sesión) y 2 que empezó ayer.
+    const started = [
+      ...range(900, 4).map((n) => log(TODAY_START + HOUR + n, Rating.Good, { type: 'learn', cardId: id(n) })),
+      ...range(950, 2).map((n) => log(TODAY_START - HOUR, Rating.Good, { type: 'learn', cardId: id(n) })),
+    ];
+    const plan = buildSessionQueue(input({ cards: manyNew, logs: started }));
+    expect(plan.newStartedToday).toBe(4);
+    expect(news(plan)).toHaveLength(6); // 10 − 4
+    const fifteen = buildSessionQueue(
+      input({ cards: manyNew, logs: started, config: cfgWith({ newPerSessionMax: 15 }) }),
+    );
+    expect(news(fifteen)).toHaveLength(11);
+    // Con el tope ya cumplido no entran más hoy; mañana (su día local) vuelve a contar desde 0.
+    const full = range(900, 10).map((n) =>
+      log(TODAY_START + HOUR + n, Rating.Good, { type: 'learn', cardId: id(n) }),
+    );
+    const capped = buildSessionQueue(input({ cards: manyNew, logs: full }));
+    expect(news(capped)).toHaveLength(0);
+    expect(capped.newCapReached).toBe(true);
+    expect(plan.newCapReached).toBe(false);
+    expect(news(buildSessionQueue(input({ cards: manyNew, logs: full, now: NOW + DAY })))).toHaveLength(10);
+  });
+
   it('§3: la retrievability baja con el tiempo y es 0 en las nuevas', () => {
     const scheduler = createScheduler(cfgWith().fsrs);
     const card = reviewCard(1, { stability: 8 }).state;

@@ -12,6 +12,7 @@ import {
 } from '@estudio/shared';
 import { examPlan } from '../exams/plan.js';
 import type { Scheduler } from '../fsrs/scheduler.js';
+import { newStartedToday } from '../planner/history.js';
 import { buildSessionQueue, type PlannerCard } from '../planner/queue.js';
 
 // Qué recordatorios califican en un tick del cron (NOTIFICATIONS §1 y NT3). La decisión de
@@ -62,17 +63,6 @@ export function reminderTimeCrossed(from: number, to: number, timeZone: string, 
   const end = localMinuteOfDay(to, timeZone);
   if (localDayNumber(from, timeZone) === localDayNumber(to, timeZone)) return start < target && target <= end;
   return target > start || target <= end;
-}
-
-/** Tarjetas cuyo primer repaso fue hoy (día local): las nuevas que ya empezó hoy. */
-export function newStartedToday(logs: readonly ReviewLog[], now: number, timeZone: string): number {
-  const first = new Map<string, number>();
-  for (const log of logs) {
-    const at = first.get(log.cardId);
-    if (at === undefined || log.reviewedAt < at) first.set(log.cardId, log.reviewedAt);
-  }
-  const today = localDayNumber(now, timeZone);
-  return [...first.values()].filter((at) => localDayNumber(at, timeZone) === today).length;
 }
 
 /** Los temas con más tarjetas primero, hasta `max`. */

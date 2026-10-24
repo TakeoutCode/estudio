@@ -49,6 +49,29 @@ describe('TodayScreen', () => {
     expect(screen.getByRole('link', { name: 'Empezar' }).getAttribute('href')).toBe('/study');
   });
 
+  it('P1 por día: con el tope del día cumplido no ofrece más nuevas y lo dice sin presión', async () => {
+    await createNote({ deck: { name: 'Huesos' }, content });
+    const now = Date.now();
+    // Diez tarjetas que empezó hoy en otra sesión: el tope inicial (10) ya se cumplió.
+    await db.reviewLogs.bulkAdd(
+      Array.from({ length: 10 }, (_, i) => ({
+        id: `0192f1a0-0000-7000-8222-${String(i + 1).padStart(12, '0')}`,
+        cardId: `0192f1a0-0000-7000-8333-${String(i + 1).padStart(12, '0')}`,
+        cardKind: 'basic' as const,
+        reviewedAt: now - i,
+        rating: Rating.Good,
+        durationMs: 5_000,
+        type: 'learn' as const,
+        confidence: null,
+        sessionId: '0192f1a0-0000-7000-8000-00000000a001',
+        deviceId: '0192f1a0-0000-7000-8000-00000000d001',
+      })),
+    );
+    renderToday();
+    expect(await screen.findByText('Hoy ya empezaste 10 nuevas; las siguientes entran mañana.')).toBeTruthy();
+    expect(screen.queryByText(/nueva para aprender/)).toBeNull();
+  });
+
   it('un mazo en pausa no cuenta en Hoy y el enlace a mazos lo dice', async () => {
     await createNote({ deck: { name: 'Huesos' }, content });
     const paused = await createNote({ deck: { name: 'Nervios' }, content: { ...content, front: '¿Par I?' } });

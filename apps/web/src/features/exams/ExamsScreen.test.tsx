@@ -81,14 +81,12 @@ describe('exámenes (R11, LD11)', () => {
     expect(within(card).getByText('25 nuevas')).toBeTruthy();
   });
 
-  it('P1: si con el tope de nuevas por sesión no alcanza, lo dice sin alarma', async () => {
+  it('P1: si con el tope de nuevas por día no alcanza, lo dice sin alarma', async () => {
     const topicId = await topicWith(25);
     await createExam({ title: 'Parcial 1', date: startOfLocalDate('2026-10-22', TZ), topicIds: [topicId] });
     renderAt('/exams');
     const card = await screen.findByRole('region', { name: 'Parcial 1' });
-    expect(
-      within(card).getByText(/Con el tope de 10 nuevas por sesión, 5 tarjetas no alcanzan/),
-    ).toBeTruthy();
+    expect(within(card).getByText(/Con el tope de 10 nuevas por día, 5 tarjetas no alcanzan/)).toBeTruthy();
   });
 
   it('los exámenes pasados van aparte; sin próximos, invita a agregar uno', async () => {

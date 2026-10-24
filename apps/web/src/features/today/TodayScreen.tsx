@@ -51,7 +51,11 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
   return (
     <>
       {nothing ? (
-        <EmptyState message={t('today.empty')} />
+        <EmptyState
+          message={
+            plan.newCapReached ? t('study.notice.newCap', { count: plan.newStartedToday }) : t('today.empty')
+          }
+        />
       ) : (
         <section className="relative flex items-center gap-4 overflow-hidden rounded-(--radius-card) bg-linear-to-br from-blush from-10% to-surface to-60% p-5 shadow-card">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -59,6 +63,9 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
               {t('today.pending', { count: plan.due })}
             </p>
             {news > 0 ? <p className="m-0 text-muted">{t('today.newCards', { count: news })}</p> : null}
+            {plan.newCapReached ? (
+              <p className="m-0 text-muted">{t('study.notice.newCap', { count: plan.newStartedToday })}</p>
+            ) : null}
           </div>
           <span className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-surface text-bow shadow-card">
             <BowIcon className="w-13" />

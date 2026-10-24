@@ -15,7 +15,8 @@ import {
   TZ,
 } from '../test/planner-fixtures.js';
 import { backoffState, type DecideInput, decideNotification } from './decide.js';
-import { newStartedToday, reminderCandidates, reminderTimeCrossed } from './reminders.js';
+import { newStartedToday } from '../planner/history.js';
+import { reminderCandidates, reminderTimeCrossed } from './reminders.js';
 
 const prefs = NotificationPrefsSchema.parse({ enabled: true, dailyReminderTime: '19:00' });
 const at = (h: number, m = 0) => TODAY_START + h * HOUR + m * 60_000; // hora local en CDMX

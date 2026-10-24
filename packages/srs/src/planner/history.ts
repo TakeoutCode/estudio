@@ -61,6 +61,20 @@ export function sessionTiming(logs: readonly ReviewLog[], cfg: PlannerConfig): S
   };
 }
 
+/**
+ * P1: tarjetas cuyo primer repaso fue hoy (día local), en cualquier sesión: las nuevas que ya
+ * empezó hoy. El tope de nuevas cuenta por día con esto (LD §6).
+ */
+export function newStartedToday(logs: readonly ReviewLog[], now: number, timeZone: string): number {
+  const first = new Map<string, number>();
+  for (const log of logs) {
+    const at = first.get(log.cardId);
+    if (at === undefined || log.reviewedAt < at) first.set(log.cardId, log.reviewedAt);
+  }
+  const today = localDayNumber(now, timeZone);
+  return [...first.values()].filter((at) => localDayNumber(at, timeZone) === today).length;
+}
+
 export interface RetentionWindow {
   readonly reviews: number;
   readonly recalled: number;

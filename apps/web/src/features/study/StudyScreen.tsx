@@ -486,6 +486,9 @@ function PlanNotices({ plan }: { readonly plan: SessionPlan }) {
     <>
       {plan.newBlockedBy === 'overdue' ? <Banner>{t('study.notice.overdue')}</Banner> : null}
       {plan.newBlockedBy === 'low_retention' ? <Banner>{t('study.notice.lowRetention')}</Banner> : null}
+      {plan.newCapReached ? (
+        <Banner>{t('study.notice.newCap', { count: plan.newStartedToday })}</Banner>
+      ) : null}
       {plan.backlogSpreadDays ? (
         <Banner>{t('study.notice.spread', { days: plan.backlogSpreadDays })}</Banner>
       ) : null}

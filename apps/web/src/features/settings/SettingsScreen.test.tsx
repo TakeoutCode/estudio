@@ -155,7 +155,7 @@ describe('Ajustes · tarjetas nuevas (P1)', () => {
   it('P1: el tope de nuevas y los bloques planeados se editan dentro de sus rangos', async () => {
     renderSettings();
     const save = await screen.findByRole('button', { name: 'Guardar cambios' });
-    const cap = screen.getByLabelText('Nuevas por sesión (máx.)');
+    const cap = screen.getByLabelText('Nuevas por día (máx.)');
     expect((cap as HTMLInputElement).value).toBe('10');
     fireEvent.change(cap, { target: { value: '31' } });
     expect(screen.getByText('Escribe un número de 0 a 30.')).toBeTruthy();
