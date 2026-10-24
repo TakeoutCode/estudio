@@ -10,6 +10,7 @@ import {
   type StopReason,
 } from '@estudio/srs';
 import { create } from 'zustand';
+import { useSessionLock } from '@/lib/session-lock';
 
 // FRONTEND FE2: estado efímero de la sesión. La cola es una foto del plan al empezar (§3:
 // "al iniciar se arma la cola"); los datos de cada tarjeta se leen de Dexie.
@@ -220,3 +221,14 @@ export const useStudy = create<StudyState>()((set) => ({
     set(idle);
   },
 }));
+
+// FE6: la sesión retiene la actualización de la PWA desde que empieza hasta que ella la termina,
+// también tras "Salir": la cola y la tarjeta a medias viven solo aquí.
+let releaseLock: (() => void) | null = null;
+useStudy.subscribe((state) => {
+  if (state.session && !releaseLock) releaseLock = useSessionLock.getState().hold();
+  else if (!state.session && releaseLock) {
+    releaseLock();
+    releaseLock = null;
+  }
+});

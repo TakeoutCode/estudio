@@ -9,6 +9,7 @@ import { setDeckPaused } from '@/features/decks';
 import { createExam } from '@/features/exams';
 import { createNote, deleteNote, updateNote } from '@/features/notes';
 import { updateProfile, updateStudyConfig } from '@/features/settings';
+import { useSessionLock } from '@/lib/session-lock';
 import { saveSelfExplanation } from './commands';
 import { planSessionNow } from './queries';
 import { useStudy } from './store';
@@ -140,6 +141,26 @@ describe('StudyScreen (LEARNING-DESIGN §4)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
     await screen.findByText(femur.front);
     expect((await db.reviewLogs.toArray())[0]?.durationMs).toBe(6_000);
+  });
+
+  it('FE6: la sesión retiene la actualización de la PWA también tras "Salir", hasta terminarla', async () => {
+    render(
+      <MemoryRouter initialEntries={['/study']}>
+        <Routes>
+          <Route path="/study" element={<StudyScreen />} />
+          <Route path="/" element={<p>Hoy</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText(humerus.front);
+    expect(useSessionLock.getState().holders).toBe(1);
+    fireEvent.click(screen.getByRole('link', { name: 'Salir' }));
+    await screen.findByText('Hoy');
+    expect(useSessionLock.getState().holders).toBe(1); // la cola y la tarjeta a medias viven en memoria
+    act(() => {
+      useStudy.getState().end();
+    });
+    expect(useSessionLock.getState().holders).toBe(0);
   });
 
   it('FE12: Espacio revela y los números califican; ningún atajo salta el intento', async () => {

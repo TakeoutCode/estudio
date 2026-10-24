@@ -11,6 +11,7 @@ import { type SubmitEvent, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { OcclusionFigure } from '@/features/media';
+import { useHoldSessionLock } from '@/lib/session-lock';
 import { usePageVisibility } from '@/lib/use-page-visibility';
 import { EmptyState } from '@/ui/EmptyState';
 import { answerMockItem, gradeMockItem, NoMockQuestionsError, startMock } from './commands';
@@ -104,6 +105,8 @@ function MockHome({ view }: { readonly view: MockView }) {
 }
 
 function ActiveMock({ view, session }: { readonly view: MockView; readonly session: StudySession }) {
+  // FE6: con el simulacro en pantalla la PWA no se actualiza; fuera de ella, se retoma desde Dexie.
+  useHoldSessionLock(true);
   const total = session.items.length;
   const unanswered = session.items.findIndex((i) => i.confidence === null);
   const ungraded = session.items.findIndex((i) => i.correct === null);
