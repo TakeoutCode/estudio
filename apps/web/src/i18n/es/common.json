@@ -75,6 +75,11 @@
       "title": "Completaste esta sesión",
       "summary_one": "Respondiste {{count}} tarjeta.",
       "summary_other": "Respondiste {{count}} tarjetas.",
+      "activeTime": "Tiempo activo: {{duration}}.",
+      "activeTimeUnder": "Tiempo activo: menos de 1 min.",
+      "retention_one": "En los repasos de hoy recordaste {{recalled}} de {{count}}.",
+      "retention_other": "En los repasos de hoy recordaste {{recalled}} de {{count}}.",
+      "expected": "Con tu objetivo de {{target}}, olvidar algunas es lo esperado.",
       "bedtime": "Dormir también ayuda a consolidar lo estudiado.",
       "back": "Volver a Hoy"
     },

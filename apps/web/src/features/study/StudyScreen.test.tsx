@@ -99,6 +99,56 @@ describe('StudyScreen (LEARNING-DESIGN §4)', () => {
     expect(log?.sessionId).toBe(useStudy.getState().session?.id);
   });
 
+  it('§3: el resumen final da tarjetas, tiempo activo y retención del día, sin meta', async () => {
+    // Un repaso de hoy en otra sesión, olvidado: cuenta en la retención del día, no en el tiempo.
+    await db.reviewLogs.add({
+      id: '0192f1a0-0000-7000-8222-000000000999',
+      cardId: '0192f1a0-0000-7000-8333-000000000001',
+      cardKind: 'basic',
+      reviewedAt: T0 - 3_600_000,
+      rating: Rating.Again,
+      durationMs: 8_000,
+      type: 'review',
+      confidence: null,
+      sessionId: '0192f1a0-0000-7000-8000-00000000a0ff',
+      deviceId: '0192f1a0-0000-7000-8000-00000000d001',
+    });
+    renderStudy();
+    await screen.findByText(humerus.front);
+    vi.setSystemTime(T0 + 6_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fácil' }));
+    await screen.findByText(femur.front);
+    vi.setSystemTime(T0 + 66_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fácil' }));
+
+    expect(await screen.findByText('Completaste esta sesión')).toBeTruthy();
+    expect(screen.getByText('Respondiste 2 tarjetas.')).toBeTruthy();
+    expect(await screen.findByText('Tiempo activo: 1 min.')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'En los repasos de hoy recordaste 0 de 1. Con tu objetivo de 90 %, olvidar algunas es lo esperado.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('UX9: el resumen final no muestra las métricas que ella ocultó', async () => {
+    await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+    await updateStudyConfig((cfg) => ({
+      ...cfg,
+      metrics: { ...cfg.metrics, visible: { ...cfg.metrics.visible, activeTime: false } },
+    }));
+    renderStudy();
+    for (const card of [humerus, femur]) {
+      await screen.findByText(card.front);
+      fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Fácil' }));
+    }
+    expect(await screen.findByText('Respondiste 2 tarjetas.')).toBeTruthy();
+    expect(screen.queryByText(/Tiempo activo/)).toBeNull();
+  });
+
   it('R3: con la app en segundo plano o el teléfono bloqueado, ese tiempo no cuenta', async () => {
     let visibility: DocumentVisibilityState = 'visible';
     vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);

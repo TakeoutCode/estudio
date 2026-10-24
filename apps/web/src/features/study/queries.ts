@@ -1,6 +1,7 @@
 import {
   cardFaces,
   DAY_MS,
+  localDayBounds,
   type MinuteRange,
   type NoteContent,
   type PlannerConfig,
@@ -18,6 +19,8 @@ import {
   finalReviewQueue,
   type PlannerCard,
   type SessionPlan,
+  type SessionSummary,
+  sessionSummary,
 } from '@estudio/srs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readPlannerCards } from '@/db/planner-cards';
@@ -200,6 +203,30 @@ export const useSessionSignals = (sessionId: string, startedAt: number): Session
     ]);
     return { logs, blocks, profile, quietHours: prefs.quietHours, planner: config.planner };
   }, [sessionId, startedAt]);
+
+export interface SessionSummaryView {
+  readonly summary: SessionSummary;
+  /** UX9: el resumen respeta las métricas que ella ocultó. */
+  readonly visible: StudyConfig['metrics']['visible'];
+  readonly target: number;
+}
+
+/** §3: lo del resumen final de la sesión; `now` fija su día local. */
+export const useSessionSummary = (
+  sessionId: string,
+  startedAt: number,
+  now: number,
+): SessionSummaryView | undefined =>
+  useLiveQuery(async () => {
+    const [config, profile] = await Promise.all([readStudyConfig(db), readProfile(db)]);
+    const since = Math.min(startedAt, localDayBounds(now, profile.timeZone).start);
+    const logs = await db.reviewLogs.where('reviewedAt').aboveOrEqual(since).toArray();
+    return {
+      summary: sessionSummary(logs, sessionId, now, profile.timeZone, config.metrics),
+      visible: config.metrics.visible,
+      target: config.fsrs.requestRetention,
+    };
+  }, [sessionId, startedAt, now]);
 
 export interface StudyCardView {
   readonly cardId: string;

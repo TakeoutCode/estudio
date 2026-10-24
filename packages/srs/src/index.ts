@@ -5,6 +5,7 @@ export * from './exams/mock.js';
 export * from './exams/plan.js';
 export * from './gamification/summary.js';
 export * from './metrics/breaks.js';
+export * from './metrics/session.js';
 export * from './metrics/sleep.js';
 export * from './metrics/weekly.js';
 export * from './metrics/windows.js';

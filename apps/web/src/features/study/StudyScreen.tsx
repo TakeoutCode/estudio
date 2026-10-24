@@ -49,8 +49,10 @@ import {
   planExamReviewNow,
   planSessionNow,
   planTagNow,
+  type SessionSummaryView,
   useExplainedTopics,
   useQueueStates,
+  useSessionSummary,
   useStudyCard,
 } from './queries';
 import { type Attempt, scopeKey, type StudyScope, useStudy } from './store';
@@ -358,7 +360,9 @@ function Session({
       ) : null}
       <PlanNotices plan={plan} />
       {onBreak ? <BreakPanel session={timer.session} at={serverNow} /> : null}
-      {!onBreak && step.kind === 'done' ? <SessionDone bedtime={bedtime} /> : null}
+      {!onBreak && step.kind === 'done' ? (
+        <SessionDone bedtime={bedtime} sessionId={sessionId} startedAt={startedAt} />
+      ) : null}
       {!onBreak && step.kind === 'wait' ? <Waiting until={step.until} now={clock} /> : null}
       {!onBreak && introTopic ? (
         <TopicIntro
@@ -721,12 +725,25 @@ function Waiting({ until, now }: { readonly until: number; readonly now: number 
   );
 }
 
-/** §3: resumen final opcional y neutral. P6: si ya es su hora de dormir, lo dice sin presión. */
-function SessionDone({ bedtime }: { readonly bedtime: boolean }) {
+/**
+ * §3: resumen final opcional y neutral: tarjetas, tiempo activo y retención del día, sin meta
+ * (cada dato se oculta con su métrica, UX9). P6: si ya es su hora de dormir, lo dice sin presión.
+ */
+function SessionDone({
+  bedtime,
+  sessionId,
+  startedAt,
+}: {
+  readonly bedtime: boolean;
+  readonly sessionId: string;
+  readonly startedAt: number;
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const answered = useStudy((s) => s.answered);
   const end = useStudy((s) => s.end);
+  const [now] = useState(() => Date.now());
+  const view = useSessionSummary(sessionId, startedAt, now);
   // FE7: con una sesión completa, se pide guardado persistente (si ya lo tiene, no vuelve a pedir).
   useEffect(() => {
     void requestPersistentStorage();
@@ -736,6 +753,7 @@ function SessionDone({ bedtime }: { readonly bedtime: boolean }) {
       <section className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-5">
         <h2 className="m-0 text-title font-semibold">{t('study.done.title')}</h2>
         <p className="m-0">{t('study.done.summary', { count: answered })}</p>
+        {view ? <SummaryFacts view={view} /> : null}
         {bedtime ? <p className="m-0 text-muted">{t('study.done.bedtime')}</p> : null}
       </section>
       <ActionBar>
@@ -750,6 +768,37 @@ function SessionDone({ bedtime }: { readonly bedtime: boolean }) {
           {t('study.done.back')}
         </button>
       </ActionBar>
+    </>
+  );
+}
+
+/** §3, R21: tiempo activo y retención del día, como hechos; con 90 %, olvidar algunas es lo previsto (§5). */
+function SummaryFacts({ view }: { readonly view: SessionSummaryView }) {
+  const { t, i18n } = useTranslation();
+  const { activeMs, todayRetention } = view.summary;
+  const minutes = Math.round(activeMs / MINUTE_MS);
+  const duration =
+    minutes >= 60
+      ? t('dashboard.duration.hm', { h: Math.floor(minutes / 60), m: minutes % 60 })
+      : t('dashboard.duration.m', { m: minutes });
+  const target = new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 0 }).format(
+    view.target,
+  );
+  return (
+    <>
+      {view.visible.activeTime ? (
+        <p className="m-0">
+          {minutes < 1 ? t('study.done.activeTimeUnder') : t('study.done.activeTime', { duration })}
+        </p>
+      ) : null}
+      {view.visible.retention && todayRetention.total > 0 ? (
+        <p className="m-0">
+          {t('study.done.retention', { count: todayRetention.total, recalled: todayRetention.successes })}
+          {todayRetention.successes < todayRetention.total
+            ? ` ${t('study.done.expected', { target })}`
+            : null}
+        </p>
+      ) : null}
     </>
   );
 }
