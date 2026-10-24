@@ -682,6 +682,11 @@
       "askConfidence": "Pedir tu confianza antes de mostrar la respuesta",
       "askConfidenceHint": "Opcional. Con eso, Tu semana compara tu intuición con lo que pasó."
     },
+    "mocks": {
+      "title": "Simulacros",
+      "immediate": "Ver cada respuesta al momento",
+      "immediateHint": "Apagado, revisas todas al terminar el simulacro. La evidencia sobre cuándo conviene más es mixta; aplica al próximo que empieces."
+    },
     "metrics": {
       "title": "Métricas de Tu semana",
       "hint": "Oculta las que no quieras ver; tus repasos se siguen guardando igual.",

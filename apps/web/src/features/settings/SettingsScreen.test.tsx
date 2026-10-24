@@ -171,6 +171,19 @@ describe('Ajustes · tarjetas nuevas (P1)', () => {
   });
 });
 
+describe('Ajustes · simulacros (P7)', () => {
+  it('P7: la retroalimentación va al terminar por defecto y se puede pedir al momento', async () => {
+    renderSettings();
+    const immediate = await screen.findByRole('checkbox', { name: /Ver cada respuesta al momento/ });
+    expect((immediate as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(immediate);
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByText('Cambios guardados.')).toBeTruthy();
+    expect((await readStudyConfig(db)).exam.feedbackTiming).toBe('immediate');
+  });
+});
+
 describe('Ajustes · confianza y métricas (R6, UX9)', () => {
   it('R6, UX9: pedir confianza y ocultar una métrica se guardan con "Guardar cambios"', async () => {
     renderSettings();

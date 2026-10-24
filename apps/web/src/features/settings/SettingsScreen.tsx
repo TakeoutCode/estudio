@@ -43,10 +43,11 @@ const METRIC_KEYS = [
 type MetricKey = (typeof METRIC_KEYS)[number];
 
 /**
- * Ajustes de estudio: retención objetivo con su carga (R2, LD8), temporizador (R7), hora de
- * dormir (P6), confianza en repasos (R6) y métricas visibles (UX9). `children`: secciones de
- * otras features (avisos), que el router compone para que `settings` no dependa de ellas;
- * `end`: las que van al final (respaldo, borrar la cuenta).
+ * Ajustes de estudio: retención objetivo con su carga (R2, LD8), nuevas por sesión (P1),
+ * temporizador (R7), hora de dormir (P6), confianza en repasos (R6), retroalimentación de los
+ * simulacros (P7) y métricas visibles (UX9). `children`: secciones de otras features (avisos),
+ * que el router compone para que `settings` no dependa de ellas; `end`: las que van al final
+ * (respaldo, borrar la cuenta).
  */
 export function SettingsScreen({
   children,
@@ -89,6 +90,7 @@ function SettingsForm({
     sessionBlocksDefault: config.planner.sessionBlocksDefault,
   }));
   const [askConfidence, setAskConfidence] = useState(config.review.askConfidence);
+  const [mockImmediate, setMockImmediate] = useState(config.exam.feedbackTiming === 'immediate');
   const [visible, setVisible] = useState<Record<MetricKey, boolean>>(() => ({
     activeTime: config.metrics.visible.activeTime,
     retention: config.metrics.visible.retention,
@@ -111,6 +113,7 @@ function SettingsForm({
     TIMER_KEYS.some((key) => timer[key] !== config.timer[key]) ||
     PLANNER_KEYS.some((key) => planner[key] !== config.planner[key]) ||
     askConfidence !== config.review.askConfidence ||
+    mockImmediate !== (config.exam.feedbackTiming === 'immediate') ||
     METRIC_KEYS.some((key) => visible[key] !== config.metrics.visible[key]);
   const choose = (next: number) => {
     setPoints(Math.min(MAX_POINTS, Math.max(MIN_POINTS, next)));
@@ -140,6 +143,7 @@ function SettingsForm({
         cyclesBeforeLong: chosen('cyclesBeforeLong'),
       },
       review: { ...cfg.review, askConfidence },
+      exam: { ...cfg.exam, feedbackTiming: mockImmediate ? 'immediate' : 'end' },
       metrics: { ...cfg.metrics, visible: { ...cfg.metrics.visible, ...visible } },
     }))
       .then(() => {
@@ -285,6 +289,21 @@ function SettingsForm({
           checked={askConfidence}
           onChange={(checked) => {
             setAskConfidence(checked);
+            setStatus('idle');
+          }}
+        />
+      </section>
+
+      <section aria-labelledby={`${ids}-mocks`} className="flex flex-col gap-2">
+        <h2 id={`${ids}-mocks`} className="m-0 text-body font-semibold">
+          {t('settings.mocks.title')}
+        </h2>
+        <Toggle
+          label={t('settings.mocks.immediate')}
+          hint={t('settings.mocks.immediateHint')}
+          checked={mockImmediate}
+          onChange={(checked) => {
+            setMockImmediate(checked);
             setStatus('idle');
           }}
         />
