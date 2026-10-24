@@ -213,6 +213,22 @@ describe('sync contra Postgres real (SYNC.md)', () => {
     expect((await push(a.token, [fixed])).results[0]?.status).toBe('applied');
   });
 
+  it('SYNC §6: un borrado no exige que su padre siga existiendo (ya purgado); revivirlo sí', async () => {
+    const purgedDeck = newId(); // como un mazo borrado hace más de 90 días y ya purgado
+    const note = noteRow(now, NODE, purgedDeck, { deletedAt: now });
+    expect((await push(a.token, [upsert(note, 'note')])).results[0]?.status).toBe('applied');
+    const revived = {
+      ...note,
+      deletedAt: null,
+      hlc: hlcAt(now + 1_000, NODE),
+      updatedAt: now + 1_000,
+    };
+    expect((await push(a.token, [upsert(revived, 'note')])).results[0]).toMatchObject({
+      status: 'rejected',
+      code: 'not_found',
+    });
+  });
+
   it('mazo, nota, tarjeta y repaso creados sin red llegan en un solo lote y en orden', async () => {
     const deck = deckRow(now, NODE);
     const note = noteRow(now, NODE, deck.id);
