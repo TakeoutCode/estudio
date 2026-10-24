@@ -148,6 +148,25 @@ describe('simulacro (P7, LD13)', () => {
     expect(log).toMatchObject({ rating: Rating.Hard, confidence: 1 }); // acierto con poca confianza
   });
 
+  it('§5: con preguntas suficientes en el tema, su resultado dice la tendencia de su confianza', async () => {
+    await updateStudyConfig((c) => ({
+      ...c,
+      exam: { ...c.exam, feedbackTiming: 'immediate', topicMinItems: 3 },
+    }));
+    renderAt(`/exams/${examId}/mock`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Empezar simulacro' }));
+    // Mucha confianza en las tres y solo acierta una: confianza más alta que los aciertos.
+    for (const [i, hit] of [true, false, false].entries()) {
+      await screen.findByText(`Pregunta ${String(i + 1)} de 3`);
+      answer('Mucha');
+      fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+      fireEvent.click(await screen.findByRole('button', { name: hit ? 'Acerté' : 'No acerté' }));
+    }
+    const results = await screen.findByRole('region', { name: 'Resultado por tema' });
+    expect(within(results).getByText('confianza más alta que los aciertos')).toBeTruthy();
+    expect(within(results).queryByText('pocos datos')).toBeNull();
+  });
+
   it('R3: el tiempo con la app en segundo plano no cuenta en la duración de la pregunta', async () => {
     let visibility: DocumentVisibilityState = 'visible';
     vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);

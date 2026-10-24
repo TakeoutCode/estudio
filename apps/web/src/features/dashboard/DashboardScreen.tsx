@@ -313,13 +313,14 @@ function MockExams({ timeZone }: { readonly timeZone: string }) {
                     {t('mock.topicScore', { correct: topic.correct, count: topic.graded })}
                   </span>
                 </span>
-                {topic.fewData || topic.previous ? (
+                {topic.fewData || topic.previous || topic.calibration ? (
                   <span className="text-caption text-muted">
                     {[
                       topic.fewData ? t('mock.fewData') : null,
                       topic.previous
                         ? t('mock.before', { correct: topic.previous.correct, count: topic.previous.graded })
                         : null,
+                      topic.calibration ? t(`mock.topicCalibration.${topic.calibration}`) : null,
                     ]
                       .filter(Boolean)
                       .join(' · ')}

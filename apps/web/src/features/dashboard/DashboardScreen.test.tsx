@@ -188,7 +188,7 @@ describe('Tu semana · simulacros (§5, P7)', () => {
     expect(within(card).getByText(/Cuando termines un simulacro/)).toBeTruthy();
   });
 
-  it('el último de cada examen, por tema, con la tendencia frente al anterior y "pocos datos"', async () => {
+  it('el último de cada examen, por tema, con la tendencia frente al anterior, su calibración y "pocos datos"', async () => {
     await db.studySessions.bulkAdd([
       mock('0192f1a0-0000-7000-8888-000000000001', T0 - 7 * DAY, items(carpo, 6, 3)),
       mock('0192f1a0-0000-7000-8888-000000000002', T0 - DAY, [...items(carpo, 6, 5), ...items(hombro, 2, 1)]),
@@ -198,7 +198,8 @@ describe('Tu semana · simulacros (§5, P7)', () => {
     expect(within(card).getByText(/^Anatomía I · /)).toBeTruthy();
     expect(within(card).getByText('Acertaste 6 de 8 preguntas.')).toBeTruthy();
     const [first, second] = within(card).getAllByRole('listitem') as [HTMLElement, HTMLElement];
-    expect(first.textContent).toBe('Huesos del carpo5 de 6antes: 3 de 6');
+    // Confianza media (2) y 5 de 6: acertó más de lo que esperaba (§5, por tema).
+    expect(first.textContent).toBe('Huesos del carpo5 de 6antes: 3 de 6 · acertaste más de lo que esperabas');
     expect(second.textContent).toBe('Manguito rotador1 de 2pocos datos');
   });
 

@@ -94,8 +94,15 @@ describe('§5, LD13: resultado por tema', () => {
     const result = mockResults(items, null, cfg);
     expect(result).toMatchObject({ graded: 9, correct: 5 });
     expect(result.topics).toEqual([
-      { topicId: 'nervios', graded: 6, correct: 4, fewData: false, previous: null },
-      { topicId: 'huesos', graded: 3, correct: 1, fewData: true, previous: null },
+      {
+        topicId: 'nervios',
+        graded: 6,
+        correct: 4,
+        fewData: false,
+        previous: null,
+        calibration: 'over', // segura (3) con 4 de 6
+      },
+      { topicId: 'huesos', graded: 3, correct: 1, fewData: true, previous: null, calibration: null },
     ]);
     const strict = { ...cfg, exam: { ...cfg.exam, topicMinItems: 7 } };
     expect(mockResults(items, null, strict).topics[0]?.fewData).toBe(true);
@@ -111,6 +118,20 @@ describe('§5, LD13: resultado por tema', () => {
     expect(mockResults(items, null, cfg).calibration).toBeNull();
     const many = range(0, 20).map(() => item('nervios', 3, false));
     expect(mockResults(many, null, cfg).calibration?.tendency).toBe('over');
+  });
+
+  it('§5: calibración por tema desde `topicMinItems` preguntas, solo la tendencia', () => {
+    const sure = range(0, 5).map(() => item('nervios', 3, false)); // muy segura y falló
+    const doubtful = range(0, 5).map(() => item('huesos', 1, true)); // dudaba y acertó
+    const [nervios, huesos] = mockResults([...sure, ...doubtful], null, cfg).topics;
+    expect(nervios?.calibration).toBe('over');
+    expect(huesos?.calibration).toBe('under');
+    // Con un mínimo mayor, esos mismos temas quedan en "pocos datos" y sin calibración.
+    const strict = { ...cfg, exam: { ...cfg.exam, topicMinItems: 6 } };
+    expect(mockResults([...sure, ...doubtful], null, strict).topics.map((t) => t.calibration)).toEqual([
+      null,
+      null,
+    ]);
   });
 
   it('P7: un simulacro terminado cuenta para `mocksDue`; uno en curso no', () => {

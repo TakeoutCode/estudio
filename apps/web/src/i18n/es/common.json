@@ -816,6 +816,11 @@
       "over": "En este simulacro tu confianza fue más alta que tus aciertos.",
       "under": "En este simulacro acertaste más de lo que esperabas.",
       "aligned": "En este simulacro tu confianza y tus aciertos coincidieron bastante."
+    },
+    "topicCalibration": {
+      "over": "confianza más alta que los aciertos",
+      "under": "acertaste más de lo que esperabas",
+      "aligned": "confianza y aciertos coincidieron"
     }
   },
   "notifications": {

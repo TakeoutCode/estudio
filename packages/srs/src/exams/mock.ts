@@ -82,6 +82,12 @@ export interface TopicResult {
   readonly fewData: boolean;
   /** Tendencia (§5): el mismo tema en el simulacro anterior de este examen, si hubo. */
   readonly previous: { readonly graded: number; readonly correct: number } | null;
+  /**
+   * §5 "acierto y calibración por tema": la tendencia de su confianza en ese tema, desde
+   * `topicMinItems` preguntas (con menos, null: "pocos datos"). Con tan pocas respuestas la
+   * resolución sería ruido, así que solo se muestra la tendencia.
+   */
+  readonly calibration: Calibration['tendency'] | null;
 }
 
 export interface MockResult {
@@ -113,10 +119,13 @@ export function mockResults(
   const done = graded(items);
   const before = previousItems ? graded(previousItems) : [];
   const topicIds = [...new Set(done.map((i) => i.topicId))];
+  const inTopic = (list: readonly Graded[], topicId: string | null) =>
+    list.filter((i) => i.topicId === topicId);
   const tally = (list: readonly Graded[], topicId: string | null) => {
-    const inTopic = list.filter((i) => i.topicId === topicId);
-    return { graded: inTopic.length, correct: inTopic.filter((i) => i.correct).length };
+    const items = inTopic(list, topicId);
+    return { graded: items.length, correct: items.filter((i) => i.correct).length };
   };
+  const topicCalibration = { ...cfg.metrics, calibrationMinSamples: cfg.exam.topicMinItems };
   return {
     graded: done.length,
     correct: done.filter((i) => i.correct).length,
@@ -128,6 +137,7 @@ export function mockResults(
         ...now,
         fewData: now.graded < cfg.exam.topicMinItems,
         previous: prev.graded > 0 ? prev : null,
+        calibration: calibrationOf(inTopic(done, topicId), topicCalibration)?.tendency ?? null,
       };
     }),
     calibration: calibrationOf(done, cfg.metrics),

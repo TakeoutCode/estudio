@@ -346,6 +346,7 @@ function Results({
                 topic.previous
                   ? t('mock.before', { correct: topic.previous.correct, count: topic.previous.graded })
                   : null,
+                topic.calibration ? t(`mock.topicCalibration.${topic.calibration}`) : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}
