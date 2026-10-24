@@ -6,7 +6,7 @@ import { type ContrastGroupView, type ContrastOverview, useContrastOverview } fr
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
-const primaryLink = `inline-flex min-h-11 items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast ${focus}`;
+const primaryLink = `inline-flex min-h-11 items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy ${focus}`;
 
 /** STUDY-METHODS, fuentes [7] y [8]: la evidencia sobre intercalar es contradictoria (R20). */
 const SOURCES = [
@@ -28,7 +28,7 @@ export function ContrastScreen() {
         <Link className={textLink} to="/decks">
           {t('contrast.backToDecks')}
         </Link>
-        <h1 className="m-0 text-title font-semibold">{t('contrast.title')}</h1>
+        <h1 className="m-0 text-title font-extrabold">{t('contrast.title')}</h1>
       </header>
       <p className="m-0">{t('contrast.intro')}</p>
       <p className="m-0 text-caption text-muted">
@@ -86,7 +86,7 @@ function Comparison({ overview }: { readonly overview: ContrastOverview }) {
   return (
     <section
       aria-labelledby="contrast-ab"
-      className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-4"
+      className="flex flex-col gap-2 rounded-(--radius-card) bg-surface shadow-card p-4"
     >
       <h2 id="contrast-ab" className="m-0 text-body font-semibold">
         {t('contrast.comparison', { days: retentionMinDays })}
@@ -122,10 +122,10 @@ function GroupRow({ view }: { readonly view: ContrastGroupView }) {
   return (
     <li>
       <Link
-        className={`flex min-h-11 flex-col rounded-(--radius-card) bg-surface px-4 py-3 ${focus}`}
+        className={`flex min-h-11 flex-col rounded-(--radius-card) bg-surface shadow-card px-4 py-3 ${focus}`}
         to={`/contrast/${view.group.id}`}
       >
-        <span className="font-medium wrap-break-word">{view.group.name}</span>
+        <span className="font-bold wrap-break-word">{view.group.name}</span>
         <span className="text-caption text-muted">
           {t('contrast.members', { count: view.members.length })} ·{' '}
           {t(view.group.abArm === 'contrast' ? 'contrast.arm.contrast' : 'contrast.arm.control')}

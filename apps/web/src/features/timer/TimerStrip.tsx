@@ -3,6 +3,7 @@ import { activeMs, isPauseExpired, remainingMs, type TimerBlockRecord } from '@e
 import { type SubmitEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { updateStudyConfig } from '@/features/settings';
+import { ClockIcon } from '@/ui/icons';
 import { NumberField } from '@/ui/NumberField';
 import { dispatchTimer, recordManualMinutes, type TimerAction, type TimerResult } from './commands';
 import { formatClock } from './format';
@@ -12,9 +13,9 @@ const MINUTE_MS = 60_000;
 const MODES: readonly TimerMode[] = ['structured', 'flexible', 'free'];
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const action = `inline-flex min-h-11 items-center justify-center rounded-(--radius-card) px-3 text-primary ${focus}`;
-const strong = `inline-flex min-h-11 items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast ${focus}`;
-const choice = `min-h-11 rounded-(--radius-card) border px-3 text-text ${focus}`;
+const action = `press inline-flex min-h-11 items-center justify-center rounded-(--radius-card) px-3 font-bold text-primary ${focus}`;
+const strong = `inline-flex min-h-11 items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy ${focus}`;
+const choice = `min-h-11 rounded-(--radius-card) border-2 px-3 text-text ${focus}`;
 
 /**
  * El temporizador dentro del repaso (§3). Va bajo la barra superior y nunca tapa la tarjeta;
@@ -96,11 +97,12 @@ export function TimerStrip({
       <div>
         <button
           type="button"
-          className={`${action} -ml-3`}
+          className={`${action} gap-1.5 bg-blush pr-4 pl-3`}
           onClick={() => {
             setChoosing(true);
           }}
         >
+          <ClockIcon className="size-5" />
           {t('timer.start')}
         </button>
       </div>
@@ -215,7 +217,7 @@ function Row({
   readonly children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-2 rounded-(--radius-card) bg-surface py-1 pr-1 pl-4">
+    <div className="flex min-h-11 items-center justify-between gap-2 rounded-(--radius-card) bg-surface shadow-card py-1 pr-1 pl-4">
       <p className="m-0 flex items-baseline gap-2" aria-live="off">
         <span className="text-caption text-muted">{label}</span>
         {clock ? <span className="font-semibold tabular-nums">{clock}</span> : null}
@@ -283,7 +285,10 @@ function TimerStart({
     });
   };
   return (
-    <form className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-4" onSubmit={submit}>
+    <form
+      className="flex flex-col gap-4 rounded-(--radius-card) bg-surface shadow-card p-4"
+      onSubmit={submit}
+    >
       <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
         <legend className="mb-2 font-semibold">{t('timer.modeLabel')}</legend>
         {MODES.map((value) => (
@@ -316,7 +321,7 @@ function TimerStart({
                 key={preset.id}
                 type="button"
                 aria-pressed={selected}
-                className={`${choice} ${selected ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
+                className={`${choice} ${selected ? 'border-primary bg-primary/20' : 'border-line-strong'}`}
                 onClick={() => {
                   setCustom(false);
                   setRhythm({ focusMin: preset.focusMin, restMin: preset.shortBreakMin });
@@ -329,7 +334,7 @@ function TimerStart({
           <button
             type="button"
             aria-pressed={custom}
-            className={`${choice} ${custom ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
+            className={`${choice} ${custom ? 'border-primary bg-primary/20' : 'border-line-strong'}`}
             onClick={() => {
               setCustom(true);
             }}
@@ -399,7 +404,7 @@ export function AwayPrompt({
       });
   };
   return (
-    <section role="status" className="flex flex-col gap-3 rounded-(--radius-card) bg-surface p-4">
+    <section role="status" className="flex flex-col gap-3 rounded-(--radius-card) bg-surface shadow-card p-4">
       <p className="m-0">
         {t('timer.away.title')} {t('timer.away.question')}
       </p>
@@ -408,7 +413,7 @@ export function AwayPrompt({
           <label className="flex flex-col gap-1">
             <span>{t('timer.away.minutes')}</span>
             <input
-              className={`min-h-11 rounded-(--radius-card) border border-muted/40 bg-bg px-4 ${focus}`}
+              className={`min-h-11 rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 ${focus}`}
               inputMode="numeric"
               enterKeyHint="done"
               value={minutes}
@@ -428,7 +433,7 @@ export function AwayPrompt({
         </form>
       ) : (
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" className={`${action} border border-muted/40`} onClick={onDone}>
+          <button type="button" className={`${action} border-2 border-line-strong`} onClick={onDone}>
             {t('timer.away.no')}
           </button>
           <button

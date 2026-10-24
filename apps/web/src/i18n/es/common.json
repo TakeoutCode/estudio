@@ -1,9 +1,14 @@
 {
   "app": {
-    "name": "Estudio"
+    "name": "Estudio",
+    "tagline": "Repaso espaciado y práctica para tus exámenes"
+  },
+  "nav": {
+    "label": "Secciones"
   },
   "today": {
     "title": "Hoy",
+    "greeting": "Qué bueno verte",
     "empty": "No hay tarjetas pendientes. Puedes añadir nuevas o descansar.",
     "pending_zero": "Hoy no hay repasos pendientes",
     "pending_one": "Tienes {{count}} pendiente",
@@ -324,7 +329,6 @@
   },
   "exams": {
     "title": "Exámenes",
-    "back": "Volver",
     "new": "Nuevo examen",
     "newTitle": "Nuevo examen",
     "editTitle": "Editar examen",
@@ -565,7 +569,6 @@
   },
   "dashboard": {
     "title": "Tu semana",
-    "back": "Volver",
     "intro": "Últimos 7 días, comparados con tus semanas anteriores.",
     "fewData": "Pocos datos todavía. Las métricas aparecen cuando tengas {{min}} repasos o más; con menos cambian mucho de un día a otro.",
     "failed": "No se pudo calcular el resumen. Tus repasos siguen guardados.",
@@ -628,7 +631,6 @@
   },
   "settings": {
     "title": "Ajustes",
-    "back": "Volver",
     "save": "Guardar cambios",
     "saved": "Cambios guardados.",
     "saveFailed": "No se pudieron guardar los cambios. Lo que tenías sigue igual; intenta de nuevo.",

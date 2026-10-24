@@ -51,7 +51,7 @@ export function UpdatePrompt() {
   ) : (
     <button
       type="button"
-      className="min-h-11 rounded-(--radius-card) bg-primary px-4 text-primary-contrast"
+      className="min-h-11 rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy"
       onClick={apply}
     >
       {t('update.apply')}

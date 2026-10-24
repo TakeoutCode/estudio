@@ -14,7 +14,7 @@ import {
 import { useAtOpen } from './store';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const choice = `min-h-11 rounded-(--radius-card) border border-muted/40 px-2 text-primary disabled:opacity-60 ${focus}`;
+const choice = `min-h-11 rounded-(--radius-card) border-2 border-line-strong px-2 text-primary disabled:opacity-60 ${focus}`;
 
 /** El SW abre `/?aviso=<id>` (NOTIFICATIONS NT7). */
 const AVISO_PARAM = 'aviso';
@@ -84,7 +84,10 @@ function BackoffQuestion({ everyDays }: { readonly everyDays: number }) {
   };
 
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-3 rounded-(--radius-card) bg-surface p-4">
+    <section
+      aria-labelledby={id}
+      className="flex flex-col gap-3 rounded-(--radius-card) bg-surface shadow-card p-4"
+    >
       <h2 id={id} className="m-0 text-body font-semibold">
         {t('notifications.backoff.question')}
       </h2>

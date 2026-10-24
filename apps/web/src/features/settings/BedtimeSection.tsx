@@ -5,7 +5,7 @@ import { updateProfile } from './commands';
 import { useNotificationPrefs, useProfile } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const timeInput = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-body tabular-nums ${focus}`;
+const timeInput = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-3 text-body tabular-nums ${focus}`;
 const quiet = `-ml-3 inline-flex min-h-11 items-center self-start px-3 text-primary ${focus}`;
 
 /**

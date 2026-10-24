@@ -31,6 +31,7 @@ import { usePageVisibility } from '@/lib/use-page-visibility';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
+import { ChevronLeftIcon } from '@/ui/icons';
 import {
   allowedRatings,
   AttemptControls,
@@ -64,8 +65,8 @@ import { useStudyShortcuts } from './use-study-shortcuts';
 const MINUTE_MS = 60_000;
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
-const secondary = `inline-flex min-h-11 w-full items-center justify-center rounded-(--radius-card) border border-muted/40 px-4 text-primary ${focus}`;
+const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
+const secondary = `inline-flex min-h-11 w-full items-center justify-center rounded-(--radius-card) border-2 border-line-strong px-4 text-primary ${focus}`;
 
 /**
  * Sesión de repaso: intento → respuesta y explicación → calificación (LD §4; R1, R3, R4).
@@ -196,18 +197,31 @@ function StudyHeader({ done, total }: { readonly done?: number; readonly total?:
       : (scope === 'deck' || scope === 'tag') && scopeName
         ? scopeName
         : t('study.title');
+  const progress = done !== undefined && total !== undefined && total > 0;
   return (
-    <header className="flex min-h-11 items-center justify-between gap-3">
-      <Link
-        className={`-ml-2 inline-flex min-h-11 min-w-11 items-center px-2 text-primary ${focus}`}
-        to={scope === 'deck' ? '/decks' : scope === 'tag' ? '/tags' : '/'}
-      >
-        {t('study.exit')}
-      </Link>
-      <h1 className="m-0 min-w-0 truncate text-body font-semibold">{title}</h1>
-      <span className="min-w-11 text-right text-caption text-muted">
-        {done !== undefined && total !== undefined ? t('study.progress', { done, total }) : null}
-      </span>
+    <header className="flex flex-col gap-2">
+      <div className="flex min-h-11 items-center justify-between gap-3">
+        <Link
+          className={`press -ml-1 inline-flex min-h-11 min-w-11 items-center gap-0.5 rounded-(--radius-card) bg-surface pr-3 pl-1.5 font-bold text-primary shadow-card ${focus}`}
+          to={scope === 'deck' ? '/decks' : scope === 'tag' ? '/tags' : '/'}
+        >
+          <ChevronLeftIcon className="size-5" />
+          {t('study.exit')}
+        </Link>
+        <h1 className="m-0 min-w-0 truncate text-body font-extrabold">{title}</h1>
+        <span className="min-w-11 text-right text-caption font-bold text-muted">
+          {progress ? t('study.progress', { done, total }) : null}
+        </span>
+      </div>
+      {/* El mismo dato que "n de m", como dibujo: sin meta ni urgencia (§5). */}
+      {progress ? (
+        <div aria-hidden="true" className="h-2.5 overflow-hidden rounded-full bg-blush">
+          <div
+            className="h-full rounded-full bg-bow transition-[width] duration-250 ease-out"
+            style={{ width: `${String(Math.round((done / total) * 100))}%` }}
+          />
+        </div>
+      ) : null}
     </header>
   );
 }
@@ -753,7 +767,7 @@ function Waiting({ until, now }: { readonly until: number; readonly now: number 
   const minutes = Math.max(1, Math.ceil((until - now) / MINUTE_MS));
   return (
     <>
-      <section className="rounded-(--radius-card) bg-surface p-5">
+      <section className="rounded-(--radius-card) bg-surface shadow-card p-5">
         <p className="m-0">{t('study.waiting', { minutes })}</p>
       </section>
       <ActionBar>
@@ -797,8 +811,8 @@ function SessionDone({
   }, []);
   return (
     <>
-      <section className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-5">
-        <h2 className="m-0 text-title font-semibold">{t('study.done.title')}</h2>
+      <section className="flex flex-col gap-2 rounded-(--radius-card) bg-surface shadow-card p-5">
+        <h2 className="m-0 text-title font-extrabold">{t('study.done.title')}</h2>
         <p className="m-0">{t('study.done.summary', { count: answered })}</p>
         {view ? <SummaryFacts view={view} /> : null}
         {bedtime ? <p className="m-0 text-muted">{t('study.done.bedtime')}</p> : null}

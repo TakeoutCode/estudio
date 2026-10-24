@@ -7,10 +7,10 @@ import { deleteTopic, updateTopic } from './commands';
 import { useTopic } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
+const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
 // UX2: como en el editor de notas, guardar va al final del formulario y no en una barra fija,
 // para que con el teclado abierto en iOS no quede tapado.
-const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
+const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
 
 /** LD5, R5: el tema y la explicación que se muestra antes de su primera tarjeta nueva. */
 export function TopicScreen() {
@@ -83,7 +83,7 @@ function TopicForm({ topic }: { readonly topic: Topic }) {
         >
           {t('notes.backToDeck')}
         </Link>
-        <h1 className="m-0 text-title font-semibold">{t('topics.title')}</h1>
+        <h1 className="m-0 text-title font-extrabold">{t('topics.title')}</h1>
       </header>
       <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
         <label className="flex flex-col gap-1">
@@ -141,7 +141,7 @@ function TopicForm({ topic }: { readonly topic: Topic }) {
           </p>
           <button
             type="button"
-            className={`min-h-11 w-full rounded-(--radius-card) border border-danger px-4 font-medium text-danger disabled:opacity-60 ${focus}`}
+            className={`min-h-11 w-full rounded-(--radius-card) border-2 border-danger px-4 font-bold text-danger disabled:opacity-60 ${focus}`}
             disabled={busy}
             onClick={() => {
               setBusy(true);

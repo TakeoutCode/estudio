@@ -12,6 +12,7 @@ import { lazy, type SubmitEvent, Suspense, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { moved, OrderList } from '@/features/exercises';
 import { LabelFigure, OcclusionFigure } from '@/features/media';
+import { BowIcon } from '@/ui/icons';
 import { RatingButton } from '@/ui/RatingButton';
 import type { StudyCardView } from './queries';
 import { type Attempt, type CardPhase, type ExerciseWork, useStudy } from './store';
@@ -33,7 +34,7 @@ const JUSTIFIED_RATINGS = [Rating.Hard, Rating.Good] as const;
 const LETTERS = 'abcde';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
+const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
 
 /** R1: en estas el intento es recordar y "Mostrar" (o tocar la etiqueta oculta). */
 export const revealsDirectly = (card: StudyCardView): boolean =>
@@ -125,7 +126,8 @@ export function CardBody({
   const revealed = phase === 'revealed';
   const { content } = card;
   return (
-    <article className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5">
+    <article className="relative mt-3 flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5 pt-7 shadow-card">
+      <BowIcon className="absolute -top-4 left-1/2 w-14 -translate-x-1/2 text-bow" />
       {content.kind === 'image_occlusion' ? (
         <>
           <p className="m-0 text-card whitespace-pre-wrap">{content.prompt}</p>
@@ -143,11 +145,11 @@ export function CardBody({
             segment.kind === 'text' ? (
               <span key={i}>{segment.text}</span>
             ) : revealed ? (
-              <mark key={i} className="bg-primary/20 px-1 font-semibold text-text">
+              <mark key={i} className="rounded-lg bg-primary/20 px-1 font-semibold text-text">
                 {segment.answer}
               </mark>
             ) : (
-              <span key={i} className="border border-dashed border-muted px-1 text-muted">
+              <span key={i} className="rounded-lg border-2 border-dashed border-line-strong px-1 text-muted">
                 {segment.hint ?? '…'}
               </span>
             ),
@@ -185,7 +187,7 @@ export function CardBody({
       ) : null}
       <div aria-live="polite">
         {revealed ? (
-          <section className="flex flex-col gap-2 border-t border-muted/30 pt-4">
+          <section className="flex flex-col gap-2 border-t-2 border-dashed border-line pt-4">
             {attempt?.kind === 'typed' ? <TypedResult attempt={attempt} answer={card.answer} /> : null}
             {attempt?.kind === 'choice' ? (
               <p className="m-0 font-semibold">
@@ -272,7 +274,7 @@ function SequenceBoard({ card, disabled }: { readonly card: StudyCardView; reado
   );
 }
 
-const select = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-body text-text disabled:opacity-60 ${focus}`;
+const select = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-3 text-body text-text disabled:opacity-60 ${focus}`;
 
 /**
  * LD §2: cada elemento de la columna A con un selector de la B, mezclada con semilla (R1). Un
@@ -295,7 +297,7 @@ function MatchingBoard({ card, disabled }: { readonly card: StudyCardView; reado
       {pairs.map((pair, i) => (
         <li key={pair.left}>
           <label className="flex flex-col gap-1">
-            <span className="font-medium">{pair.left}</span>
+            <span className="font-bold">{pair.left}</span>
             <select
               className={select}
               value={picks[i] ?? ''}
@@ -379,7 +381,10 @@ function CaseHeader({ card }: { readonly card: StudyCardView }) {
   const found = clinicalQuestion(card.content, card.ordinal);
   return (
     <>
-      <section aria-label={t('study.case.vignette')} className="flex flex-col gap-1">
+      <section
+        aria-label={t('study.case.vignette')}
+        className="flex flex-col gap-1 rounded-(--radius-card) bg-blush p-4"
+      >
         <h2 className="m-0 text-caption font-normal text-muted">{t('study.case.vignette')}</h2>
         <p className="m-0 whitespace-pre-wrap">{card.content.vignette}</p>
       </section>
@@ -422,7 +427,7 @@ function CaseOptions({
   );
 }
 
-const labelInput = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-body text-text disabled:opacity-60 ${focus}`;
+const labelInput = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-3 text-body text-text disabled:opacity-60 ${focus}`;
 
 /**
  * LD §2 (`label_image`): la imagen tapada y un campo por número. Sin autocorrector: la
@@ -449,7 +454,10 @@ function LabelBoard({
         <ol aria-label={t('study.labels.board')} className="m-0 flex list-none flex-col gap-2 p-0">
           {answers.map((answer, i) => (
             <li key={i} className="flex items-center gap-3">
-              <span className="w-6 shrink-0 text-right font-semibold tabular-nums" aria-hidden="true">
+              <span
+                className="flex size-7 shrink-0 items-center justify-center rounded-full bg-blush text-caption font-bold text-primary tabular-nums"
+                aria-hidden="true"
+              >
                 {i + 1}
               </span>
               <input
@@ -499,7 +507,9 @@ function LabelResult({
       <ol className="m-0 flex list-none flex-col gap-2 p-0">
         {labels.map((label, i) => (
           <li key={label.n} className="flex items-baseline gap-3">
-            <span className="w-6 shrink-0 text-right font-semibold tabular-nums">{i + 1}</span>
+            <span className="flex size-7 shrink-0 items-center justify-center self-start rounded-full bg-blush text-caption font-bold text-primary tabular-nums">
+              {i + 1}
+            </span>
             <span className="flex flex-col">
               <span className="text-card">{label.label}</span>
               <span className="text-caption text-muted">
@@ -627,7 +637,7 @@ function Options({
               type="button"
               disabled={disabled}
               aria-pressed={isChosen}
-              className={`flex min-h-12 w-full items-center gap-3 rounded-(--radius-card) border px-4 text-left text-text ${isCorrect ? 'border-primary bg-primary/20' : 'border-muted/40 bg-bg'} disabled:cursor-default ${focus}`}
+              className={`flex min-h-12 w-full items-center gap-3 rounded-(--radius-card) border-2 px-4 text-left text-text ${isCorrect ? 'border-primary bg-primary/20' : 'border-line-strong bg-bg'} disabled:cursor-default ${focus}`}
               onClick={() => {
                 onChoose(i);
               }}
@@ -753,7 +763,7 @@ function ConfidencePicker({ onPick }: { readonly onPick: (confidence: Confidence
           <button
             key={level}
             type="button"
-            className={`min-h-14 rounded-(--radius-card) bg-primary/20 px-2 font-medium text-text ${focus}`}
+            className={`min-h-14 rounded-(--radius-card) bg-primary/20 px-2 font-bold text-text ${focus}`}
             onClick={() => {
               onPick(level);
             }}
@@ -782,7 +792,7 @@ function TypedAttempt({ onSubmit }: { readonly onSubmit: (text: string) => void 
       </label>
       <input
         id={id}
-        className={`min-h-11 w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 text-body ${focus}`}
+        className={`min-h-11 w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 text-body ${focus}`}
         autoCapitalize="off"
         autoCorrect="off"
         autoComplete="off"
@@ -800,7 +810,7 @@ function TypedAttempt({ onSubmit }: { readonly onSubmit: (text: string) => void 
   );
 }
 
-const textArea = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-body ${focus}`;
+const textArea = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-body ${focus}`;
 
 /**
  * LD §2: elegir verdadero o falso y justificar; las dos cosas son el intento (R1). Comprobar
@@ -828,7 +838,7 @@ function VerdictAttempt({
             key={String(value)}
             type="button"
             aria-pressed={verdict === value}
-            className={`min-h-12 rounded-(--radius-card) border px-3 font-medium ${verdict === value ? 'border-primary bg-primary/20 text-text' : 'border-muted/40 text-primary'} ${focus}`}
+            className={`min-h-12 rounded-(--radius-card) border-2 px-3 font-bold ${verdict === value ? 'border-primary bg-primary/20 text-text' : 'border-line-strong text-primary'} ${focus}`}
             onClick={() => {
               setVerdict(value);
             }}
@@ -915,7 +925,7 @@ export function RatingControls({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            className={`min-h-14 rounded-(--radius-card) bg-primary/20 px-2 font-medium text-text disabled:opacity-60 ${focus}`}
+            className={`min-h-14 rounded-(--radius-card) bg-primary/20 px-2 font-bold text-text disabled:opacity-60 ${focus}`}
             disabled={busy}
             onClick={() => {
               judge('weak');
@@ -925,7 +935,7 @@ export function RatingControls({
           </button>
           <button
             type="button"
-            className={`min-h-14 rounded-(--radius-card) bg-primary px-2 font-medium text-primary-contrast disabled:opacity-60 ${focus}`}
+            className={`min-h-14 rounded-(--radius-card) bg-primary px-2 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`}
             disabled={busy}
             onClick={() => {
               judge('sufficient');

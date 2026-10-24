@@ -1,37 +1,74 @@
-/* Design tokens (UI-UX UX1). Los componentes usan solo estos nombres, nunca valores literales. */
+/*
+ * Design tokens (UI-UX UX1). Los componentes usan solo estos nombres, nunca valores literales.
+ * Tema "lazo": blanco con rosa, formas redondeadas y sombras suaves. Contraste AA verificado en
+ * ambos temas (UX4): texto ≥ 4.5:1 sobre bg, surface y blush; `line-strong` ≥ 3:1 (controles).
+ */
 @theme {
-  --color-bg: oklch(0.99 0 0);
-  --color-surface: oklch(0.97 0.005 250);
-  --color-text: oklch(0.22 0.02 250);
-  --color-muted: oklch(0.48 0.02 250);
-  --color-primary: oklch(0.52 0.15 250);
-  --color-primary-contrast: oklch(0.99 0 0);
-  --color-success: oklch(0.58 0.12 155);
+  --color-bg: oklch(1 0 0);
+  --color-surface: oklch(1 0 0);
+  /* Rosa muy suave para paneles destacados, chips y el fondo de los avisos. */
+  --color-blush: oklch(0.975 0.018 355);
+  --color-text: oklch(0.3 0.05 350);
+  --color-muted: oklch(0.5 0.05 350);
+  --color-primary: oklch(0.555 0.195 358);
+  --color-primary-contrast: oklch(1 0 0);
+  /* La sombra sólida de los botones primarios. */
+  --color-primary-deep: oklch(0.45 0.17 358);
+  /* Bordes decorativos de tarjetas y separadores; nunca la única señal de un control. */
+  --color-line: oklch(0.93 0.025 355);
+  /* Borde de campos y botones secundarios: 3:1 contra bg y surface (UX4). */
+  --color-line-strong: oklch(0.67 0.14 357);
+  /* Solo adornos (lazos, lunares, corazones); nunca texto. */
+  --color-bow: oklch(0.7 0.17 358);
+  --color-dot: oklch(0.95 0.025 355);
+  --color-glow: oklch(0.55 0.08 355 / 0.16);
+  /* Brillo de los adornos; igual en ambos temas. */
+  --color-shine: oklch(1 0 0 / 0.6);
+  --color-shine-soft: oklch(1 0 0 / 0.22);
+  --color-success: oklch(0.55 0.1 170);
   /* Avisos suaves; nunca para la carga ni para los fallos (§5, R19). */
-  --color-attention: oklch(0.72 0.12 75);
-  /* Solo acciones destructivas (borrar). */
-  --color-danger: oklch(0.55 0.19 25);
+  --color-attention: oklch(0.75 0.13 80);
+  /* Solo acciones destructivas (borrar). Más anaranjado que el primario para no confundirse. */
+  --color-danger: oklch(0.55 0.19 30);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans:
+    'Nunito Variable', ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
+  /* Etiquetas de la barra de pestañas. */
+  --text-micro: 0.75rem;
   --text-caption: 0.8125rem;
   --text-body: 1rem;
   --text-card: 1.25rem;
   --text-title: 1.5rem;
   --text-display: 1.875rem;
-  --radius-card: 1rem;
+  --radius-card: 1.5rem;
   --spacing: 0.25rem;
+
+  --shadow-card: 0 0 0 1.5px var(--color-line), 0 8px 20px -12px var(--color-glow);
+  --shadow-candy:
+    inset 0 2px 0 0 var(--color-shine-soft), 0 4px 0 0 var(--color-primary-deep),
+    0 10px 18px -10px var(--color-glow);
+  --shadow-candy-pressed: inset 0 2px 0 0 var(--color-shine-soft), 0 1px 0 0 var(--color-primary-deep);
+  --shadow-bar: 0 0 0 1.5px var(--color-line), 0 10px 30px -10px var(--color-glow);
 }
 
 @layer base {
   [data-theme='dark'] {
-    --color-bg: oklch(0.17 0.01 250);
-    --color-surface: oklch(0.22 0.01 250);
-    --color-text: oklch(0.94 0.01 250);
-    --color-muted: oklch(0.72 0.01 250);
-    --color-primary: oklch(0.7 0.13 250);
-    --color-primary-contrast: oklch(0.17 0.01 250);
-    --color-success: oklch(0.72 0.12 155);
-    --color-attention: oklch(0.8 0.11 75);
-    --color-danger: oklch(0.68 0.17 25);
+    --color-bg: oklch(0.19 0.03 345);
+    --color-surface: oklch(0.24 0.035 345);
+    --color-blush: oklch(0.28 0.05 350);
+    --color-text: oklch(0.95 0.015 350);
+    --color-muted: oklch(0.77 0.04 350);
+    --color-primary: oklch(0.8 0.12 355);
+    --color-primary-contrast: oklch(0.2 0.04 350);
+    --color-primary-deep: oklch(0.6 0.13 355);
+    --color-line: oklch(0.33 0.05 350);
+    --color-line-strong: oklch(0.56 0.1 355);
+    --color-bow: oklch(0.75 0.14 358);
+    --color-dot: oklch(0.25 0.04 345);
+    --color-glow: oklch(0.08 0.03 345 / 0.6);
+    --color-success: oklch(0.75 0.1 170);
+    --color-attention: oklch(0.8 0.11 80);
+    --color-danger: oklch(0.7 0.16 30);
   }
 }

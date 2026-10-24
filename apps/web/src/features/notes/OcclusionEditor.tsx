@@ -28,8 +28,8 @@ export type EditorPicture =
   | { readonly kind: 'file'; readonly url: string; readonly width: number; readonly height: number };
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
-const choiceButton = `min-h-11 rounded-(--radius-card) border px-3 text-text ${focus}`;
+const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
+const choiceButton = `min-h-11 rounded-(--radius-card) border-2 px-3 text-text ${focus}`;
 
 /** En el editor la imagen ocupa el ancho de la pantalla (390 px en el iPhone, UX2). */
 const EDITOR_IMAGE_WIDTH = 600;
@@ -230,7 +230,7 @@ export function OcclusionEditor({
         <button
           type="button"
           aria-pressed={drawing}
-          className={`${choiceButton} ${drawing ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
+          className={`${choiceButton} ${drawing ? 'border-primary bg-primary/20' : 'border-line-strong'}`}
           onClick={() => {
             setDrawing(!drawing);
           }}
@@ -239,7 +239,7 @@ export function OcclusionEditor({
         </button>
         <button
           type="button"
-          className={`${choiceButton} border-muted/40`}
+          className={`${choiceButton} border-line-strong`}
           onClick={() => {
             add();
           }}
@@ -249,7 +249,7 @@ export function OcclusionEditor({
         {selected ? (
           <button
             type="button"
-            className={`${choiceButton} border-muted/40`}
+            className={`${choiceButton} border-line-strong`}
             onClick={() => {
               onGroups(removeRect(groups, selected));
               setSelected(null);
@@ -345,7 +345,7 @@ function Picture({ picture, children }: { readonly picture: EditorPicture; reado
   }
   return (
     <div
-      className="relative w-full overflow-hidden rounded-(--radius-card) border border-muted/40 bg-surface select-none"
+      className="relative w-full overflow-hidden rounded-(--radius-card) border-2 border-line-strong bg-surface select-none"
       style={{ aspectRatio: `${String(picture.width)} / ${String(picture.height)}` }}
     >
       <img

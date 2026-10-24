@@ -7,7 +7,7 @@ import { useUiSettings } from './queries';
 const THEMES = ['system', 'light', 'dark'] as const satisfies readonly UiSettings['theme'][];
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const choice = `min-h-11 rounded-(--radius-card) border px-2 text-text ${focus}`;
+const choice = `min-h-11 rounded-(--radius-card) border-2 px-2 text-text ${focus}`;
 
 /**
  * UX5: Sistema (por defecto), Claro u Oscuro. Se aplica y se guarda al tocarlo, para verlo de
@@ -29,7 +29,7 @@ export function ThemeSection() {
             key={theme}
             type="button"
             aria-pressed={current === theme}
-            className={`${choice} ${current === theme ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
+            className={`${choice} ${current === theme ? 'border-primary bg-primary/20' : 'border-line-strong'}`}
             onClick={() => {
               setFailed(false);
               updateUiSettings((ui) => ({ ...ui, theme })).catch(() => {

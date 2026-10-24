@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next';
 // una escala de primario. La etiqueta siempre acompaña al color (UX4).
 
 const STYLE: Record<Rating, string> = {
-  [Rating.Again]: 'border border-muted/40 bg-surface text-text',
-  [Rating.Hard]: 'bg-primary/20 text-text',
-  [Rating.Good]: 'bg-primary text-primary-contrast',
-  [Rating.Easy]: 'bg-primary/40 text-text',
+  [Rating.Again]: 'press border-2 border-muted/50 bg-surface text-text',
+  [Rating.Hard]: 'press bg-blush text-text shadow-card',
+  [Rating.Good]: 'candy bg-primary text-primary-contrast',
+  [Rating.Easy]: 'press bg-primary/20 text-text',
 };
 
 const LABEL = {
@@ -31,7 +31,7 @@ export function RatingButton({
   return (
     <button
       type="button"
-      className={`min-h-14 rounded-(--radius-card) px-1 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 ${STYLE[rating]}`}
+      className={`min-h-14 rounded-(--radius-card) px-1 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 ${STYLE[rating]}`}
       aria-keyshortcuts={String(rating)}
       disabled={disabled}
       onClick={() => {

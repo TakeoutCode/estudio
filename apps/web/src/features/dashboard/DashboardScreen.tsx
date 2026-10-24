@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useTodayPlan } from '@/features/study';
 import { EmptyState } from '@/ui/EmptyState';
+import { PageHeader } from '@/ui/PageHeader';
 import { useWeeklyMetrics } from './use-weekly-metrics';
 import { useMockSummaries } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const link = `inline-flex min-h-11 items-center px-2 text-primary ${focus}`;
+const link = `inline-flex min-h-11 items-center px-2 font-bold text-primary ${focus}`;
 const MINUTE_MS = 60_000;
 
 /**
@@ -22,13 +23,7 @@ export function DashboardScreen() {
   const view = useWeeklyMetrics();
   return (
     <>
-      <header className="flex min-h-11 items-center justify-between gap-3">
-        <Link className={`-ml-2 ${link}`} to="/">
-          {t('dashboard.back')}
-        </Link>
-        <h1 className="m-0 text-body font-semibold">{t('dashboard.title')}</h1>
-        <span className="min-w-11" />
-      </header>
+      <PageHeader title={t('dashboard.title')} />
       {view.status === 'failed' ? (
         <EmptyState
           message={t('dashboard.failed')}
@@ -99,7 +94,10 @@ function Summary({
 function Card({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-1 rounded-(--radius-card) bg-surface p-5">
+    <section
+      aria-labelledby={id}
+      className="flex flex-col gap-1 rounded-(--radius-card) bg-surface shadow-card p-5"
+    >
       <h2 id={id} className="m-0 text-caption font-normal text-muted">
         {title}
       </h2>
@@ -129,7 +127,7 @@ function ActiveTime({ metrics, config }: { readonly metrics: WeeklyMetrics; read
   const { weekMs, baseline } = metrics.activeTime;
   return (
     <Card title={t('dashboard.activeTime.title')}>
-      <p className="m-0 text-title font-semibold">{duration(weekMs)}</p>
+      <p className="m-0 text-title font-extrabold">{duration(weekMs)}</p>
       <p className="m-0">
         {baseline
           ? t('dashboard.activeTime.baseline', {
@@ -154,7 +152,7 @@ function Retention({ metrics }: { readonly metrics: WeeklyMetrics }) {
     <Card title={t('dashboard.retention.title')}>
       {hasRate(week) ? (
         <>
-          <p className="m-0 text-title font-semibold">
+          <p className="m-0 text-title font-extrabold">
             {t('dashboard.retention.week', { rate: percent(week.rate), count: week.total })}
           </p>
           <p className="m-0">
@@ -245,7 +243,7 @@ function Sleep({ metrics, config }: { readonly metrics: WeeklyMetrics; readonly 
     <Card title={t('dashboard.sleep.title')}>
       {enoughData && week.median !== null ? (
         <>
-          <p className="m-0 text-title font-semibold">
+          <p className="m-0 text-title font-extrabold">
             {t('dashboard.sleep.week', { median: decimal.format(week.median), count: week.nights })}
           </p>
           <p className="m-0">

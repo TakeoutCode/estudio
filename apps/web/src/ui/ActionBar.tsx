@@ -26,8 +26,9 @@ function useKeyboardInset(enabled: boolean): number {
 /**
  * UI-UX UX2: acciones principales en la zona del pulgar, pegadas abajo y por encima del
  * indicador de inicio. Va al final de la pantalla: `mt-auto` la baja aunque haya poco
- * contenido y `sticky` la deja visible si hay mucho. Absorbe el relleno inferior del layout
- * para llegar al borde y pone el suyo con la safe area. Con `keyboardAware`, sube por encima
+ * contenido y `sticky` la deja visible si hay mucho, sobre la barra de pestañas si la hay
+ * (`--chrome-bottom`). Absorbe el relleno inferior del layout (`--edge-bottom`) para llegar al
+ * borde y pone el suyo. Con `keyboardAware`, sube por encima
  * del teclado (p. ej. el campo y "Comprobar" de escribir la respuesta).
  */
 export function ActionBar({
@@ -45,7 +46,7 @@ export function ActionBar({
       role={label ? 'group' : undefined}
       aria-label={label}
       style={inset > 0 ? { bottom: inset } : undefined}
-      className="sticky bottom-0 mt-auto -mb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2 bg-bg pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      className="sticky bottom-(--chrome-bottom) z-10 mt-auto -mb-(--edge-bottom) flex flex-col gap-2 bg-linear-to-t from-bg from-80% to-transparent pt-6 pb-(--edge-bottom)"
     >
       {children}
     </div>

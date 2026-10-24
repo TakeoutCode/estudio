@@ -37,9 +37,9 @@ function MockPrompt({ card, revealed }: { readonly card: MockCardView; readonly 
 }
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
-const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
-const neutral = `inline-flex min-h-14 items-center justify-center rounded-(--radius-card) border border-muted/40 bg-surface px-2 font-medium text-text disabled:opacity-60 ${focus}`;
+const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
+const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
+const neutral = `inline-flex min-h-14 items-center justify-center rounded-(--radius-card) border-2 border-line-strong bg-surface px-2 font-bold text-text disabled:opacity-60 ${focus}`;
 const link = `inline-flex min-h-11 items-center px-2 text-primary ${focus}`;
 
 /**
@@ -58,7 +58,7 @@ export function MockScreen() {
         <Link className={`-ml-2 self-start ${link}`} to="/exams">
           {t('exams.title')}
         </Link>
-        <h1 className="m-0 text-title font-semibold">
+        <h1 className="m-0 text-title font-extrabold">
           {view ? t('mock.title', { exam: view.exam.title }) : t('mock.titlePlain')}
         </h1>
       </header>
@@ -81,7 +81,7 @@ function MockHome({ view }: { readonly view: MockView }) {
   return (
     <>
       {view.last ? <Results view={view} session={view.last} previous={view.previous} /> : null}
-      <section className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-5">
+      <section className="flex flex-col gap-2 rounded-(--radius-card) bg-surface shadow-card p-5">
         <p className="m-0">{t('mock.intro', { count: view.config.exam.mockSize })}</p>
         <p className="m-0 text-caption text-muted">
           {t(view.config.exam.feedbackTiming === 'end' ? 'mock.feedbackEnd' : 'mock.feedbackImmediate')}
@@ -171,7 +171,7 @@ function AskStep({
   return (
     <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
       <p className="m-0 text-caption text-muted">{t('mock.progress', { done: index + 1, total })}</p>
-      <article className="flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5">
+      <article className="flex flex-col gap-3 rounded-(--radius-card) bg-surface shadow-card p-5">
         <MockPrompt card={card} revealed={false} />
       </article>
       <div className="flex flex-col gap-1">
@@ -200,7 +200,7 @@ function AskStep({
               key={level}
               type="button"
               aria-pressed={confidence === level}
-              className={`min-h-14 rounded-(--radius-card) px-2 font-medium text-text ${confidence === level ? 'bg-primary/40 outline-2 outline-primary' : 'bg-primary/20'} ${focus}`}
+              className={`min-h-14 rounded-(--radius-card) px-2 font-bold text-text ${confidence === level ? 'bg-primary/40 outline-2 outline-primary' : 'bg-primary/20'} ${focus}`}
               onClick={() => {
                 setConfidence(level);
               }}
@@ -255,13 +255,16 @@ function GradeStep({
       <p className="m-0 text-caption text-muted">
         {t(review ? 'mock.reviewProgress' : 'mock.progress', { done: index + 1, total })}
       </p>
-      <article className="flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5" aria-live="polite">
+      <article
+        className="flex flex-col gap-3 rounded-(--radius-card) bg-surface shadow-card p-5"
+        aria-live="polite"
+      >
         <MockPrompt card={card} revealed />
-        <section className="flex flex-col gap-1 border-t border-muted/30 pt-3">
+        <section className="flex flex-col gap-1 border-t-2 border-dashed border-line pt-3">
           <h2 className="m-0 text-caption font-normal text-muted">{t('mock.yourAnswer')}</h2>
           <p className="m-0 whitespace-pre-wrap">{item.answer ?? t('mock.noAnswer')}</p>
         </section>
-        <section className="flex flex-col gap-1 border-t border-muted/30 pt-3">
+        <section className="flex flex-col gap-1 border-t-2 border-dashed border-line pt-3">
           <h2 className="m-0 text-caption font-normal text-muted">{t('study.answer')}</h2>
           <p className="m-0 text-card whitespace-pre-wrap">{card.answer}</p>
           {card.explanation ? <p className="m-0 whitespace-pre-wrap text-muted">{card.explanation}</p> : null}
@@ -318,14 +321,17 @@ function Results({
   const result = mockResults(session.items, previous?.items ?? null, view.config);
   const c = result.calibration;
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5">
+    <section
+      aria-labelledby={id}
+      className="flex flex-col gap-3 rounded-(--radius-card) bg-surface shadow-card p-5"
+    >
       <h2 id={id} className="m-0 text-body font-semibold">
         {t('mock.results')}
       </h2>
-      <p className="m-0 text-title font-semibold">
+      <p className="m-0 text-title font-extrabold">
         {t('mock.total', { correct: result.correct, count: result.graded })}
       </p>
-      <ul className="m-0 flex list-none flex-col gap-2 border-t border-muted/30 p-0 pt-3">
+      <ul className="m-0 flex list-none flex-col gap-2 border-t-2 border-dashed border-line p-0 pt-3">
         {result.topics.map((topic) => (
           <li key={topic.topicId ?? 'none'} className="flex flex-col">
             <span className="flex items-baseline justify-between gap-3">
@@ -348,7 +354,7 @@ function Results({
         ))}
       </ul>
       {c ? (
-        <div className="flex flex-col gap-1 border-t border-muted/30 pt-3">
+        <div className="flex flex-col gap-1 border-t-2 border-dashed border-line pt-3">
           <p className="m-0 text-caption text-muted">{t('dashboard.calibration.title')}</p>
           <p className="m-0">{t(`mock.calibration.${c.tendency}`)}</p>
           {c.resolution ? <p className="m-0">{t(`dashboard.calibration.${c.resolution}`)}</p> : null}

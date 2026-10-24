@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { Suggestion } from './use-session-suggestion';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const act = `inline-flex min-h-11 flex-1 items-center justify-center rounded-(--radius-card) border border-primary px-3 font-medium text-primary ${focus}`;
+const act = `inline-flex min-h-11 flex-1 items-center justify-center rounded-(--radius-card) border-2 border-primary px-3 font-bold text-primary ${focus}`;
 const later = `inline-flex min-h-11 shrink-0 items-center justify-center rounded-(--radius-card) px-4 text-primary ${focus}`;
 
 /**
@@ -42,7 +42,7 @@ export function SuggestionPanel({
     <section
       role="status"
       aria-labelledby={id}
-      className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-4"
+      className="flex flex-col gap-2 rounded-(--radius-card) bg-surface shadow-card p-4"
     >
       <p id={id} className="m-0">
         {text}

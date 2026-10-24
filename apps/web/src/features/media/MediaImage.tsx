@@ -37,7 +37,7 @@ export function MediaImage({
         : null;
   return (
     <div
-      className="relative w-full overflow-hidden rounded-(--radius-card) border border-muted/40 bg-surface"
+      className="relative w-full overflow-hidden rounded-(--radius-card) border-2 border-line-strong bg-surface"
       style={{ aspectRatio: `${String(asset.width)} / ${String(asset.height)}` }}
     >
       {url !== null && failedUrl !== url ? (

@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import type { TagChoice } from './commands';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-4 text-text ${focus}`;
-const chip = `inline-flex min-h-11 items-center rounded-(--radius-card) border px-3 ${focus}`;
+const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 text-text ${focus}`;
+const chip = `inline-flex min-h-11 items-center rounded-(--radius-card) border-2 px-3 ${focus}`;
 /** Sugerencias a la vista: las suficientes para elegir sin buscar, sin llenar la pantalla. */
 const SUGGESTIONS = 8;
 
@@ -93,7 +93,7 @@ export function TagsField({
         />
         <button
           type="button"
-          className={`min-h-11 shrink-0 rounded-(--radius-card) border border-primary px-4 font-medium text-primary disabled:opacity-40 ${focus}`}
+          className={`min-h-11 shrink-0 rounded-(--radius-card) border-2 border-primary px-4 font-bold text-primary disabled:opacity-40 ${focus}`}
           disabled={full || typed === ''}
           onClick={addTyped}
         >
@@ -106,7 +106,7 @@ export function TagsField({
             <button
               key={tag.id}
               type="button"
-              className={`${chip} border-muted/40 text-primary`}
+              className={`${chip} border-line-strong text-primary`}
               onClick={() => {
                 add({ id: tag.id });
               }}

@@ -3,10 +3,59 @@
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/* Nunito (OFL), solo el subconjunto latino: cubre el español y la PWA lo precachea (FE7). */
+@font-face {
+  font-family: 'Nunito Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 1000;
+  src: url('@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Botón primario "caramelo": se hunde al tocarlo (UX6: 150 ms, ease-out, sin bloquear). */
+@utility candy {
+  box-shadow: var(--shadow-candy);
+  transition-property: translate, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+  &:active:not(:disabled) {
+    translate: 0 3px;
+    box-shadow: var(--shadow-candy-pressed);
+  }
+  &:disabled {
+    box-shadow: none;
+  }
+}
+
+/* Respuesta al toque de tarjetas y botones suaves. */
+@utility press {
+  transition-property: scale, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+  &:active:not(:disabled) {
+    scale: 0.97;
+  }
+}
+
 @layer base {
+  :root {
+    /* Lo que tapa abajo la barra de pestañas (0 sin ella) y el relleno inferior del layout. */
+    --chrome-bottom: 0px;
+    --edge-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  [data-tabs] {
+    --chrome-bottom: calc(4.5rem + max(0.5rem, env(safe-area-inset-bottom)));
+    --edge-bottom: 1rem;
+  }
+
   html {
     color-scheme: light;
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: color-mix(in oklch, var(--color-primary) 15%, transparent);
     touch-action: manipulation;
   }
 
@@ -14,14 +63,38 @@
     color-scheme: dark;
   }
 
+  /* Fondo blanco con una franja de lunares rosas arriba que se desvanece. */
   body {
     margin: 0;
     min-height: 100dvh;
-    background: var(--color-bg);
+    background-color: var(--color-bg);
+    background-image:
+      linear-gradient(to bottom, transparent, var(--color-bg) 9rem),
+      radial-gradient(circle, var(--color-dot) 2.5px, transparent 3px),
+      radial-gradient(circle, var(--color-dot) 2.5px, transparent 3px);
+    background-size:
+      100% 100%,
+      28px 28px,
+      28px 28px;
+    background-position:
+      0 0,
+      0 0,
+      14px 14px;
+    background-repeat: no-repeat, repeat, repeat;
     color: var(--color-text);
     font-family: var(--font-sans);
     font-size: var(--text-body);
     line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2 {
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--color-primary) 25%, transparent);
   }
 
   /* UI-UX UX2: iOS hace zoom en campos de menos de 16 px. */
@@ -29,6 +102,11 @@
   textarea,
   select {
     font-size: max(1rem, 16px);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-muted);
   }
 
   @media (prefers-reduced-motion: reduce) {

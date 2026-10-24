@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { ApiError } from '@/lib/api';
 import { useOnline } from '@/lib/use-online';
+import { BowIcon, HeartIcon, SparkleIcon } from '@/ui/icons';
 import { AccountMismatchError } from './commands';
 import { login, register } from './session';
 
@@ -22,7 +23,7 @@ const errorKey = (error: unknown, mode: Mode) => {
 };
 
 const field =
-  'min-h-11 w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 text-text focus-visible:outline-2 focus-visible:outline-primary';
+  'min-h-11 w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 text-text focus-visible:outline-2 focus-visible:outline-primary';
 
 export function LoginScreen() {
   const { t } = useTranslation();
@@ -57,18 +58,31 @@ export function LoginScreen() {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 p-4">
-      <h1 className="m-0 text-title font-semibold">
-        {t(mode === 'login' ? 'auth.login.title' : 'auth.register.title')}
-      </h1>
+    <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 py-4">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <span className="relative mb-2 flex size-28 items-center justify-center rounded-full bg-surface text-bow shadow-card">
+          <BowIcon className="w-18" />
+          <HeartIcon className="absolute top-2 right-1 size-6 rotate-12 text-bow" />
+          <SparkleIcon className="absolute bottom-3 left-0 size-5 text-line-strong" />
+        </span>
+        <p className="m-0 text-display leading-tight font-extrabold">{t('app.name')}</p>
+        <p className="m-0 text-muted">{t('app.tagline')}</p>
+      </div>
       {deleted ? (
-        <p role="status" className="m-0">
+        <p role="status" className="m-0 rounded-(--radius-card) bg-blush px-4 py-3 text-caption">
           {t('auth.accountDeleted')}
         </p>
       ) : null}
-      <form className="flex flex-col gap-4" onSubmit={(event) => void submit(event)} noValidate>
+      <form
+        className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-5 shadow-card"
+        onSubmit={(event) => void submit(event)}
+        noValidate
+      >
+        <h1 className="m-0 text-title font-extrabold">
+          {t(mode === 'login' ? 'auth.login.title' : 'auth.register.title')}
+        </h1>
         <label className="flex flex-col gap-1">
-          <span>{t('auth.email')}</span>
+          <span className="font-bold">{t('auth.email')}</span>
           <input
             className={field}
             name="email"
@@ -79,7 +93,7 @@ export function LoginScreen() {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span>{t('auth.password')}</span>
+          <span className="font-bold">{t('auth.password')}</span>
           <input
             className={field}
             name="password"
@@ -102,14 +116,14 @@ export function LoginScreen() {
         <button
           type="submit"
           disabled={busy || !online}
-          className="min-h-11 rounded-(--radius-card) bg-primary px-4 text-primary-contrast disabled:opacity-60"
+          className="mt-1 min-h-14 rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           {t(mode === 'login' ? 'auth.login.submit' : 'auth.register.submit')}
         </button>
       </form>
       <button
         type="button"
-        className="min-h-11 text-primary"
+        className="press min-h-11 rounded-(--radius-card) font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         onClick={() => {
           setMode(mode === 'login' ? 'register' : 'login');
           setError(null);
@@ -117,6 +131,6 @@ export function LoginScreen() {
       >
         {t(mode === 'login' ? 'auth.login.switch' : 'auth.register.switch')}
       </button>
-    </main>
+    </div>
   );
 }

@@ -5,20 +5,26 @@
 ## 1. Design tokens
 
 **UX1 · DEBE** usar solo tokens semánticos definidos en `apps/web/src/ui/tokens.css` (Tailwind v4, `@theme`). **NO DEBE** usar colores, tamaños ni sombras literales en los componentes. *Razón:* el modo oscuro y los ajustes de contraste se hacen en un solo lugar.
+
+Tema "lazo": blanco de base, rosa como acento y formas redondeadas. El rosa fuerte (`primary`) queda para la acción principal, el estado activo y los enlaces; `blush` es el rosa suave de chips y avisos; `bow` y `dot` son solo adornos (lazos, lunares), nunca texto.
 ```css
 @theme {
-  --color-bg: oklch(0.99 0 0);            --color-surface: oklch(0.97 0.005 250);
-  --color-text: oklch(0.22 0.02 250);     --color-muted: oklch(0.48 0.02 250);
-  --color-primary: oklch(0.52 0.15 250);  --color-success: oklch(0.58 0.12 155);
-  --color-attention: oklch(0.72 0.12 75); /* avisos suaves; nunca para carga ni fallos */
-  --color-danger: oklch(0.55 0.19 25);    /* solo acciones destructivas (borrar) */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --radius-card: 1rem; --spacing: 0.25rem; /* escala de 4 px */
+  --color-bg: oklch(1 0 0);                  --color-surface: oklch(1 0 0);
+  --color-blush: oklch(0.975 0.018 355);     /* paneles y chips; texto primary sobre él ≥ 4.5:1 */
+  --color-text: oklch(0.3 0.05 350);         --color-muted: oklch(0.5 0.05 350);
+  --color-primary: oklch(0.555 0.195 358);   --color-line-strong: oklch(0.67 0.14 357); /* bordes de control, 3:1 */
+  --color-attention: oklch(0.75 0.13 80);    /* avisos suaves; nunca para carga ni fallos */
+  --color-danger: oklch(0.55 0.19 30);       /* solo acciones destructivas; más anaranjado que primary */
+  --font-sans: 'Nunito Variable', ui-rounded, -apple-system, sans-serif; /* empaquetada: funciona sin red */
+  --radius-card: 1.5rem; --spacing: 0.25rem; /* escala de 4 px */
+  --shadow-card: 0 0 0 1.5px var(--color-line), 0 8px 20px -12px var(--color-glow);
 }
-[data-theme='dark'] { --color-bg: oklch(0.17 0.01 250); --color-surface: oklch(0.22 0.01 250); --color-text: oklch(0.94 0.01 250); /* … */ }
+[data-theme='dark'] { --color-bg: oklch(0.19 0.03 345); --color-surface: oklch(0.24 0.035 345); --color-primary: oklch(0.8 0.12 355); /* … */ }
 ```
+- Utilidades propias en `index.css`: `candy` (botón primario con sombra sólida que se hunde al tocarlo) y `press` (leve escala al tocar), ambas de 150 ms `ease-out` (UX6).
+- Íconos en `ui/icons.tsx`, siempre decorativos (`aria-hidden`): el nombre lo da el texto visible o el `aria-label`.
 - Tipografía en `rem`: 0.8125 (pie), 1 (cuerpo), 1.25 (contenido de tarjeta), 1.5 y 1.875 (títulos), con `line-height: 1.5`. Ningún `input` baja de 16 px, porque iOS hace zoom.
-- Botones de calificación: `Otra vez` en tono neutro (`--color-muted`), y `Difícil`, `Bien` y `Fácil` en una escala de `--color-primary`. **NO DEBE** usarse rojo para `Otra vez` (R19: fallar es esperable).
+- Botones de calificación: `Otra vez` en tono neutro (`--color-muted`), y `Difícil`, `Bien` y `Fácil` en una escala de rosa (`blush`, `primary`, `primary/20`). **NO DEBE** usarse rojo para `Otra vez` (R19: fallar es esperable).
 ```tsx
 // ❌ <button className="bg-red-600 text-[#fff]">Otra vez</button>
 // ✅ <RatingButton rating={Rating.Again} />   // tokens internos, etiqueta por i18n
@@ -28,6 +34,7 @@
 
 **UX2 · DEBE** diseñar primero para 390×844 en la PWA instalada. *Razón:* el uso principal es en iPhone con una mano.
 - `viewport-fit=cover`, rellenos con `env(safe-area-inset-*)` y la barra de acciones por encima del indicador de inicio.
+- Las pantallas principales (Hoy, Mazos, Exámenes, Tu semana, Ajustes) llevan una barra de pestañas abajo (`app/TabBar.tsx`); los flujos (estudiar, simulacro, editar) no, para enfocarse. La barra de acciones se apoya sobre ella con `--chrome-bottom`.
 - Objetivos táctiles de al menos 44×44 px y 8 px de separación. Los botones de calificación forman una rejilla de 4 columnas de al menos 56 px de alto, en la zona del pulgar.
 - Altura con `100dvh` (nunca `100vh`) y `touch-action: manipulation`. Nada que funcione solo con hover, y los gestos (deslizar) son siempre una alternativa a un botón visible.
 - Teclado: en "escribir respuesta", el campo y "Comprobar" siguen visibles mediante `visualViewport`. El campo lleva `autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"`, porque la terminología anatómica choca con el autocorrector.

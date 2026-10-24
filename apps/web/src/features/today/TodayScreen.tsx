@@ -7,6 +7,9 @@ import { type PlanSnapshot, useTodayPlan } from '@/features/study';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
+import { BowIcon, CardsIcon, HeartIcon, PlayIcon, PlusIcon, SparkleIcon } from '@/ui/icons';
+import { LinkRow } from '@/ui/LinkRow';
+import { PageHeader } from '@/ui/PageHeader';
 import { FewerNewOffer } from './FewerNewOffer';
 
 // FE9: la gamificación no entra en el JS inicial de Hoy; apagada, ni siquiera se muestra.
@@ -19,32 +22,20 @@ const FinalReviewOffers = lazy(async () => ({
 }));
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast ${focus}`;
-const secondary = `inline-flex min-h-11 w-full items-center justify-center rounded-(--radius-card) px-4 text-primary ${focus}`;
+const primary = `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy ${focus}`;
+const secondary = `press inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-(--radius-card) bg-surface px-4 font-bold text-primary shadow-card ${focus}`;
 
 /**
  * Pantalla inicial: lo pendiente de hoy, sin metas ni lenguaje de atraso (§5, UX7). Mobile
- * first (UX2): la acción principal abajo, al alcance del pulgar.
+ * first (UX2): la acción principal abajo, al alcance del pulgar; las otras secciones, en las
+ * pestañas.
  */
 export function TodayScreen() {
   const { t } = useTranslation();
   const snapshot = useTodayPlan();
   return (
     <>
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="m-0 text-title font-semibold">{t('today.title')}</h1>
-        <nav className="-mr-2 flex gap-1">
-          <Link className={`inline-flex min-h-11 items-center px-2 text-primary ${focus}`} to="/exams">
-            {t('exams.title')}
-          </Link>
-          <Link className={`inline-flex min-h-11 items-center px-2 text-primary ${focus}`} to="/dashboard">
-            {t('dashboard.title')}
-          </Link>
-          <Link className={`inline-flex min-h-11 items-center px-2 text-primary ${focus}`} to="/settings">
-            {t('settings.title')}
-          </Link>
-        </nav>
-      </header>
+      <PageHeader title={t('today.title')} eyebrow={t('today.greeting')} />
       <NotificationsAtOpen />
       <SleepCheckIn />
       {snapshot ? <Summary snapshot={snapshot} /> : null}
@@ -62,20 +53,26 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
       {nothing ? (
         <EmptyState message={t('today.empty')} />
       ) : (
-        <section className="flex flex-col gap-1 rounded-(--radius-card) bg-surface p-5">
-          <p className="m-0 text-card">{t('today.pending', { count: plan.due })}</p>
-          {news > 0 ? <p className="m-0 text-muted">{t('today.newCards', { count: news })}</p> : null}
+        <section className="relative flex items-center gap-4 overflow-hidden rounded-(--radius-card) bg-linear-to-br from-blush from-10% to-surface to-60% p-5 shadow-card">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <p className="m-0 text-card leading-snug font-extrabold">
+              {t('today.pending', { count: plan.due })}
+            </p>
+            {news > 0 ? <p className="m-0 text-muted">{t('today.newCards', { count: news })}</p> : null}
+          </div>
+          <span className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-surface text-bow shadow-card">
+            <BowIcon className="w-13" />
+            <HeartIcon className="absolute -top-1 -right-1 size-5 rotate-12 text-bow" />
+            <SparkleIcon className="absolute -bottom-1 -left-2 size-4 text-line-strong" />
+          </span>
         </section>
       )}
       {/* Elegir un solo mazo para estudiar, editarlos o pausarlos; Empezar mezcla los activos (R9). */}
-      <Link
-        className={`-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`}
-        to="/decks"
-      >
+      <LinkRow to="/decks" icon={<CardsIcon className="size-6" />}>
         {snapshot.pausedDecks > 0
           ? t('today.decksPaused', { count: snapshot.pausedDecks })
           : t('today.decks')}
-      </Link>
+      </LinkRow>
       {plan.backlogSpreadDays ? (
         <Banner>{t('study.notice.spread', { days: plan.backlogSpreadDays })}</Banner>
       ) : null}
@@ -91,7 +88,7 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
       </Suspense>
       {toImprove.length > 0 ? (
         <section className="flex flex-col gap-2" aria-labelledby="today-improve">
-          <h2 id="today-improve" className="m-0 text-body font-semibold">
+          <h2 id="today-improve" className="m-0 text-body font-extrabold">
             {t('today.improve.title')}
           </h2>
           <p className="m-0 text-caption text-muted">{t('today.improve.hint')}</p>
@@ -99,11 +96,11 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
             {toImprove.map((item) => (
               <li
                 key={item.noteId}
-                className="flex items-center justify-between gap-3 rounded-(--radius-card) bg-surface py-1 pr-1 pl-4"
+                className="flex items-center justify-between gap-3 rounded-(--radius-card) bg-surface py-1 pr-1 pl-4 shadow-card"
               >
                 <span className="line-clamp-2">{item.prompt}</span>
                 <Link
-                  className={`inline-flex min-h-11 shrink-0 items-center px-3 text-primary ${focus}`}
+                  className={`press inline-flex min-h-11 shrink-0 items-center rounded-(--radius-card) bg-blush px-4 font-bold text-primary ${focus}`}
                   to={`/notes/${item.noteId}`}
                 >
                   {t('today.improve.edit')}
@@ -120,10 +117,12 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
       <ActionBar>
         {nothing ? null : (
           <Link className={primary} to="/study">
+            <PlayIcon className="size-5" />
             {t('today.start')}
           </Link>
         )}
         <Link className={nothing ? primary : secondary} to="/notes/new">
+          <PlusIcon className="size-5" />
           {t('today.addCard')}
         </Link>
       </ActionBar>

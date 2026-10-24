@@ -8,9 +8,9 @@ import { createContrastGroup, deleteContrastGroup, updateContrastGroup } from '.
 import { type NoteChoice, useContrastGroup, useNoteChoices } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-4 text-text ${focus}`;
+const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 text-text ${focus}`;
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
-const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
+const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
 /** Una lista larga en el teléfono no ayuda: se pide buscar. */
 const MAX_RESULTS = 30;
 
@@ -86,7 +86,7 @@ function GroupForm({
         <Link className={textLink} to="/contrast">
           {t('contrast.back')}
         </Link>
-        <h1 className="m-0 text-title font-semibold">{t(group ? 'contrast.edit' : 'contrast.new')}</h1>
+        <h1 className="m-0 text-title font-extrabold">{t(group ? 'contrast.edit' : 'contrast.new')}</h1>
       </header>
       {group ? (
         <p className="m-0 text-caption text-muted">
@@ -122,7 +122,10 @@ function GroupForm({
                 const choice = byId.get(id);
                 const label = choice?.label ?? t('contrast.deletedNote');
                 return (
-                  <li key={id} className="flex items-center gap-2 rounded-(--radius-card) bg-surface pl-3">
+                  <li
+                    key={id}
+                    className="flex items-center gap-2 rounded-(--radius-card) bg-surface shadow-card pl-3"
+                  >
                     <span className="flex min-w-0 flex-1 flex-col py-2">
                       <span className="wrap-break-word">{label}</span>
                       {choice ? <span className="text-caption text-muted">{choice.deck}</span> : null}
@@ -171,7 +174,7 @@ function GroupForm({
                   <button
                     type="button"
                     disabled={full}
-                    className={`flex min-h-11 w-full flex-col items-start rounded-(--radius-card) border border-muted/40 px-3 py-2 text-left text-text disabled:opacity-60 ${focus}`}
+                    className={`flex min-h-11 w-full flex-col items-start rounded-(--radius-card) border-2 border-line-strong px-3 py-2 text-left text-text disabled:opacity-60 ${focus}`}
                     aria-label={t('contrast.addNamed', { label: choice.label })}
                     onClick={() => {
                       setSelected([...selected, choice.id]);
@@ -204,7 +207,7 @@ function GroupForm({
             </p>
             <button
               type="button"
-              className={`min-h-11 w-full rounded-(--radius-card) border border-danger px-4 font-medium text-danger ${focus}`}
+              className={`min-h-11 w-full rounded-(--radius-card) border-2 border-danger px-4 font-bold text-danger ${focus}`}
               onClick={() => {
                 void deleteContrastGroup(group.id).then(() => navigate('/contrast'));
               }}

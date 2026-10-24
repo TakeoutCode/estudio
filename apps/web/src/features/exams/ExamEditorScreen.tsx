@@ -6,9 +6,9 @@ import { createExam, deleteExam, updateExam } from './commands';
 import { type DeckTopics, useExam, useTimeZone, useTopicsByDeck } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
+const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
 // UX2: guardar va al final del formulario, como en el editor de notas (teclado de iOS).
-const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
+const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
 
 /** R11, LD11: título, fecha y temas de un examen. */
 export function ExamEditorScreen() {
@@ -93,7 +93,7 @@ function ExamForm({
         >
           {t('exams.title')}
         </Link>
-        <h1 className="m-0 text-title font-semibold">{t(exam ? 'exams.editTitle' : 'exams.newTitle')}</h1>
+        <h1 className="m-0 text-title font-extrabold">{t(exam ? 'exams.editTitle' : 'exams.newTitle')}</h1>
       </header>
       <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
         <label className="flex flex-col gap-1">

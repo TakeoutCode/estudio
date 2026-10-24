@@ -7,9 +7,9 @@ import { type ClinicalQuestionDraft, emptyClinicalQuestion, type ExerciseDraft }
 const AiDistractors = lazy(async () => ({ default: (await import('@/features/ai-drafts')).AiDistractors }));
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
-const input = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-text ${focus}`;
-const choiceButton = `min-h-11 rounded-(--radius-card) border px-2 text-caption text-text ${focus}`;
+const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
+const input = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-3 text-text ${focus}`;
+const choiceButton = `min-h-11 rounded-(--radius-card) border-2 px-2 text-caption text-text ${focus}`;
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
 const TYPES = ['multiple_choice', 'type_answer', 'open'] as const;
 const MAX_OPTIONS = 5;
@@ -104,7 +104,7 @@ function QuestionFields({
   const { t } = useTranslation();
   const ids = useId();
   return (
-    <fieldset className="m-0 flex flex-col gap-2 rounded-(--radius-card) border border-muted/40 p-3">
+    <fieldset className="m-0 flex flex-col gap-2 rounded-(--radius-card) border-2 border-line p-3">
       <legend className="px-1 font-semibold">{t('exercises.clinical.question', { n: position })}</legend>
       <div role="group" aria-label={t('exercises.clinical.type')} className="grid grid-cols-3 gap-2">
         {TYPES.map((type) => (
@@ -112,7 +112,7 @@ function QuestionFields({
             key={type}
             type="button"
             aria-pressed={q.type === type}
-            className={`${choiceButton} ${q.type === type ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
+            className={`${choiceButton} ${q.type === type ? 'border-primary bg-primary/20' : 'border-line-strong'}`}
             onClick={() => {
               onChange({ type });
             }}

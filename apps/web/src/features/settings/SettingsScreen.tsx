@@ -1,9 +1,9 @@
 import { PLANNER_RANGES, RETENTION_RANGE, type StudyConfig, TIMER_RANGES } from '@estudio/shared';
 import { type ReactNode, type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
 import { ActionBar } from '@/ui/ActionBar';
 import { NumberField } from '@/ui/NumberField';
+import { PageHeader } from '@/ui/PageHeader';
 import { Toggle } from '@/ui/Toggle';
 import { BedtimeSection } from './BedtimeSection';
 import { BreakUsageSection } from './BreakUsageSection';
@@ -13,8 +13,8 @@ import { ThemeSection } from './ThemeSection';
 import { type ProjectedLoad, useProjectedLoad } from './use-projected-load';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
-const step = `inline-flex size-11 shrink-0 items-center justify-center rounded-(--radius-card) border border-muted/40 text-title leading-none text-primary disabled:opacity-40 ${focus}`;
+const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
+const step = `inline-flex size-11 shrink-0 items-center justify-center rounded-(--radius-card) border-2 border-line-strong text-title leading-none text-primary disabled:opacity-40 ${focus}`;
 
 /** La retención se elige en puntos enteros (90 = 0.90) dentro del rango de R2. */
 const toPoints = (retention: number) => Math.round(retention * 100);
@@ -159,16 +159,7 @@ function SettingsForm({
 
   return (
     <form className="flex flex-1 flex-col gap-6" onSubmit={submit} noValidate>
-      <header className="flex min-h-11 items-center justify-between gap-3">
-        <Link
-          className={`-ml-2 inline-flex min-h-11 min-w-11 items-center px-2 text-primary ${focus}`}
-          to="/"
-        >
-          {t('settings.back')}
-        </Link>
-        <h1 className="m-0 text-body font-semibold">{t('settings.title')}</h1>
-        <span className="min-w-11" />
-      </header>
+      <PageHeader title={t('settings.title')} />
 
       <section aria-labelledby={`${ids}-retention`} className="flex flex-col gap-3">
         <h2 id={`${ids}-retention`} className="m-0 text-body font-semibold">
@@ -358,7 +349,7 @@ function LoadEstimate({
 }) {
   const { t } = useTranslation();
   if (!load.available) return null;
-  const box = 'flex flex-col gap-1 rounded-(--radius-card) bg-surface p-4';
+  const box = 'flex flex-col gap-1 rounded-(--radius-card) bg-surface shadow-card p-4';
   if (load.cards === 0) {
     return <p className={`m-0 text-muted ${box}`}>{t('settings.retention.loadEmpty')}</p>;
   }

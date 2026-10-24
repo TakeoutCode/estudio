@@ -6,8 +6,8 @@ import type { DraftExerciseKind, ExerciseDraft } from './draft';
 import { moved, OrderList } from './OrderList';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
-const choiceButton = `min-h-12 rounded-(--radius-card) border px-3 text-text ${focus}`;
+const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
+const choiceButton = `min-h-12 rounded-(--radius-card) border-2 px-3 text-text ${focus}`;
 
 /**
  * Los campos propios de cada ejercicio (LD §2). Mazo, tema, explicación y etiquetas los pone el
@@ -71,7 +71,7 @@ export function ExerciseFields({
                 return (
                   <li key={i} className="grid grid-cols-[1fr_1fr_2.75rem] items-center gap-2">
                     <input
-                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-text ${focus}`}
+                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-3 text-text ${focus}`}
                       value={pair.left}
                       maxLength={200}
                       aria-label={t('exercises.matching.leftN', { n: i + 1 })}
@@ -80,7 +80,7 @@ export function ExerciseFields({
                       }}
                     />
                     <input
-                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-text ${focus}`}
+                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-3 text-text ${focus}`}
                       value={pair.right}
                       maxLength={200}
                       aria-label={t('exercises.matching.rightN', { n: i + 1 })}
@@ -149,7 +149,7 @@ export function ExerciseFields({
                 content: (
                   <div className="flex items-center gap-1">
                     <input
-                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-3 text-text ${focus}`}
+                      className={`min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-3 text-text ${focus}`}
                       value={item}
                       maxLength={200}
                       aria-label={t('exercises.sequence.step', { n: i + 1 })}
@@ -216,7 +216,7 @@ export function ExerciseFields({
                   key={String(value)}
                   type="button"
                   aria-pressed={draft.isTrue === value}
-                  className={`${choiceButton} ${draft.isTrue === value ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
+                  className={`${choiceButton} ${draft.isTrue === value ? 'border-primary bg-primary/20' : 'border-line-strong'}`}
                   onClick={() => {
                     set({ isTrue: value });
                   }}

@@ -69,11 +69,11 @@ const MIN_OPTIONS = 3;
 const MAX_OPTIONS = 5;
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
+const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
 // UX2: el campo de texto queda visible con el teclado abierto, así que guardar va al final del
 // formulario y no en una barra fija (en iOS quedaría bajo el teclado).
-const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
-const choiceButton = `min-h-12 rounded-(--radius-card) border px-3 text-text ${focus}`;
+const primary = `min-h-14 w-full rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
+const choiceButton = `min-h-12 rounded-(--radius-card) border-2 px-3 text-text ${focus}`;
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
 
 /**
@@ -341,7 +341,7 @@ function NoteForm({
         <Link className={textLink} to={returnTo?.to ?? '/'}>
           {returnTo?.label ?? t('notes.backToToday')}
         </Link>
-        <h1 className="m-0 text-title font-semibold">
+        <h1 className="m-0 text-title font-extrabold">
           {editorMode === 'exercise'
             ? t(note ? 'exercises.edit' : 'exercises.new')
             : t(note ? 'notes.edit' : 'notes.new')}
@@ -361,7 +361,7 @@ function NoteForm({
                   key={value}
                   type="button"
                   aria-pressed={kind === value}
-                  className={`${choiceButton} ${kind === value ? 'border-primary bg-primary/20' : 'border-muted/40'}`}
+                  className={`${choiceButton} ${kind === value ? 'border-primary bg-primary/20' : 'border-line-strong'}`}
                   onClick={() => {
                     setKind(value);
                     setStatus('idle');
@@ -773,7 +773,7 @@ function ImageField({
       <span>{t('notes.occlusion.image')}</span>
       <label
         htmlFor={id}
-        className={`${choiceButton} inline-flex cursor-pointer items-center self-start border-muted/40 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary`}
+        className={`${choiceButton} inline-flex cursor-pointer items-center self-start border-line-strong focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary`}
       >
         {t(picked ? 'notes.occlusion.pickAnother' : 'notes.occlusion.pick')}
       </label>
@@ -836,7 +836,7 @@ function DeleteNote({ onDelete }: { readonly onDelete: () => Promise<unknown> })
       ) : null}
       <button
         type="button"
-        className={`min-h-11 w-full rounded-(--radius-card) border border-danger px-4 font-medium text-danger disabled:opacity-60 ${focus}`}
+        className={`min-h-11 w-full rounded-(--radius-card) border-2 border-danger px-4 font-bold text-danger disabled:opacity-60 ${focus}`}
         disabled={busy}
         onClick={() => {
           setBusy(true);
@@ -907,7 +907,7 @@ function ClozeField({
       </span>
       <button
         type="button"
-        className={`${choiceButton} self-start border-muted/40`}
+        className={`${choiceButton} self-start border-line-strong`}
         // Evita que el textarea pierda la selección antes del clic.
         onMouseDown={(event) => {
           event.preventDefault();

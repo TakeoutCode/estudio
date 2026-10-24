@@ -3,13 +3,15 @@ import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
+import { CardsIcon, PlayIcon, TagIcon, TwinsIcon } from '@/ui/icons';
+import { LinkRow } from '@/ui/LinkRow';
+import { PageHeader } from '@/ui/PageHeader';
 import { createDeck } from './commands';
 import { type DeckOverview, useDeckOverview } from './queries';
 import { deckSummary } from './summary';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-4 text-text ${focus}`;
-const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
+const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 text-text ${focus}`;
 
 /**
  * Tus mazos, cada uno con lo pendiente de hoy (§5: "pendientes", sin atraso ni rojo). Desde
@@ -20,12 +22,7 @@ export function DecksScreen() {
   const overview = useDeckOverview();
   return (
     <>
-      <header className="flex flex-col">
-        <Link className={textLink} to="/">
-          {t('notes.backToToday')}
-        </Link>
-        <h1 className="m-0 text-title font-semibold">{t('decks.title')}</h1>
-      </header>
+      <PageHeader title={t('decks.title')} />
       {overview === undefined ? null : overview.length === 0 ? (
         <EmptyState message={t('decks.empty')} />
       ) : (
@@ -40,12 +37,14 @@ export function DecksScreen() {
       )}
       <NewDeckForm />
       {/* Las etiquetas y los grupos de contraste (R9, LD10) pueden mezclar mazos. */}
-      <Link className={textLink} to="/tags">
-        {t('decks.tagsLink')}
-      </Link>
-      <Link className={textLink} to="/contrast">
-        {t('decks.contrastLink')}
-      </Link>
+      <div className="flex flex-col gap-2">
+        <LinkRow to="/tags" icon={<TagIcon className="size-5" />}>
+          {t('decks.tagsLink')}
+        </LinkRow>
+        <LinkRow to="/contrast" icon={<TwinsIcon className="size-5" />}>
+          {t('decks.contrastLink')}
+        </LinkRow>
+      </div>
     </>
   );
 }
@@ -54,20 +53,24 @@ function DeckRow({ item: { deck, load, notes } }: { readonly item: DeckOverview 
   const { t } = useTranslation();
   const summary = deckSummary(t, notes, load, deck.pausedAt !== null);
   return (
-    <li className="flex items-center gap-2 rounded-(--radius-card) bg-surface py-2 pr-2 pl-4">
+    <li className="flex items-center gap-3 rounded-(--radius-card) bg-surface py-2 pr-2 pl-2 shadow-card">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blush text-primary">
+        <CardsIcon className="size-6" />
+      </div>
       <Link
         className={`flex min-h-11 min-w-0 flex-1 flex-col justify-center rounded-(--radius-card) ${focus}`}
         to={`/decks/${deck.id}`}
       >
-        <span className="font-medium wrap-break-word">{deck.name}</span>
+        <span className="font-bold wrap-break-word">{deck.name}</span>
         <span className="text-caption text-muted">{summary}</span>
       </Link>
       {load.due + load.fresh > 0 ? (
         <Link
-          className={`inline-flex min-h-11 shrink-0 items-center rounded-(--radius-card) border border-primary px-3 font-medium text-primary ${focus}`}
+          className={`press inline-flex min-h-11 shrink-0 items-center gap-1 rounded-(--radius-card) bg-blush pr-4 pl-3 font-bold text-primary ${focus}`}
           to={`/study?mazo=${deck.id}`}
           aria-label={t('decks.studyNamed', { name: deck.name })}
         >
+          <PlayIcon className="size-4" />
           {t('decks.study')}
         </Link>
       ) : null}
@@ -103,8 +106,12 @@ function NewDeckForm() {
   };
 
   return (
-    <form className="flex flex-col gap-2" onSubmit={submit} noValidate>
-      <label htmlFor={`${id}-name`} className="font-semibold">
+    <form
+      className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-4 shadow-card"
+      onSubmit={submit}
+      noValidate
+    >
+      <label htmlFor={`${id}-name`} className="font-extrabold">
         {t('decks.new')}
       </label>
       <div className="flex gap-2">
@@ -122,7 +129,7 @@ function NewDeckForm() {
         />
         <button
           type="submit"
-          className={`min-h-11 shrink-0 rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`}
+          className={`min-h-11 shrink-0 rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`}
           disabled={busy}
         >
           {t('decks.create')}

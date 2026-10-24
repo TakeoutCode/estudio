@@ -6,7 +6,7 @@ import { useSleepToday } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const link = `inline-flex min-h-11 shrink-0 items-center px-3 text-primary ${focus}`;
-const option = `inline-flex min-h-14 items-center justify-center rounded-(--radius-card) border text-card font-semibold tabular-nums ${focus}`;
+const option = `inline-flex min-h-14 items-center justify-center rounded-(--radius-card) border-2 text-card font-semibold tabular-nums ${focus}`;
 
 /**
  * §5: "¿Cómo dormiste?" con un toque, solo si ella lo activó en Ajustes. Sin racha, sin aviso
@@ -25,7 +25,7 @@ export function SleepCheckIn() {
     return (
       <section
         aria-label={t('sleep.question')}
-        className="flex items-center justify-between gap-3 rounded-(--radius-card) bg-surface py-1 pr-1 pl-4"
+        className="flex items-center justify-between gap-3 rounded-(--radius-card) bg-surface shadow-card py-1 pr-1 pl-4"
       >
         <p className="m-0">{t('sleep.saved', { quality: saved.quality })}</p>
         <button
@@ -53,7 +53,10 @@ export function SleepCheckIn() {
   };
 
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-4">
+    <section
+      aria-labelledby={id}
+      className="flex flex-col gap-2 rounded-(--radius-card) bg-surface shadow-card p-4"
+    >
       <h2 id={id} className="m-0 text-body font-semibold">
         {t('sleep.question')}
       </h2>
@@ -66,7 +69,7 @@ export function SleepCheckIn() {
               type="button"
               aria-pressed={chosen}
               aria-label={t('sleep.option', { quality, label: t(`sleep.quality.${quality}`) })}
-              className={`${option} ${chosen ? 'border-primary bg-primary text-primary-contrast' : 'border-muted/40 text-primary'}`}
+              className={`${option} ${chosen ? 'border-primary bg-primary text-primary-contrast' : 'border-line-strong text-primary'}`}
               onClick={() => {
                 choose(quality);
               }}

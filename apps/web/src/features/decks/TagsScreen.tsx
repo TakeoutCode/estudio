@@ -8,9 +8,9 @@ import { type TagOverview, useTagOverview } from './queries';
 import { deckSummary } from './summary';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border border-muted/40 bg-bg px-4 text-text ${focus}`;
+const field = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 text-text ${focus}`;
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
-const outline = `inline-flex min-h-11 shrink-0 items-center rounded-(--radius-card) border border-primary px-3 font-medium text-primary ${focus}`;
+const outline = `inline-flex min-h-11 shrink-0 items-center rounded-(--radius-card) border-2 border-primary px-3 font-bold text-primary ${focus}`;
 const quiet = `inline-flex min-h-11 shrink-0 items-center px-3 text-primary ${focus}`;
 
 /**
@@ -26,7 +26,7 @@ export function TagsScreen() {
         <Link className={textLink} to="/decks">
           {t('tags.back')}
         </Link>
-        <h1 className="m-0 text-title font-semibold">{t('tags.title')}</h1>
+        <h1 className="m-0 text-title font-extrabold">{t('tags.title')}</h1>
       </header>
       {overview === undefined ? null : overview.length === 0 ? (
         <EmptyState
@@ -97,10 +97,10 @@ function TagRow({ item: { tag, load, notes } }: { readonly item: TagOverview }) 
   };
 
   return (
-    <li className="flex flex-col gap-2 rounded-(--radius-card) bg-surface py-2 pr-2 pl-4">
+    <li className="flex flex-col gap-2 rounded-(--radius-card) bg-surface shadow-card py-2 pr-2 pl-4">
       <div className="flex items-center gap-2">
         <div className="flex min-h-11 min-w-0 flex-1 flex-col justify-center">
-          <span className="font-medium wrap-break-word">{tag.name}</span>
+          <span className="font-bold wrap-break-word">{tag.name}</span>
           <span className="text-caption text-muted">{deckSummary(t, notes, load, false)}</span>
         </div>
         {load.due + load.fresh > 0 ? (
@@ -142,7 +142,7 @@ function TagRow({ item: { tag, load, notes } }: { readonly item: TagOverview }) 
             />
             <button
               type="submit"
-              className={`min-h-11 shrink-0 rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`}
+              className={`min-h-11 shrink-0 rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`}
               disabled={busy}
             >
               {t('tags.save')}
@@ -156,7 +156,7 @@ function TagRow({ item: { tag, load, notes } }: { readonly item: TagOverview }) 
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className={`min-h-11 rounded-(--radius-card) border border-danger px-4 font-medium text-danger disabled:opacity-60 ${focus}`}
+                  className={`min-h-11 rounded-(--radius-card) border-2 border-danger px-4 font-bold text-danger disabled:opacity-60 ${focus}`}
                   disabled={busy}
                   onClick={remove}
                 >

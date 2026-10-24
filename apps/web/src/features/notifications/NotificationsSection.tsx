@@ -9,9 +9,9 @@ import { disableOnThisDevice, enableOnThisDevice } from './commands';
 import { detectEnvironment, deviceSubscription, notificationPermission, pushSupport } from './push';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const primary = `inline-flex min-h-11 w-full items-center justify-center rounded-(--radius-card) border border-primary px-4 font-medium text-primary disabled:opacity-60 ${focus}`;
+const primary = `inline-flex min-h-11 w-full items-center justify-center rounded-(--radius-card) border-2 border-primary px-4 font-bold text-primary disabled:opacity-60 ${focus}`;
 const quiet = `-ml-3 inline-flex min-h-11 items-center self-start px-3 text-primary disabled:opacity-60 ${focus}`;
-const timeInput = `min-h-11 w-full min-w-0 rounded-(--radius-card) border bg-bg px-3 text-body tabular-nums ${focus}`;
+const timeInput = `min-h-11 w-full min-w-0 rounded-(--radius-card) border-2 bg-bg px-3 text-body tabular-nums ${focus}`;
 
 /** Días antes del examen cuando ella activa ese aviso (NOTIFICATIONS §1). */
 const EXAM_DAYS_DEFAULT = NotificationPrefsSchema.parse({}).examSoonDaysBefore;
@@ -69,7 +69,9 @@ function NotificationsBody({ prefs }: { readonly prefs: NotificationPrefs }) {
   }, [support]);
 
   if (support === 'install')
-    return <p className="m-0 rounded-(--radius-card) bg-surface p-4">{t('notifications.install')}</p>;
+    return (
+      <p className="m-0 rounded-(--radius-card) bg-surface shadow-card p-4">{t('notifications.install')}</p>
+    );
   if (support === 'unsupported') return <p className="m-0 text-muted">{t('notifications.unsupported')}</p>;
   if (device === 'checking') return null;
 
@@ -102,7 +104,7 @@ function NotificationsBody({ prefs }: { readonly prefs: NotificationPrefs }) {
       <div className="flex flex-col gap-2">
         {prefs.enabled ? <p className="m-0">{t('notifications.otherDevice')}</p> : null}
         {blocked ? (
-          <p role="status" className="m-0 rounded-(--radius-card) bg-surface p-4">
+          <p role="status" className="m-0 rounded-(--radius-card) bg-surface shadow-card p-4">
             {t('notifications.denied')}
           </p>
         ) : (
@@ -201,7 +203,7 @@ function PrefsFields({
         <input
           id={`${ids}-daily`}
           type="time"
-          className={`${timeInput} ${valid ? 'border-muted/40' : 'border-text'}`}
+          className={`${timeInput} ${valid ? 'border-line-strong' : 'border-text'}`}
           value={daily}
           aria-invalid={!valid}
           aria-describedby={`${ids}-daily-hint`}
@@ -253,7 +255,7 @@ function PrefsFields({
                 id={`${ids}-${edge}`}
                 type="time"
                 required
-                className={`${timeInput} border-muted/40`}
+                className={`${timeInput} border-line-strong`}
                 value={edge === 'start' ? quietStart : quietEnd}
                 onChange={(event) => {
                   const value = event.target.value;

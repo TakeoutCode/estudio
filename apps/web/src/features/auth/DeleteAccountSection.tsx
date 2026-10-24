@@ -6,9 +6,9 @@ import { useOnline } from '@/lib/use-online';
 import { deleteAccount } from './session';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `min-h-11 w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 text-text ${focus}`;
+const field = `min-h-11 w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 text-text ${focus}`;
 // UX1: --color-danger solo para la acción destructiva.
-const danger = `min-h-11 w-full rounded-(--radius-card) border border-danger px-4 font-medium text-danger disabled:opacity-60 ${focus}`;
+const danger = `min-h-11 w-full rounded-(--radius-card) border-2 border-danger px-4 font-bold text-danger disabled:opacity-60 ${focus}`;
 
 const errorKey = (error: unknown) => {
   if (error instanceof ApiError && error.code === 'forbidden')

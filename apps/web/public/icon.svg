@@ -1,6 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#2f63b5"/>
-  <rect x="136" y="152" width="240" height="168" rx="24" fill="#ffffff" opacity="0.55" transform="rotate(-8 256 236)"/>
-  <rect x="136" y="176" width="240" height="168" rx="24" fill="#ffffff"/>
-  <path d="M196 262l40 40 84-88" fill="none" stroke="#2f63b5" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe1ec"/>
+      <stop offset="1" stop-color="#ffa9c9"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g fill="#ffffff" opacity="0.55">
+    <circle cx="86" cy="96" r="12"/><circle cx="426" cy="96" r="12"/><circle cx="256" cy="66" r="10"/>
+    <circle cx="70" cy="300" r="12"/><circle cx="442" cy="300" r="12"/><circle cx="110" cy="446" r="10"/>
+    <circle cx="402" cy="446" r="10"/><circle cx="256" cy="458" r="12"/>
+  </g>
+  <rect x="136" y="186" width="240" height="210" rx="44" fill="#ffffff"/>
+  <path d="M256 352s-42-25-42-54a21 21 0 0 1 42-6 21 21 0 0 1 42 6c0 29-42 54-42 54Z" fill="#ff8fb8"/>
+  <g transform="translate(256 190) scale(4.4) translate(-24 -16)" fill="#e2457f">
+    <path d="M21 13.5C15.5 5.5 4.5 3.5 3.6 11.5 2.8 19 12.5 22.5 21 18.5Z"/>
+    <path d="M27 13.5c5.5-8 16.5-10 17.4-2 .8 7.5-8.9 11-17.4 7Z"/>
+    <path d="M8.5 10.5c2.5-1.5 6.5 0 9 3M39.5 10.5c-2.5-1.5-6.5 0-9 3" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="1.8" stroke-linecap="round"/>
+    <ellipse cx="24" cy="16" rx="5" ry="5.5"/>
+    <ellipse cx="22.6" cy="14.4" rx="1.6" ry="1.2" fill="#ffffff" fill-opacity="0.6"/>
+  </g>
 </svg>

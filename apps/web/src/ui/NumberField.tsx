@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const step = `inline-flex size-11 shrink-0 items-center justify-center rounded-(--radius-card) border border-muted/40 text-title leading-none text-primary disabled:opacity-40 ${focus}`;
+const step = `inline-flex size-11 shrink-0 items-center justify-center rounded-(--radius-card) border-2 border-line-strong text-title leading-none text-primary disabled:opacity-40 ${focus}`;
 
 const parse = (text: string): number | null => (/^\d{1,4}$/.test(text.trim()) ? Number(text) : null);
 
@@ -58,7 +58,7 @@ export function NumberField({
         </button>
         <input
           id={id}
-          className={`min-h-11 w-14 min-w-0 rounded-(--radius-card) border bg-bg px-1 text-center text-body tabular-nums ${valid ? 'border-muted/40' : 'border-text'} ${focus}`}
+          className={`min-h-11 w-14 min-w-0 rounded-(--radius-card) border-2 bg-bg px-1 text-center text-body tabular-nums ${valid ? 'border-line-strong' : 'border-text'} ${focus}`}
           inputMode="numeric"
           enterKeyHint="done"
           autoComplete="off"

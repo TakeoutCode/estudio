@@ -7,8 +7,8 @@ import { downloadBackup, downloadSpreadsheets } from './files';
 import { useBackupInfo } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const button = `min-h-11 w-full rounded-(--radius-card) border border-muted/40 px-4 text-text disabled:opacity-60 ${focus}`;
-const primary = `min-h-11 w-full rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
+const button = `min-h-11 w-full rounded-(--radius-card) border-2 border-line-strong px-4 text-text disabled:opacity-60 ${focus}`;
+const primary = `min-h-11 w-full rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
 
 type Message =
   | { readonly kind: 'error'; readonly key: 'invalid' | 'newer' | 'failed' | 'export' }
@@ -144,7 +144,7 @@ export function BackupSection() {
         <div
           role="group"
           aria-labelledby={`${ids}-candidate`}
-          className="flex flex-col gap-2 rounded-(--radius-card) bg-surface p-4"
+          className="flex flex-col gap-2 rounded-(--radius-card) bg-surface shadow-card p-4"
         >
           <p id={`${ids}-candidate`} className="m-0 font-semibold">
             {t('backup.confirm.title', { date: date(candidate.backup.exportedAt) })}

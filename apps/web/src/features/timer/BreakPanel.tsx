@@ -16,7 +16,7 @@ export function BreakPanel({ session, at }: { readonly session: TimerSession; re
   const left = remainingMs(session, at);
   return (
     <>
-      <section className="flex flex-col items-center gap-2 rounded-(--radius-card) bg-surface px-5 py-10 text-center">
+      <section className="flex flex-col items-center gap-2 rounded-(--radius-card) bg-surface shadow-card px-5 py-10 text-center">
         <h2 className="m-0 text-body font-semibold">
           {t(session.state === 'break_long' ? 'timer.breakLong' : 'timer.break')}
         </h2>
@@ -28,7 +28,7 @@ export function BreakPanel({ session, at }: { readonly session: TimerSession; re
       <ActionBar>
         <button
           type="button"
-          className={`inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast ${focus}`}
+          className={`inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy ${focus}`}
           onClick={() => void dispatchTimer({ type: 'skipBreak' })}
         >
           {t('timer.continue')}

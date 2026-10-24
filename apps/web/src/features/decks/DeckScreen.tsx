@@ -11,9 +11,9 @@ import { type DeckDetail, type DeckNoteRow, matchesSearch, useDeckDetail } from 
 import { deckSummary } from './summary';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const field = `w-full rounded-(--radius-card) border border-muted/40 bg-bg px-4 py-2 text-text ${focus}`;
+const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
-const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-medium text-primary-contrast disabled:opacity-60 ${focus}`;
+const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
 const secondary = `inline-flex min-h-11 w-full items-center justify-center rounded-(--radius-card) px-4 text-primary ${focus}`;
 
 /** Alto de cada fila y separación, en rem: con el texto al 200 % (UX4) crecen con él. */
@@ -54,7 +54,7 @@ function DeckView({ detail: { deck, load, topics, tags, notes } }: { readonly de
         <Link className={textLink} to="/decks">
           {t('decks.back')}
         </Link>
-        <h1 className="m-0 text-title font-semibold wrap-break-word">{deck.name}</h1>
+        <h1 className="m-0 text-title font-extrabold wrap-break-word">{deck.name}</h1>
         {deck.description ? <p className="m-0 whitespace-pre-wrap text-muted">{deck.description}</p> : null}
         <p className="m-0 text-caption text-muted">{summary}</p>
       </header>
@@ -126,7 +126,7 @@ function PauseToggle({ deckId, paused }: { readonly deckId: string; readonly pau
   }
   const shown = chosen ?? paused;
   return (
-    <div className="flex flex-col gap-1 rounded-(--radius-card) bg-surface px-4 py-2">
+    <div className="flex flex-col gap-1 rounded-(--radius-card) bg-surface shadow-card px-4 py-2">
       <Toggle
         label={t('decks.pause')}
         hint={t(shown ? 'decks.pausedHint' : 'decks.pauseHint')}
@@ -206,7 +206,7 @@ function DeckEditForm({
   }[status];
 
   return (
-    <div id={id} className="flex flex-col gap-4 rounded-(--radius-card) bg-surface p-4">
+    <div id={id} className="flex flex-col gap-4 rounded-(--radius-card) bg-surface shadow-card p-4">
       <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
         <label className="flex flex-col gap-1">
           <span>{t('decks.name')}</span>
@@ -249,7 +249,7 @@ function DeckEditForm({
           </p>
           <button
             type="button"
-            className={`min-h-11 w-full rounded-(--radius-card) border border-danger px-4 font-medium text-danger disabled:opacity-60 ${focus}`}
+            className={`min-h-11 w-full rounded-(--radius-card) border-2 border-danger px-4 font-bold text-danger disabled:opacity-60 ${focus}`}
             disabled={busy}
             onClick={remove}
           >
@@ -296,7 +296,7 @@ function TopicList({ topics }: { readonly topics: readonly Topic[] }) {
           {topics.map((topic) => (
             <li key={topic.id}>
               <Link
-                className={`inline-flex min-h-11 items-center rounded-(--radius-card) border border-muted/40 px-3 text-text ${focus}`}
+                className={`inline-flex min-h-11 items-center rounded-(--radius-card) border-2 border-line-strong px-3 text-text ${focus}`}
                 to={`/topics/${topic.id}`}
               >
                 {topic.name}
@@ -395,7 +395,7 @@ function NoteList({
                     key={tag?.id ?? 'all'}
                     type="button"
                     aria-pressed={pressed}
-                    className={`inline-flex min-h-11 items-center rounded-(--radius-card) border px-3 ${pressed ? 'border-primary bg-primary/20 text-text' : 'border-muted/40 text-primary'} ${focus}`}
+                    className={`inline-flex min-h-11 items-center rounded-(--radius-card) border-2 px-3 ${pressed ? 'border-primary bg-primary/20 text-text' : 'border-line-strong text-primary'} ${focus}`}
                     onClick={() => {
                       setTagId(tag?.id ?? null);
                     }}
@@ -431,7 +431,7 @@ function NoteList({
                   style={{ height: rowPx, transform: `translateY(${String(row.start - layout.top)}px)` }}
                 >
                   <Link
-                    className={`flex h-full min-w-0 flex-col justify-center rounded-(--radius-card) bg-surface px-4 ${focus}`}
+                    className={`flex h-full min-w-0 flex-col justify-center rounded-(--radius-card) bg-surface shadow-card px-4 ${focus}`}
                     to={`/notes/${note.id}?mazo=${deckId}`}
                   >
                     <span className="truncate">{note.label}</span>
