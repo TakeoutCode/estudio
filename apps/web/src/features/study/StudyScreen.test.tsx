@@ -9,6 +9,7 @@ import { setDeckPaused } from '@/features/decks';
 import { createExam } from '@/features/exams';
 import { createNote, deleteNote, updateNote } from '@/features/notes';
 import { updateProfile, updateStudyConfig } from '@/features/settings';
+import { dispatchTimer } from '@/features/timer';
 import { useSessionLock } from '@/lib/session-lock';
 import { saveSelfExplanation } from './commands';
 import { planSessionNow } from './queries';
@@ -213,6 +214,38 @@ describe('StudyScreen (LEARNING-DESIGN §4)', () => {
     expect(useSessionLock.getState().holders).toBe(0);
   });
 
+  it('R13: "Descansar" con una tarjeta en pantalla no la corta: el descanso empieza al terminarla', async () => {
+    await dispatchTimer({ type: 'start' });
+    renderStudy();
+    await screen.findByText(humerus.front);
+    fireEvent.click(await screen.findByRole('button', { name: 'Descansar' }));
+
+    expect(await screen.findByText('El descanso empieza al terminar esta tarjeta.')).toBeTruthy();
+    expect(screen.getByText(humerus.front)).toBeTruthy();
+    expect((await db.timerSessions.toArray())[0]?.state).toBe('focus');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    await waitFor(async () => {
+      expect((await db.timerSessions.toArray())[0]?.state).toBe('break_short');
+    });
+    expect(await db.reviewLogs.count()).toBe(1);
+  });
+
+  it('R13: "Seguir sin descanso" cancela el descanso pedido', async () => {
+    await dispatchTimer({ type: 'start' });
+    renderStudy();
+    await screen.findByText(humerus.front);
+    fireEvent.click(await screen.findByRole('button', { name: 'Descansar' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Seguir sin descanso' }));
+    expect(screen.queryByText('El descanso empieza al terminar esta tarjeta.')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
+    expect(await screen.findByText(femur.front)).toBeTruthy();
+    expect((await db.timerSessions.toArray())[0]?.state).toBe('focus');
+  });
+
   it('FE12: Espacio revela y los números califican; ningún atajo salta el intento', async () => {
     renderStudy();
     await screen.findByText(humerus.front);
@@ -341,8 +374,10 @@ describe('StudyScreen · temporizador (§3)', () => {
     await focusBlock();
     renderStudy();
     await screen.findByText(humerus.front); // en pantalla desde T0
-    vi.setSystemTime(T0 + 10_000);
-    fireEvent.click(await screen.findByRole('button', { name: 'Descansar' }));
+    // Un descanso que empieza con la tarjeta a medias: en estructurado, pasada la gracia de R13.
+    await act(async () => {
+      await dispatchTimer({ type: 'takeBreak' }, { now: T0 + 10_000 });
+    });
     expect(await screen.findByRole('heading', { name: 'Descanso' })).toBeTruthy();
 
     vi.setSystemTime(T0 + 190_000); // 3 min de descanso
@@ -458,17 +493,22 @@ describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
     expect(await db.reviewLogs.count()).toBe(0); // no responde nada por ella
   });
 
-  it('P5: con fatiga y un bloque en curso, "Tomar un descanso" abre el descanso y corta la serie', async () => {
+  it('P5 y R13: con fatiga y un bloque en curso, "Tomar un descanso" lo abre al terminar la tarjeta y corta la serie', async () => {
     await focusBlock();
     await fatiguedSession();
     renderStudy();
     expect(await screen.findByText(/Tus últimas respuestas van más lentas/)).toBeTruthy();
     expect(screen.getByText(humerus.front)).toBeTruthy(); // nunca bloquea
     fireEvent.click(screen.getByRole('button', { name: 'Tomar un descanso' }));
+    expect(await screen.findByText('El descanso empieza al terminar esta tarjeta.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bien' }));
     expect(await screen.findByRole('heading', { name: 'Descanso' })).toBeTruthy();
     await waitFor(() => {
-      expect(useStudy.getState().fatigue).toEqual({ inRow: 0, since: 20, showing: false });
+      expect(useStudy.getState().fatigue).toMatchObject({ inRow: 0, showing: false });
     });
+    // La respuesta recién dada puede contarse o no según llegue su lectura antes que el descanso.
+    expect(useStudy.getState().fatigue.since).toBeGreaterThanOrEqual(20);
   });
 
   it('P5: sin temporizador solo informa; P6: el segundo aviso seguido sugiere parar', async () => {

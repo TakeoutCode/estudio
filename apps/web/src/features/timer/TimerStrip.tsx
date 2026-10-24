@@ -24,11 +24,21 @@ export function TimerStrip({
   view,
   now,
   onResult,
+  breakAfterCard,
 }: {
   readonly view: TimerView;
   /** `Date.now()` del último repintado. */
   readonly now: number;
   readonly onResult: (result: TimerResult) => void;
+  /**
+   * R13: con una tarjeta en pantalla, "Descansar" no la corta: quien la muestra pide el
+   * descanso y lo empieza al terminarla. Sin esto, el descanso empieza en el acto.
+   */
+  readonly breakAfterCard?: {
+    readonly pending: boolean;
+    readonly request: () => void;
+    readonly cancel: () => void;
+  };
 }) {
   const { t } = useTranslation();
   const [choosing, setChoosing] = useState(false);
@@ -156,16 +166,26 @@ export function TimerStrip({
         >
           {t('timer.pause')}
         </button>
-        <button
-          type="button"
-          className={action}
-          onClick={() => {
-            act({ type: 'takeBreak' });
-          }}
-        >
-          {t('timer.takeBreak')}
-        </button>
+        {breakAfterCard?.pending ? null : (
+          <button
+            type="button"
+            className={action}
+            onClick={() => {
+              if (breakAfterCard) breakAfterCard.request();
+              else act({ type: 'takeBreak' });
+            }}
+          >
+            {t('timer.takeBreak')}
+          </button>
+        )}
       </Row>
+      {breakAfterCard?.pending ? (
+        <Notice text={t('timer.breakAfterCard')}>
+          <button type="button" className={action} onClick={breakAfterCard.cancel}>
+            {t('timer.cancelBreak')}
+          </button>
+        </Notice>
+      ) : null}
       {reached ? (
         <Notice text={t('timer.blockDone')}>
           {session.extendedThisBlock ? null : (

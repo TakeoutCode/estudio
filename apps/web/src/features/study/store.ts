@@ -113,6 +113,8 @@ interface StudyState {
   readonly dismissedStops: readonly StopReason[];
   /** LD5: temas cuya autoexplicación ella dejó para después en esta sesión. */
   readonly postponedTopics: readonly string[];
+  /** R13: pidió descanso con una tarjeta en pantalla; empieza al terminarla. */
+  readonly breakRequested: boolean;
   readonly start: (session: StudySession) => void;
   readonly present: (cardId: string, now: number) => void;
   /** R1: revelar solo desde el intento. */
@@ -133,6 +135,7 @@ interface StudyState {
   readonly rested: (answers: number) => void;
   readonly dismissStop: (reason: StopReason) => void;
   readonly postponeTopic: (topicId: string) => void;
+  readonly requestBreak: (requested: boolean) => void;
   readonly end: () => void;
 }
 
@@ -148,6 +151,7 @@ const idle = {
   fatigue: { inRow: 0, since: null, showing: false },
   dismissedStops: [],
   postponedTopics: [],
+  breakRequested: false,
 } as const;
 
 export const useStudy = create<StudyState>()((set) => ({
@@ -216,6 +220,9 @@ export const useStudy = create<StudyState>()((set) => ({
     set((s) =>
       s.postponedTopics.includes(topicId) ? s : { postponedTopics: [...s.postponedTopics, topicId] },
     );
+  },
+  requestBreak: (requested) => {
+    set({ breakRequested: requested });
   },
   end: () => {
     set(idle);

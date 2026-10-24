@@ -310,6 +310,17 @@ function Session({
   });
   const inBlock =
     timer?.isOwner === true && (timer.session?.state === 'focus' || timer.session?.state === 'paused');
+  // R13: con una tarjeta en pantalla, el descanso que ella pide empieza al terminarla.
+  const breakRequested = useStudy((s) => s.breakRequested);
+  const requestBreak = useStudy((s) => s.requestBreak);
+  const cardShown = step?.kind === 'card' && currentCardId !== null;
+  const takeBreak = () => {
+    if (cardShown) requestBreak(true);
+    else void dispatchTimer({ type: 'takeBreak' });
+  };
+  useEffect(() => {
+    if (onBreak && breakRequested) requestBreak(false);
+  }, [onBreak, breakRequested, requestBreak]);
   const aside =
     suggestion && planner ? (
       <SuggestionPanel
@@ -318,7 +329,7 @@ function Session({
         canBreak={inBlock}
         onTakeBreak={() => {
           dismiss();
-          void dispatchTimer({ type: 'takeBreak' });
+          takeBreak();
         }}
         onFinish={() => {
           end();
@@ -347,7 +358,20 @@ function Session({
   return (
     <>
       <StudyHeader done={done} total={plan.queue.length} />
-      {timer ? <TimerStrip view={timer} now={now} onResult={onTimerResult} /> : null}
+      {timer ? (
+        <TimerStrip
+          view={timer}
+          now={now}
+          onResult={onTimerResult}
+          breakAfterCard={{
+            pending: breakRequested,
+            request: takeBreak,
+            cancel: () => {
+              requestBreak(false);
+            },
+          }}
+        />
+      ) : null}
       {away ? (
         <AwayPrompt
           sessionId={away.sessionId}
@@ -396,8 +420,13 @@ function Session({
             if (suggestion) dismiss();
             setAnswered((prev) => new Map(prev).set(state.cardId, state));
             setClock(Date.now());
-            // R13: en estructurado, el bloque que ya llegó a 0 cierra al terminar la tarjeta.
-            void dispatchTimer({ type: 'cardDone' });
+            // R13: en estructurado, el bloque que ya llegó a 0 cierra al terminar la tarjeta, y
+            // el descanso que pidió con la tarjeta en pantalla empieza ahora.
+            void dispatchTimer({ type: 'cardDone' }).then(() => {
+              if (!useStudy.getState().breakRequested) return;
+              requestBreak(false);
+              return dispatchTimer({ type: 'takeBreak' });
+            });
           }}
         />
       ) : null}

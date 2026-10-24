@@ -739,6 +739,8 @@
     "newBlock": "Bloque nuevo",
     "stop": "Terminar temporizador",
     "blockDone": "Se cumplió el tiempo del bloque. Puedes seguir o descansar.",
+    "breakAfterCard": "El descanso empieza al terminar esta tarjeta.",
+    "cancelBreak": "Seguir sin descanso",
     "pauseExpired": "La pausa pasó de {{minutes}} min, así que el bloque quedó guardado hasta ahí.",
     "elsewhere": "En curso en otro dispositivo",
     "takeover": "Continuar aquí",
