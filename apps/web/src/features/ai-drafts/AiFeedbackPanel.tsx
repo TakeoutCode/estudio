@@ -87,7 +87,7 @@ function FeedbackView({ feedback }: { readonly feedback: AiOpenFeedback }) {
         items.length > 0 ? (
           <div key={key} className="flex flex-col">
             <h3 className="m-0 text-caption font-bold">{t(`aiFeedback.${key}`)}</h3>
-            <ul className="m-0 flex flex-col gap-1 pl-5">
+            <ul className="m-0 flex list-disc flex-col gap-1 pl-5">
               {items.map((item, i) => (
                 <li key={`${String(i)}:${item}`}>{item}</li>
               ))}
