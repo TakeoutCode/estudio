@@ -16,6 +16,7 @@ describe('NotificationPrefs (STUDY-METHODS §3, NOTIFICATIONS §1)', () => {
       maxRemindersPerDay: 2,
       quietHours: { start: '22:00', end: '07:00' },
       dailyReminderTime: null,
+      secondReminderTime: null,
       minDueForReminder: 10,
       ignoredStreakForBackoff: 3,
       backoffEveryDays: 3,
@@ -35,6 +36,14 @@ describe('NotificationPrefs (STUDY-METHODS §3, NOTIFICATIONS §1)', () => {
     ['07:00', true],
   ])('NT3: recordatorio a las %s permitido = %s (horas silenciosas 22:00-07:00)', (time, ok) => {
     expect(NotificationPrefsSchema.safeParse({ dailyReminderTime: time }).success).toBe(ok);
+  });
+
+  it('§3d: la segunda hora es opcional, distinta de la primera, solo con ella y fuera de las horas silenciosas', () => {
+    const ok = (input: object) => NotificationPrefsSchema.safeParse(input).success;
+    expect(ok({ dailyReminderTime: '08:00', secondReminderTime: '19:00' })).toBe(true);
+    expect(ok({ dailyReminderTime: null, secondReminderTime: '19:00' })).toBe(false);
+    expect(ok({ dailyReminderTime: '19:00', secondReminderTime: '19:00' })).toBe(false);
+    expect(ok({ dailyReminderTime: '08:00', secondReminderTime: '23:00' })).toBe(false);
   });
 
   it('NT1: solo existen los 4 tipos y ninguno es de racha (R19)', () => {

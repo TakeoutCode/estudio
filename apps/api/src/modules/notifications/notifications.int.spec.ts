@@ -144,7 +144,7 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
       .expect(204);
   const events = (userId: string) => server.prisma.$queryRaw<EventRow[]>`
     SELECT id, status, reason, kinds, exam_days AS "examDays", opened_at AS "openedAt"
-    FROM notification_event WHERE user_id = ${userId}::uuid ORDER BY local_date`;
+    FROM notification_event WHERE user_id = ${userId}::uuid ORDER BY local_date, slot`;
   /** El tick del cron que termina a las `h:m` locales del día `day`. */
   const tick = (day: number, h: number, m: number) =>
     service.runReminderTick(local(day, h, m), local(day, h, m) - 5 * MIN);
@@ -214,6 +214,32 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
     expect(sender.to(user.endpoint)).toEqual([]);
     expect(await events(user.userId)).toMatchObject([
       { status: 'suppressed', reason: 'below_min_due', kinds: ['daily_reminder'] },
+    ]);
+  });
+
+  it('§3d: con una segunda hora llega otro aviso si sigue habiendo pendientes; el tope del día manda', async () => {
+    const user = await seed('avisos-i@ejemplo.mx', {
+      time: '08:00',
+      due: 12,
+      notifications: { secondReminderTime: '19:30' },
+    });
+    await tick(0, 8, 0);
+    await tick(0, 19, 30);
+    expect(sender.to(user.endpoint)).toHaveLength(2);
+    expect(await events(user.userId)).toMatchObject([{ status: 'sent' }, { status: 'sent' }]);
+
+    // Con un tope de 1 al día, la segunda hora queda registrada como suprimida por el tope.
+    const capped = await seed('avisos-j@ejemplo.mx', {
+      time: '08:05',
+      due: 12,
+      notifications: { secondReminderTime: '19:35', maxRemindersPerDay: 1 },
+    });
+    await tick(0, 8, 5);
+    await tick(0, 19, 35);
+    expect(sender.to(capped.endpoint)).toHaveLength(1);
+    expect(await events(capped.userId)).toMatchObject([
+      { status: 'sent' },
+      { status: 'suppressed', reason: 'daily_cap' },
     ]);
   });
 

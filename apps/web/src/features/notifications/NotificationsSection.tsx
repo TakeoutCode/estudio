@@ -171,25 +171,31 @@ function PrefsFields({
   const { t, i18n } = useTranslation();
   const ids = useId();
   const [daily, setDaily] = useState(prefs.dailyReminderTime ?? '');
+  const [second, setSecond] = useState(prefs.secondReminderTime ?? '');
   const [quietStart, setQuietStart] = useState(prefs.quietHours.start);
   const [quietEnd, setQuietEnd] = useState(prefs.quietHours.end);
 
-  const candidate = {
-    ...prefs,
-    dailyReminderTime: daily === '' ? null : daily,
-    quietHours: { start: quietStart, end: quietEnd },
-  };
-  const valid = NotificationPrefsSchema.safeParse(candidate).success;
-  const commit = (next: { daily?: string; start?: string; end?: string }) => {
+  const candidate = (next: { daily?: string; second?: string; start?: string; end?: string } = {}) => {
     const d = next.daily ?? daily;
-    const quietHours = { start: next.start ?? quietStart, end: next.end ?? quietEnd };
-    const parsed = NotificationPrefsSchema.safeParse({
+    const s = next.second ?? second;
+    return {
       ...prefs,
       dailyReminderTime: d === '' ? null : d,
-      quietHours,
-    });
+      secondReminderTime: s === '' ? null : s,
+      quietHours: { start: next.start ?? quietStart, end: next.end ?? quietEnd },
+    };
+  };
+  // Cada hora dice su propio problema (horas silenciosas, o una segunda sin primera o repetida).
+  const issues = NotificationPrefsSchema.safeParse(candidate()).error?.issues ?? [];
+  const problemOf = (field: 'dailyReminderTime' | 'secondReminderTime') =>
+    issues.find((issue) => issue.path[0] === field)?.message ?? null;
+  const dailyProblem = problemOf('dailyReminderTime');
+  const secondProblem = problemOf('secondReminderTime');
+  const commit = (next: { daily?: string; second?: string; start?: string; end?: string }) => {
+    const parsed = NotificationPrefsSchema.safeParse(candidate(next));
     if (parsed.success) {
-      onSave((p) => ({ ...p, dailyReminderTime: parsed.data.dailyReminderTime, quietHours }));
+      const { dailyReminderTime, secondReminderTime, quietHours } = parsed.data;
+      onSave((p) => ({ ...p, dailyReminderTime, secondReminderTime, quietHours }));
     }
   };
   const days = new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(
@@ -203,9 +209,9 @@ function PrefsFields({
         <input
           id={`${ids}-daily`}
           type="time"
-          className={`${timeInput} ${valid ? 'border-line-strong' : 'border-text'}`}
+          className={`${timeInput} ${dailyProblem ? 'border-text' : 'border-line-strong'}`}
           value={daily}
-          aria-invalid={!valid}
+          aria-invalid={dailyProblem !== null}
           aria-describedby={`${ids}-daily-hint`}
           onChange={(event) => {
             setDaily(event.target.value);
@@ -213,9 +219,32 @@ function PrefsFields({
           }}
         />
         <p id={`${ids}-daily-hint`} className="m-0 text-caption text-muted" aria-live="polite">
-          {valid
-            ? t('notifications.dailyHint', { count: prefs.minDueForReminder })
-            : t('notifications.inQuietHours')}
+          {dailyProblem
+            ? t('notifications.inQuietHours')
+            : t('notifications.dailyHint', { count: prefs.minDueForReminder })}
+        </p>
+      </div>
+      {/* §3d: una segunda hora opcional; solo con ella se llega al tope de 2 al día. */}
+      <div className="flex flex-col gap-1">
+        <label htmlFor={`${ids}-second`}>{t('notifications.second')}</label>
+        <input
+          id={`${ids}-second`}
+          type="time"
+          className={`${timeInput} ${secondProblem ? 'border-text' : 'border-line-strong'}`}
+          value={second}
+          aria-invalid={secondProblem !== null}
+          aria-describedby={`${ids}-second-hint`}
+          onChange={(event) => {
+            setSecond(event.target.value);
+            commit({ second: event.target.value });
+          }}
+        />
+        <p id={`${ids}-second-hint`} className="m-0 text-caption text-muted" aria-live="polite">
+          {secondProblem === 'reminder_in_quiet_hours'
+            ? t('notifications.inQuietHours')
+            : secondProblem
+              ? t('notifications.secondNeedsFirst')
+              : t('notifications.secondHint', { count: prefs.maxRemindersPerDay })}
         </p>
       </div>
       <Toggle

@@ -152,8 +152,8 @@ export class NotificationsService {
   }
 
   /**
-   * ARC7: bajo advisory lock, registra un evento por cuenta y día (enviado o suprimido con su
-   * motivo, §6). Devuelve los que hay que enviar.
+   * ARC7: bajo advisory lock, registra un evento por cuenta, día y hora elegida (enviado o
+   * suprimido con su motivo, §6). Devuelve los que hay que enviar.
    */
   @Transactional()
   async claimReminders(now: number, since: number): Promise<Outgoing[]> {
@@ -161,17 +161,23 @@ export class NotificationsService {
     const outgoing: Outgoing[] = [];
     for (const user of await this.repo.usersWithNotifications()) {
       const ctx = contextOf(user.settings);
-      const time = ctx?.prefs.dailyReminderTime ?? null;
-      if (!ctx?.prefs.enabled || time === null) continue;
-      if (!reminderTimeCrossed(since, now, ctx.timeZone, time)) continue;
-      const localDate = localDateOf(now, ctx.timeZone);
-      if (await this.repo.hasEventFor(user.userId, localDate)) continue;
-      const item = await this.claimReminder(user.userId, ctx, now, localDate).catch((error: unknown) => {
-        // Datos de una cuenta que no validan no frenan a las demás. BE6: solo el id.
-        this.logger.error({ err: error, userId: user.userId }, 'No se pudo calcular un recordatorio');
-        return null;
-      });
-      if (item) outgoing.push(item);
+      if (!ctx?.prefs.enabled) continue;
+      // §3d: la hora del recordatorio y, si la eligió, la segunda; cada una reclama su evento.
+      const times = [ctx.prefs.dailyReminderTime, ctx.prefs.secondReminderTime] as const;
+      for (const [i, time] of times.entries()) {
+        if (time === null || !reminderTimeCrossed(since, now, ctx.timeZone, time)) continue;
+        const slot = i === 0 ? 1 : 2;
+        const localDate = localDateOf(now, ctx.timeZone);
+        if (await this.repo.hasEventFor(user.userId, localDate, slot)) continue;
+        const item = await this.claimReminder(user.userId, ctx, now, localDate, slot).catch(
+          (error: unknown) => {
+            // Datos de una cuenta que no validan no frenan a las demás. BE6: solo el id.
+            this.logger.error({ err: error, userId: user.userId }, 'No se pudo calcular un recordatorio');
+            return null;
+          },
+        );
+        if (item) outgoing.push(item);
+      }
     }
     return outgoing;
   }
@@ -181,8 +187,9 @@ export class NotificationsService {
     ctx: UserContext,
     now: number,
     localDate: string,
+    slot: 1 | 2,
   ): Promise<Outgoing | null> {
-    const event = await this.reminderEvent(userId, ctx, now, localDate);
+    const event = await this.reminderEvent(userId, ctx, now, localDate, slot);
     if (!(await this.repo.insertEvent(event)) || event.payload === null) return null;
     return {
       userId,
@@ -203,11 +210,13 @@ export class NotificationsService {
     ctx: UserContext,
     now: number,
     localDate: string,
+    slot: 1 | 2,
   ): Promise<NewEvent & { readonly payload: ReminderParams | null }> {
-    const [data, sent, stored] = await Promise.all([
+    const [data, sent, stored, sentToday] = await Promise.all([
       this.repo.studyData(userId),
       this.repo.sentReminders(userId),
       this.repo.state(userId),
+      this.repo.remindersOn(userId, localDate),
     ]);
     const liveNotes = new Map(data.notes.map((n) => [n.id, n]));
     const cards = data.cards.filter((c) => liveNotes.has(c.noteId));
@@ -257,14 +266,14 @@ export class NotificationsService {
         nowUtc: now,
         timeZone: ctx.timeZone,
         prefs: ctx.prefs,
-        // Sin evento hoy (`hasEventFor`): todavía no salió ningún recordatorio en su día.
-        remindersSentToday: 0,
+        // §3d: lo que ya salió hoy en la otra hora cuenta para el tope de `maxRemindersPerDay`.
+        remindersSentToday: sentToday,
         dueCount: candidates.dueToday.count,
         backoff,
       }),
     }));
     const sending = new Set(decisions.filter((d) => d.decision.send).map((d) => d.kind));
-    const base = { id: newId(), userId, localDate, scheduledFor: now };
+    const base = { id: newId(), userId, localDate, slot, scheduledFor: now };
 
     if (sending.size === 0) {
       const skipped = decisions.find((d) => !d.decision.send)?.decision;

@@ -9,6 +9,7 @@
 | §3d y §3g: máximo de **recordatorios** al día, por cuenta (no por dispositivo) | `maxRemindersPerDay` (rango 0-2) | 2 |
 | §3c, R12: horas silenciosas en su zona horaria | `quietHours.start` / `quietHours.end` | `22:00` / `07:00` |
 | §3b: recordatorio diario a la hora que ella elija | `dailyReminderTime` | `null` (se pide al activarlo) |
+| §3d, diseño: segunda hora opcional, distinta de la primera y fuera de las horas silenciosas; solo con ella se llega al tope de 2 (*decisión del responsable, 2026-10-23*) | `secondReminderTime` | `null` |
 | §3b: mínimo de pendientes para el recordatorio diario | `minDueForReminder` | 10 |
 | §3f: recordatorios ignorados seguidos antes de bajar la frecuencia | `ignoredStreakForBackoff` | 3 |
 | §3f: frecuencia reducida | `backoffEveryDays` | 3 |
@@ -29,7 +30,7 @@
 ## 2. Modelo de datos
 
 - `PushSubscription` (solo servidor): `id`, `userId`, `deviceId`, `endpoint` (único), `p256dh`, `auth`, `userAgent`, `createdAt`, `lastSuccessAt`, `failures`.
-- `NotificationEvent` (solo inserción): `id`, `userId`, `kinds[]` (uno o varios recordatorios agrupados), `localDate`, `scheduledFor`, `sentAt`, `openedAt`, `status` (`pending` mientras se entrega, luego `sent` | `failed` | `suppressed`), `reason`, `payloadKey` y `payloadParams` (los parámetros del texto, no el texto), y `examDays` (los `examId:N` avisados en ese evento, para avisar una vez por examen y por cada N).
+- `NotificationEvent` (solo inserción): `id`, `userId`, `kinds[]` (uno o varios recordatorios agrupados), `localDate`, `slot` (1 = a la hora del recordatorio, 2 = a la segunda hora; único por usuario, día y slot), `scheduledFor`, `sentAt`, `openedAt`, `status` (`pending` mientras se entrega, luego `sent` | `failed` | `suppressed`), `reason`, `payloadKey` y `payloadParams` (los parámetros del texto, no el texto), y `examDays` (los `examId:N` avisados en ese evento, para avisar una vez por examen y por cada N).
 - `ScheduledNotification` (fin de descanso): `id`, `userId`, `timerSessionId`, `blockIndex`, `fireAt`, `cancelledAt`, `sentAt`, con unicidad `(timerSessionId, blockIndex)` para enviarlo una sola vez.
 - `NotificationState` por usuario: `backoffResetAt` ("Como antes") y `backoffQuestionAnsweredAt`. La serie de ignorados y el modo reducido no se guardan: se calculan con `backoffState` a partir de los eventos enviados, así no se desincronizan.
 
@@ -53,7 +54,7 @@ export function decideNotification(i: DecideInput): Decision {
 
 ## 4. Disparadores
 
-**NT3 · DEBE** evaluar los recordatorios con un tick de cron cada 5 min, bajo advisory lock (ARC7). Toma a los usuarios cuya hora local cruzó `dailyReminderTime` desde el tick anterior (`reminderTimeCrossed` de `srs`; un tick perdido no se recupera tarde) y que no tienen recordatorio en su `localDate`, y evalúa los tres tipos de recordatorio. El umbral del diario se compara con las vencidas (tarjetas vivas con `due` antes del fin de su día local, §3b). El número que muestra el texto es el `due` de `buildSessionQueue` de `srs` (vía `reminderCandidates`), el mismo que muestra Hoy, para que el aviso y la app digan lo mismo: por eso las tarjetas de mazos en pausa (`Deck.pausedAt`) no cuentan (`dueCards`), aunque el plan de un examen sí las ve por tema. Si `dailyReminderTime` cae en horas silenciosas, Ajustes no lo permite, y el servidor no lo pospone a las 07:00. *Razón:* §3b y R12; un aviso aplazado llega sin que ella lo espere.
+**NT3 · DEBE** evaluar los recordatorios con un tick de cron cada 5 min, bajo advisory lock (ARC7). Toma a los usuarios cuya hora local cruzó `dailyReminderTime` o `secondReminderTime` desde el tick anterior (`reminderTimeCrossed` de `srs`; un tick perdido no se recupera tarde) y que no tienen evento para esa hora en su `localDate`, y evalúa los tres tipos de recordatorio. Lo que ya salió ese día cuenta para `maxRemindersPerDay`; a la segunda hora solo llega aviso si sigue habiendo algo pendiente (el de examen no se repite) y, en modo reducido, nunca dos el mismo día. El umbral del diario se compara con las vencidas (tarjetas vivas con `due` antes del fin de su día local, §3b). El número que muestra el texto es el `due` de `buildSessionQueue` de `srs` (vía `reminderCandidates`), el mismo que muestra Hoy, para que el aviso y la app digan lo mismo: por eso las tarjetas de mazos en pausa (`Deck.pausedAt`) no cuentan (`dueCards`), aunque el plan de un examen sí las ve por tema. Si `dailyReminderTime` cae en horas silenciosas, Ajustes no lo permite, y el servidor no lo pospone a las 07:00. *Razón:* §3b y R12; un aviso aplazado llega sin que ella lo espere.
 
 **NT4 · DEBE** programar el fin de descanso desde el cliente: `PUT /notifications/break-end {timerSessionId, blockIndex, fireAt}` al pasar a segundo plano durante un descanso y `DELETE` al volver. Un poller de 30 s envía los vencidos. No cuenta para `maxRemindersPerDay` ni como ignorado, pero sí respeta las horas silenciosas. *Razón:* §3a y §3g; iOS no permite notificaciones locales programadas.
 

@@ -27,6 +27,8 @@ export const NotificationPrefsSchema = z
     maxRemindersPerDay: int(0, 2).default(2), // §3d, §3g
     quietHours: QuietHoursSchema.prefault({}),
     dailyReminderTime: LocalTimeSchema.nullable().default(null), // §3b: la hora la elige ella
+    // §3d · diseño: una segunda hora opcional; solo con ella el tope de 2 al día se puede alcanzar.
+    secondReminderTime: LocalTimeSchema.nullable().default(null),
     minDueForReminder: int(1, 500).default(10), // §3b · hipótesis
     ignoredStreakForBackoff: int(1, 10).default(3), // §3f
     backoffEveryDays: int(1, 14).default(3), // §3f
@@ -41,6 +43,17 @@ export const NotificationPrefsSchema = z
   .refine(
     (p) => p.dailyReminderTime === null || !isMinuteInRange(minutesOfDay(p.dailyReminderTime), p.quietHours),
     { path: ['dailyReminderTime'], message: 'reminder_in_quiet_hours' }, // NT3
+  )
+  .refine(
+    (p) =>
+      p.secondReminderTime === null || !isMinuteInRange(minutesOfDay(p.secondReminderTime), p.quietHours),
+    { path: ['secondReminderTime'], message: 'reminder_in_quiet_hours' }, // NT3
+  )
+  .refine(
+    (p) =>
+      p.secondReminderTime === null ||
+      (p.dailyReminderTime !== null && p.secondReminderTime !== p.dailyReminderTime),
+    { path: ['secondReminderTime'], message: 'second_reminder_needs_first' },
   );
 
 export type NotificationPrefs = z.output<typeof NotificationPrefsSchema>;

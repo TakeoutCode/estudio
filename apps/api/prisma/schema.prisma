@@ -506,9 +506,11 @@ model NotificationEvent {
   payloadParams Json?    @map("payload_params")
   /// NT-T11: "examId:N" avisados en este evento.
   examDays      String[] @map("exam_days")
+  /// §3d: 1 = a la hora del recordatorio (`dailyReminderTime`), 2 = a la segunda hora.
+  slot          Int      @default(1)
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, localDate])
+  @@unique([userId, localDate, slot])
   @@map("notification_event")
 }
 

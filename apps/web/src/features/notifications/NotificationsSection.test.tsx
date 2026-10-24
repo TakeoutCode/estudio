@@ -69,6 +69,16 @@ describe('Ajustes · Avisos (NOTIFICATIONS §1, NT8)', () => {
       screen.getByText('Solo si tienes al menos 10 tarjetas pendientes. Déjalo vacío si no lo quieres.'),
     ).toBeTruthy();
 
+    // §3d: la segunda hora es opcional y no puede repetir la primera.
+    const second = screen.getByLabelText<HTMLInputElement>('Segundo recordatorio (opcional)');
+    fireEvent.change(second, { target: { value: '19:30' } });
+    expect(await screen.findByText(/Elige primero la hora del recordatorio diario/)).toBeTruthy();
+    expect((await readNotificationPrefs(db)).secondReminderTime).toBeNull();
+    fireEvent.change(second, { target: { value: '08:00' } });
+    await waitFor(async () => {
+      expect((await readNotificationPrefs(db)).secondReminderTime).toBe('08:00');
+    });
+
     fireEvent.click(screen.getByRole('checkbox', { name: /Plan del día/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Antes de un examen/ }));
     await waitFor(async () => {

@@ -51,6 +51,8 @@ export interface NewEvent {
   readonly userId: string;
   readonly kinds: readonly string[];
   readonly localDate: string;
+  /** §3d: 1 = a la hora del recordatorio, 2 = a la segunda hora. */
+  readonly slot: 1 | 2;
   readonly scheduledFor: number;
   readonly status: 'pending' | 'suppressed';
   readonly reason: string | null;
@@ -227,8 +229,15 @@ export class NotificationsRepository {
     };
   }
 
-  async hasEventFor(userId: string, localDate: string): Promise<boolean> {
-    return (await this.tx.notificationEvent.count({ where: { userId, localDate } })) > 0;
+  async hasEventFor(userId: string, localDate: string, slot: 1 | 2): Promise<boolean> {
+    return (await this.tx.notificationEvent.count({ where: { userId, localDate, slot } })) > 0;
+  }
+
+  /** §3d: recordatorios que ya salieron (o están saliendo) en su día local, para el tope. */
+  async remindersOn(userId: string, localDate: string): Promise<number> {
+    return this.tx.notificationEvent.count({
+      where: { userId, localDate, status: { in: ['sent', 'pending'] } },
+    });
   }
 
   /** Los recordatorios enviados: dan la serie de ignorados (§3f) y los exámenes ya avisados. */
@@ -247,7 +256,7 @@ export class NotificationsRepository {
     };
   }
 
-  /** NT-T6: la unicidad (usuario, día) reclama el día; si otro tick ganó, devuelve false. */
+  /** NT-T6: la unicidad (usuario, día, slot) reclama esa hora; si otro tick ganó, devuelve false. */
   async insertEvent(event: NewEvent): Promise<boolean> {
     const result = await this.tx.notificationEvent.createMany({
       data: [
@@ -256,6 +265,7 @@ export class NotificationsRepository {
           userId: event.userId,
           kinds: [...event.kinds],
           localDate: event.localDate,
+          slot: event.slot,
           scheduledFor: event.scheduledFor,
           status: event.status,
           reason: event.reason,

@@ -47,8 +47,8 @@ describe('ARC6: campos de las entidades LWW frente a MIN_SAFE_CONTRACT', () => {
     // editar la fila. Si fue otro cambio, revisa que un cliente viejo pueda seguir escribiendo.
     // Después actualiza aquí la huella.
     expect({ minSafe: MIN_SAFE_CONTRACT, fields: fnv1a(lwwFields().join('\n')) }).toEqual({
-      minSafe: 26,
-      fields: '4079e2b7',
+      minSafe: 27,
+      fields: '8d6f3ba6',
     });
   });
 
