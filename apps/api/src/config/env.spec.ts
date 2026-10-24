@@ -40,10 +40,10 @@ describe('EnvSchema (BACKEND BE4)', () => {
   );
 
   it('ADR-018: sin NODE_ENV (en Vercel no se carga) vale production, con todo lo que exige', () => {
-    const { NODE_ENV: _omitted, ...withoutNodeEnv } = base;
-    expect(EnvSchema.parse(withoutNodeEnv).NODE_ENV).toBe('production');
-    const { VAPID_PRIVATE_KEY: _vapid, ...withoutVapid } = withoutNodeEnv;
-    expect(EnvSchema.safeParse(withoutVapid).success).toBe(false);
+    const without = (...keys: string[]) =>
+      Object.fromEntries(Object.entries(base).filter(([k]) => !keys.includes(k)));
+    expect(EnvSchema.parse(without('NODE_ENV')).NODE_ENV).toBe('production');
+    expect(EnvSchema.safeParse(without('NODE_ENV', 'VAPID_PRIVATE_KEY')).success).toBe(false);
   });
 
   it.each(['https://app.ejemplo.mx/', 'https://app.ejemplo.mx/login', 'ftp://app.ejemplo.mx', ''])(
