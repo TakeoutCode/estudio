@@ -157,6 +157,29 @@ describe('sync contra Postgres real (SYNC.md)', () => {
     });
   });
 
+  it('QA5, BE11: un userId en el cuerpo se ignora; la cuenta sale solo del token', async () => {
+    const send = (body: Record<string, unknown>) =>
+      server
+        .api()
+        .post('/sync/push')
+        .set('Authorization', `Bearer ${b.token}`)
+        .send({ deviceId: NODE, ...body })
+        .expect(200);
+    // En el pedido: se descarta y la fila queda en la cuenta del token.
+    const deck = deckRow(now, NODE);
+    const res = PushResponseSchema.parse((await send({ userId: a.userId, mutations: [upsert(deck)] })).body);
+    expect(res.results[0]?.status).toBe('applied');
+    // En la fila: no es un campo de la entidad, así que la mutación se rechaza.
+    const smuggled = { ...deckRow(now, NODE), userId: a.userId };
+    const rejected = PushResponseSchema.parse((await send({ mutations: [upsert(smuggled)] })).body);
+    expect(rejected.results[0]?.status).toBe('rejected');
+
+    const ofA = (await allChanges(a.token)).map((c) => c.row.id);
+    expect(ofA).not.toContain(deck.id);
+    expect(ofA).not.toContain(smuggled.id);
+    expect((await allChanges(b.token)).map((c) => c.row.id)).toContain(deck.id);
+  });
+
   /** Mazo, nota y tarjeta de ella: lo mínimo para que un repaso tenga a qué referirse (BE2). */
   const ownedCard = async (token: string) => {
     const deck = deckRow(now, NODE);
