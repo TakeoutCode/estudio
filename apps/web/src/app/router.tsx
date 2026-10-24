@@ -1,21 +1,25 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, type RouteObject } from 'react-router';
 import { RequireAccount } from '@/features/auth';
 import { RootLayout } from './RootLayout';
 import { RouteError } from './RouteError';
 
-// Rutas lazy: la de estudio no carga el editor (FRONTEND FE9).
-export const router = createBrowserRouter([
+// Rutas lazy: la de estudio no carga el editor (FRONTEND FE9). FE13: cada pantalla tiene su
+// error boundary dentro del layout (las pestañas y los avisos siguen); el de la raíz queda por si
+// falla el layout mismo.
+export const routes: RouteObject[] = [
   {
     path: '/',
     element: <RootLayout />,
-    errorElement: <RouteError />,
+    errorElement: <RouteError standalone />,
     children: [
       {
         path: 'login',
+        errorElement: <RouteError />,
         lazy: async () => ({ Component: (await import('@/features/auth')).LoginScreen }),
       },
       {
         element: <RequireAccount />,
+        errorElement: <RouteError />,
         children: [
           {
             index: true,
@@ -161,4 +165,6 @@ export const router = createBrowserRouter([
       },
     ],
   },
-]);
+];
+
+export const router = createBrowserRouter(routes);
