@@ -55,3 +55,19 @@ export function examPlan(
     inFinalWindow: until >= 0 && until < cfg.exam.finalReviewWindowDays,
   };
 }
+
+/**
+ * R11: los temas de los exámenes que vienen, del más próximo al más lejano y sin repetir. La cola
+ * pone primero las nuevas de estos temas (`buildSessionQueue`); los que ya pasaron no cuentan.
+ */
+export function upcomingExamTopics(
+  exams: readonly Pick<Exam, 'date' | 'topicIds'>[],
+  now: number,
+  timeZone: string,
+): string[] {
+  const today = localDayNumber(now, timeZone);
+  const upcoming = exams
+    .filter((exam) => localDayNumber(exam.date, timeZone) >= today)
+    .sort((a, b) => a.date - b.date);
+  return [...new Set(upcoming.flatMap((exam) => exam.topicIds))];
+}

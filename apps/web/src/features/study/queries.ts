@@ -21,6 +21,7 @@ import {
   type SessionPlan,
   type SessionSummary,
   sessionSummary,
+  upcomingExamTopics,
 } from '@estudio/srs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readPlannerCards } from '@/db/planner-cards';
@@ -63,10 +64,11 @@ export async function loadPlan(
     readonly includePaused?: boolean;
   } = {},
 ): Promise<PlanSnapshot> {
-  const [config, profile, all] = await Promise.all([
+  const [config, profile, all, exams] = await Promise.all([
     readStudyConfig(database),
     readProfile(database),
     readPlannerCards(database),
+    alive(database.exams.toCollection()).toArray(),
   ]);
   const { notes } = all;
   const plannerCards =
@@ -88,6 +90,7 @@ export async function loadPlan(
     timeZone: profile.timeZone,
     plannedBlocks,
     contrastGroups: contrast.groups,
+    examTopics: upcomingExamTopics(exams, now, profile.timeZone), // R11
   });
   const noteOf = new Map(plannerCards.map((c) => [c.state.cardId, c.noteId]));
   const leechNotes = new Set(plan.reformulate.flatMap((id) => noteOf.get(id) ?? []));

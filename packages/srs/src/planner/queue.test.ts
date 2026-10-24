@@ -247,6 +247,31 @@ describe('P3: si falla mucho', () => {
   });
 });
 
+describe('R11: las nuevas de los temas del examen próximo, primero', () => {
+  // Las de 'huesos' se crearon antes; sin exámenes entrarían primero.
+  const cards = [
+    ...range(1, 15).map((n) => newCard(n, 'huesos')),
+    ...range(100, 15).map((n) => newCard(n, 'nervios')),
+  ];
+  const topicsOf = (plan: { queue: readonly QueueItem[] }) => news(plan).map((q) => q.topicId);
+
+  it('R11: con un examen de nervios, sus nuevas ocupan el tope del día', () => {
+    expect(new Set(topicsOf(buildSessionQueue(input({ cards }))))).toEqual(new Set(['huesos']));
+    const plan = buildSessionQueue(input({ cards, examTopics: ['nervios'] }));
+    expect(topicsOf(plan)).toEqual(Array.from({ length: 10 }, () => 'nervios'));
+  });
+
+  it('R11 y P4: con más nuevas que el tope, el tema del examen va primero y luego se alternan', () => {
+    const wide = cfgWith(
+      { newPerSessionMax: 30, newMaxSameTopicRun: 5 },
+      { timer: { ...cfgWith().timer, focusMin: 60 } },
+    );
+    const runs = topicsOf(buildSessionQueue(input({ cards, examTopics: ['nervios'], config: wide })));
+    expect(runs.slice(0, 5)).toEqual(Array.from({ length: 5 }, () => 'nervios'));
+    expect(runs.slice(5, 10)).toEqual(Array.from({ length: 5 }, () => 'huesos'));
+  });
+});
+
 describe('P4: cuándo mezclar', () => {
   const runs = (items: readonly { topicId: string | null }[]) => {
     const lengths: number[] = [];

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { cfgWith, DAY, NOW, range, reviewCard, TODAY_START, TZ } from '../test/planner-fixtures.js';
 import { newCardState } from '../fsrs/scheduler.js';
 import type { PlannerCard } from '../planner/queue.js';
-import { examPlan } from './plan.js';
+import { examPlan, upcomingExamTopics } from './plan.js';
 
 const fresh = (n: number, topic: string): PlannerCard => ({
   state: newCardState(`0192f1a0-0000-7000-8222-${n.toString().padStart(12, '0')}`, NOW - DAY),
@@ -73,5 +73,23 @@ describe('R11, LD11: plan hacia el examen', () => {
     const now = Date.UTC(2026, 9, 31, 3); // viernes 30, 23:00 EDT
     const date = Date.UTC(2026, 10, 2, 5); // lunes 2, 00:00 EST
     expect(examPlan({ ...exam(0), date }, cards, now, 'America/New_York', cfg).daysLeft).toBe(3);
+  });
+});
+
+describe('R11: temas de los próximos exámenes', () => {
+  it('R11: del examen más próximo al más lejano, sin repetir ni contar los que pasaron', () => {
+    const exams = [
+      { date: TODAY_START + 20 * DAY, topicIds: ['vasos', 'nervios'] },
+      { date: TODAY_START + 5 * DAY, topicIds: ['nervios', 'huesos'] },
+      { date: TODAY_START - DAY, topicIds: ['carpo'] }, // ayer: ya pasó
+    ];
+    expect(upcomingExamTopics(exams, NOW, TZ)).toEqual(['nervios', 'huesos', 'vasos']);
+    expect(upcomingExamTopics([], NOW, TZ)).toEqual([]);
+  });
+
+  it('AG6: un examen hoy, en su día local, todavía cuenta', () => {
+    const today = [{ date: TODAY_START, topicIds: ['huesos'] }];
+    expect(upcomingExamTopics(today, TODAY_START + DAY - 60_000, TZ)).toEqual(['huesos']); // 23:59
+    expect(upcomingExamTopics(today, TODAY_START + DAY + 60_000, TZ)).toEqual([]); // 00:01 del día siguiente
   });
 });

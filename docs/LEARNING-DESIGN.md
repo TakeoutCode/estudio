@@ -112,6 +112,7 @@ Cada tipo es un contenido de `Note` (§1) y se crea desde un mazo con "Nuevo eje
 ## 7. Exámenes y simulacros (R11, P7)
 
 **LD11 · DEBE** pedir para cada `Exam` título, fecha y temas. Con eso el plan muestra por tema las nuevas que faltan y los días disponibles, y sugiere `⌈faltan / días⌉` por día, limitado por P1. *Razón:* R11.
+- La cola pone primero las nuevas de los temas de los exámenes que vienen, del más próximo al más lejano (`upcomingExamTopics`; *decisión del responsable, 2026-10-23*). Solo cambia el orden: el tope de P1, los bloqueos de P2 y P3 y las tandas de P4 (≤ `newMaxSameTopicRun` seguidas del mismo tema) siguen igual, y FSRS no cambia.
 
 **LD12 · DEBE** agregar, en los últimos `exam.finalReviewWindowDays` días (*diseño*, 7), una vuelta de "repaso previo al examen" con las Cards del alcance cuyo `due` cae después del examen. Se registran como repasos normales y FSRS los procesa como repasos anticipados, sin editar fechas. *Razón:* R11 manda ajustar hacia la fecha; así R18 y §3 se respetan porque el intervalo lo sigue calculando FSRS.
 

@@ -46,6 +46,8 @@ export interface SessionPlanInput {
   readonly plannedBlocks?: number;
   /** R9, LD10: grupos de tarjetas que se confunden; los del brazo `contrast` arman sets. */
   readonly contrastGroups?: readonly ContrastPlanGroup[];
+  /** R11: temas de los próximos exámenes, del más cercano al más lejano (`upcomingExamTopics`). */
+  readonly examTopics?: readonly string[];
 }
 
 export interface QueueItem {
@@ -154,7 +156,7 @@ export function buildSessionQueue(input: SessionPlanInput): SessionPlan {
   const fits = Math.max(0, Math.floor((budgetMs - reviews.length * timing.reviewMs) / timing.newMs));
   const startedToday = newStartedToday(input.logs, now, input.timeZone);
   const newCount = newBlockedBy ? 0 : Math.min(Math.max(0, p.newPerSessionMax - startedToday), fits);
-  const news = byTopicChunks(fresh, p.newMaxSameTopicRun).slice(0, newCount);
+  const news = byTopicChunks(fresh, p.newMaxSameTopicRun, input.examTopics ?? []).slice(0, newCount);
 
   return {
     queue: [...reviews, ...news],
@@ -269,14 +271,23 @@ export function limitTopicRuns<T extends { readonly topicId: string | null }>(
  * P4: el aprendizaje nuevo va por tema, en tramos de hasta `maxRun` seguidas; los tramos
  * rotan entre temas. Dentro de un tema, en orden de creación (UUIDv7).
  */
-function byTopicChunks(cards: readonly PlannerCard[], maxRun: number): QueueItem[] {
+function byTopicChunks(
+  cards: readonly PlannerCard[],
+  maxRun: number,
+  examTopics: readonly string[],
+): QueueItem[] {
   const ordered = [...cards].sort(
     (a, b) => a.state.due - b.state.due || compareIds(a.state.cardId, b.state.cardId),
   );
   const topics = new Map<string | null, PlannerCard[]>();
   for (const card of ordered) topics.set(card.topicId, [...(topics.get(card.topicId) ?? []), card]);
+  // R11: primero los temas del examen más próximo; el resto, en el orden en que aparecieron.
+  const rank = (topicId: string | null) => {
+    const i = topicId === null ? -1 : examTopics.indexOf(topicId);
+    return i < 0 ? examTopics.length : i;
+  };
   const out: QueueItem[] = [];
-  const pending = [...topics.values()];
+  const pending = [...topics.entries()].sort((a, b) => rank(a[0]) - rank(b[0])).map(([, list]) => list);
   while (pending.some((list) => list.length > 0)) {
     for (const list of pending) out.push(...list.splice(0, maxRun).map((card) => item(card, 'new')));
   }

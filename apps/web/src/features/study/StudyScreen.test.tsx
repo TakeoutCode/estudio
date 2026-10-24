@@ -679,6 +679,30 @@ describe('StudyScreen · un solo mazo (?mazo=)', () => {
   });
 });
 
+describe('StudyScreen · R11 (examen próximo)', () => {
+  it('R11: las nuevas del tema de un examen próximo entran antes que las demás', async () => {
+    const before = await planSessionNow();
+    expect(before.plan.queue[0]?.topicId).toBeNull(); // las de beforeEach, sin tema, son más antiguas
+    const note = await createNote(
+      {
+        deck: { name: 'Cabeza' },
+        content: {
+          kind: 'basic',
+          front: '¿Par craneal I?',
+          back: 'El olfatorio',
+          explanation: '',
+          reverse: false,
+        },
+        topic: { name: 'Pares craneales', explanation: '' },
+      },
+      { now: T0 },
+    );
+    await createExam({ title: 'Parcial 1', date: T0 + 5 * DAY, topicIds: [note.topicId ?? ''] });
+    const { plan } = await planSessionNow();
+    expect(plan.queue[0]?.topicId).toBe(note.topicId);
+  });
+});
+
 describe('StudyScreen · LD12 (repaso previo al examen)', () => {
   it('LD12: ?examen= arma la vuelta con lo que FSRS programó para después del examen; cuenta como repaso', async () => {
     const note = await createNote(
