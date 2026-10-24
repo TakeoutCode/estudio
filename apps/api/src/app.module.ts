@@ -9,6 +9,7 @@ import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
 import { ClockModule } from './common/clock.js';
 import { ContractGuard } from './common/contract.guard.js';
+import { requestLogProps } from './common/log-props.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { AppConfig } from './config/app-config.js';
 import { AppConfigModule } from './config/config.module.js';
@@ -44,7 +45,8 @@ const REQUEST_ID_HEADER = 'x-request-id';
             res.setHeader(REQUEST_ID_HEADER, id);
             return id;
           },
-          // BACKEND BE6: nunca credenciales ni contenido de estudio en los logs.
+          // BACKEND BE6: nunca credenciales ni contenido de estudio en los logs; sí su userId.
+          customProps: requestLogProps,
           redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
           serializers: {
             req: (req: { id: unknown; method: unknown; url: unknown }) => ({
