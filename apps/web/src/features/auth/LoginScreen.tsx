@@ -3,6 +3,7 @@ import { type SubmitEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { ApiError } from '@/lib/api';
+import { useOnline } from '@/lib/use-online';
 import { AccountMismatchError } from './commands';
 import { login, register } from './session';
 
@@ -31,11 +32,14 @@ export function LoginScreen() {
   const [mode, setMode] = useState<Mode>('login');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // FE7: entrar necesita red; sin ella el botón se deshabilita y lo dice, sin un error.
+  const online = useOnline();
 
   const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const parsed = CredentialsSchema.safeParse({ email: form.get('email'), password: form.get('password') });
+    if (!online) return;
     if (!parsed.success) {
       setError(t('auth.error.format'));
       return;
@@ -90,9 +94,14 @@ export function LoginScreen() {
             {error}
           </p>
         ) : null}
+        {online ? null : (
+          <p role="status" className="m-0 text-caption text-text">
+            {t('auth.error.offline')}
+          </p>
+        )}
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || !online}
           className="min-h-11 rounded-(--radius-card) bg-primary px-4 text-primary-contrast disabled:opacity-60"
         >
           {t(mode === 'login' ? 'auth.login.submit' : 'auth.register.submit')}
