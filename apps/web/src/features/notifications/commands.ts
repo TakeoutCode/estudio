@@ -91,6 +91,7 @@ export async function reportOpened(
   database: EstudioDb = defaultDb,
 ): Promise<void> {
   const ids = [...new Set([...(await pendingOpens(database)), ...eventIds])];
+  if (ids.length === 0) return;
   const left: string[] = [];
   for (const id of ids) {
     try {
@@ -100,6 +101,20 @@ export async function reportOpened(
     }
   }
   await database.meta.put({ key: PENDING_OPENS_KEY, value: left });
+}
+
+/**
+ * NT7: "si no hay red, lo reintenta al volver". Escucha el evento `online` desde el arranque, así
+ * no espera a que ella vuelva a Hoy. Devuelve con qué dejar de escuchar.
+ */
+export function retryOpenedWhenOnline(target: Window = window, database: EstudioDb = defaultDb): () => void {
+  const retry = () => {
+    void reportOpened([], database).catch(() => undefined);
+  };
+  target.addEventListener('online', retry);
+  return () => {
+    target.removeEventListener('online', retry);
+  };
 }
 
 export const fetchNotificationState = (): Promise<NotificationState> =>

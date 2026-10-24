@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
 import { ApiError } from '@/lib/api';
-import { reportOpened } from './commands';
+import { reportOpened, retryOpenedWhenOnline } from './commands';
 
 const api = vi.hoisted(() => vi.fn());
 vi.mock('@/features/auth', () => ({ authorizedApi: api }));
@@ -31,5 +31,22 @@ describe('NT7: reportar aperturas', () => {
       `/notifications/${B}/opened`,
     ]);
     expect(await pending()).toEqual([]);
+  });
+
+  it('NT7: lo pendiente se reporta al volver la red, sin esperar a otra apertura', async () => {
+    api.mockRejectedValue(new ApiError(0, 'network'));
+    await reportOpened([A]);
+    api.mockReset().mockResolvedValue(undefined);
+    const stop = retryOpenedWhenOnline(window, db);
+    window.dispatchEvent(new Event('online'));
+    await vi.waitFor(async () => {
+      expect(await pending()).toEqual([]);
+    });
+    expect(api).toHaveBeenCalledWith(`/notifications/${A}/opened`, expect.anything());
+
+    stop();
+    api.mockReset();
+    window.dispatchEvent(new Event('online'));
+    expect(api).not.toHaveBeenCalled(); // sin pendientes ni escucha, no pide nada
   });
 });
