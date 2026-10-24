@@ -169,6 +169,11 @@ describe('app (integración HTTP, sin base)', () => {
     ).toBeUndefined();
   });
 
+  it('SY8: CORS expone Retry-After, para que la web espere lo que pide el servidor', async () => {
+    const res = await request(app.getHttpServer()).get('/health').set('Origin', WEB);
+    expect(res.headers['access-control-expose-headers']?.split(',')).toContain('retry-after');
+  });
+
   it('BE12: cabeceras de seguridad, request id y sin X-Powered-By', async () => {
     const res = await request(app.getHttpServer()).get('/health').set('x-request-id', 'abc-123');
     expect(res.headers['x-content-type-options']).toBe('nosniff');

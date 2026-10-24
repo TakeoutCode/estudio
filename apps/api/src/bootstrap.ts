@@ -18,7 +18,8 @@ export function configureApp(app: NestExpressApplication): NestExpressApplicatio
     origin: origins,
     credentials: true,
     allowedHeaders: ['content-type', 'authorization', 'x-request-id', CONTRACT_HEADER],
-    exposedHeaders: ['x-request-id'],
+    // SY8: la web respeta `Retry-After` en 429 y 503; sin exponerla, entre app. y api. no la lee.
+    exposedHeaders: ['x-request-id', 'retry-after'],
     maxAge: 600,
   });
   // BE12: 2 MB para un lote de sync (hasta 200 mutaciones), 1 MB para lo demás.
