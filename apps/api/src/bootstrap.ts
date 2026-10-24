@@ -10,6 +10,9 @@ export function configureApp(app: NestExpressApplication): NestExpressApplicatio
   const origins = config.get('WEB_ORIGINS');
 
   app.useLogger(app.get(Logger));
+  // BE12: el throttler cuenta por `req.ip`; detrás del proxy, esa es la IP que él agrega.
+  const proxyHops = config.get('TRUST_PROXY_HOPS');
+  if (proxyHops > 0) app.set('trust proxy', proxyHops);
   // BACKEND BE12: cabeceras de seguridad nativas de Nest 12 (mismos valores que helmet 8)
   // y protección CSRF por Fetch Metadata, con la web como único origen confiable.
   app.useSecurityHeaders();

@@ -20,6 +20,7 @@ export default defineConfig({
       DATABASE_URL: 'postgresql://test:test@localhost:5433/test',
       DIRECT_DATABASE_URL: 'postgresql://test:test@localhost:5433/test',
       WEB_ORIGINS: 'http://localhost:5180',
+      TRUST_PROXY_HOPS: '1',
       JWT_ACCESS_SECRET: 'secreto-de-pruebas-de-al-menos-32-caracteres',
       ALLOWED_EMAILS:
         'ella@ejemplo.mx,otra@ejemplo.mx,sync-a@ejemplo.mx,sync-b@ejemplo.mx,sync-c@ejemplo.mx,cuenta-a@ejemplo.mx,cuenta-b@ejemplo.mx,sync-d@ejemplo.mx,sync-e@ejemplo.mx,temporizador@ejemplo.mx,temas-a@ejemplo.mx,temas-b@ejemplo.mx,examenes-a@ejemplo.mx,examenes-b@ejemplo.mx,simulacros-a@ejemplo.mx,simulacros-b@ejemplo.mx,avisos-a@ejemplo.mx,avisos-b@ejemplo.mx,avisos-c@ejemplo.mx,avisos-d@ejemplo.mx,avisos-e@ejemplo.mx,avisos-f@ejemplo.mx,avisos-g@ejemplo.mx,avisos-h@ejemplo.mx,semilla@ejemplo.mx,media-a@ejemplo.mx,media-b@ejemplo.mx,oclusion-a@ejemplo.mx,oclusion-b@ejemplo.mx,contraste-a@ejemplo.mx,contraste-b@ejemplo.mx,sueno-a@ejemplo.mx,sueno-b@ejemplo.mx,premios-a@ejemplo.mx,premios-b@ejemplo.mx,etiquetas-a@ejemplo.mx,etiquetas-b@ejemplo.mx,ejercicios-a@ejemplo.mx,purga-a@ejemplo.mx,purga-b@ejemplo.mx,purga-c@ejemplo.mx,purga-d@ejemplo.mx',

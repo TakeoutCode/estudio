@@ -1,6 +1,7 @@
 import { CONTRACT_HEADER, CONTRACT_VERSION, newId } from '@estudio/shared';
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, Req } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import type { Request } from 'express';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,6 +27,12 @@ class ProbeController {
   @Post()
   write() {
     return { ok: true };
+  }
+
+  /** La IP con la que cuenta el throttler (BE12). */
+  @Get('ip')
+  ip(@Req() req: Request) {
+    return { ip: req.ip };
   }
 }
 
@@ -172,6 +179,20 @@ describe('app (integración HTTP, sin base)', () => {
   it('SY8: CORS expone Retry-After, para que la web espere lo que pide el servidor', async () => {
     const res = await request(app.getHttpServer()).get('/health').set('Origin', WEB);
     expect(res.headers['access-control-expose-headers']?.split(',')).toContain('retry-after');
+  });
+
+  it('BE12: detrás del proxy (TRUST_PROXY_HOPS=1) cuenta la IP que agrega él, no la que dice el cliente', async () => {
+    const ip = async (forwarded: string) =>
+      (
+        await request(app.getHttpServer())
+          .get('/probe/ip')
+          .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
+          .set('X-Forwarded-For', forwarded)
+          .expect(200)
+      ).body as { ip: string };
+    expect(await ip('203.0.113.7')).toEqual({ ip: '203.0.113.7' });
+    // Lo que el cliente escribe a la izquierda no cambia su IP: el proxy agrega la real al final.
+    expect(await ip('198.51.100.1, 203.0.113.7')).toEqual({ ip: '203.0.113.7' });
   });
 
   it('BE12: cabeceras de seguridad, request id y sin X-Powered-By', async () => {

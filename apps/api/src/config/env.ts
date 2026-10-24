@@ -39,6 +39,9 @@ export const EnvSchema = z
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     DIRECT_DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     WEB_ORIGINS: csv(OriginSchema),
+    // BE12: proxies delante de la API que agregan X-Forwarded-For (Railway: 1). Con 0, la IP es la
+    // del socket; detrás de un proxy, todas las peticiones compartirían el límite por IP.
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
     MIN_CONTRACT: z.coerce.number().int().min(1).default(1), // ARC6
     JWT_ACCESS_SECRET: z.string().min(32), // BE10
     ALLOWED_EMAILS: csv(EmailSchema), // ADR-007: registro cerrado
