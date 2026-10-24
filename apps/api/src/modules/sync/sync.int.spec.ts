@@ -366,7 +366,8 @@ describe('sync contra Postgres real (SYNC.md)', () => {
     const t2 = push(fresh.token, [upsert(second)]).finally(() => {
       t2Settled = true;
     });
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // QA1: sin dormir; Postgres dice cuándo T2 quedó esperando el lock de T1.
+    await waitForLockWaiter(fresh.userId);
     expect(t2Settled).toBe(false);
     expect((await pull(fresh.token)).changes).toEqual([]);
 
@@ -377,4 +378,16 @@ describe('sync contra Postgres real (SYNC.md)', () => {
       SELECT "id" FROM "deck" WHERE "user_id" = ${fresh.userId}::uuid ORDER BY "server_seq"`;
     expect(order.map((r) => r.id)).toEqual([first.id, second.id]);
   });
+
+  /** Hasta que una conexión espera el lock de ese usuario (BE7) sin que se le conceda (`pg_locks`). */
+  async function waitForLockWaiter(userId: string): Promise<void> {
+    for (let check = 0; check < 2_000; check += 1) {
+      const [row] = await server.prisma.$queryRaw<{ waiting: number }[]>`
+        SELECT count(*)::int AS "waiting" FROM pg_locks
+        WHERE locktype = 'advisory' AND NOT granted AND objsubid = 1
+          AND ((classid::bigint << 32) | objid::bigint) = hashtextextended(${userId}, 0)`;
+      if ((row?.waiting ?? 0) > 0) return;
+    }
+    throw new Error('nadie quedó esperando el lock');
+  }
 });
