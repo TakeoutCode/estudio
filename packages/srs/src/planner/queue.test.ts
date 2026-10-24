@@ -19,6 +19,7 @@ import {
 } from '../test/planner-fixtures.js';
 import {
   buildSessionQueue,
+  fewerNewProposal,
   limitTopicRuns,
   loadSummary,
   needsTopicIntro,
@@ -186,6 +187,39 @@ describe('P3: si falla mucho', () => {
     expect(longer.retention.lowStreakDays).toBe(8);
     expect(longer.proposedNewPerSessionMax).toBeNull();
     expect(buildSessionQueue(input({ cards, logs: lowDays([0, 1, 2]) })).proposedNewPerSessionMax).toBeNull();
+  });
+
+  describe('P3: la propuesta que se le muestra (fewerNewProposal)', () => {
+    const planner = cfgWith().planner;
+    const proposing = { proposedNewPerSessionMax: 5 };
+
+    it('P3: sin respuesta previa se muestra; si no persistió o no baja el tope, no', () => {
+      expect(fewerNewProposal(proposing, null, NOW, TZ, planner)).toBe(5);
+      expect(fewerNewProposal({ proposedNewPerSessionMax: null }, null, NOW, TZ, planner)).toBeNull();
+      // Con el tope en 0, la mitad no es menos: no hay nada que proponer.
+      const zero = cfgWith({ newPerSessionMax: 0 }).planner;
+      expect(fewerNewProposal({ proposedNewPerSessionMax: 0 }, null, NOW, TZ, zero)).toBeNull();
+    });
+
+    it('P3: tras su respuesta, vuelve solo pasados otros lowRetentionPersistDays días locales', () => {
+      const answered = NOW - 6 * DAY;
+      expect(fewerNewProposal(proposing, answered, NOW, TZ, planner)).toBeNull();
+      expect(fewerNewProposal(proposing, NOW - 7 * DAY, NOW, TZ, planner)).toBe(5);
+      const sooner = cfgWith({ lowRetentionPersistDays: 6 }).planner;
+      expect(fewerNewProposal(proposing, answered, NOW, TZ, sooner)).toBe(5);
+      const longest = cfgWith({ lowRetentionPersistDays: 30 }).planner;
+      expect(fewerNewProposal(proposing, NOW - 29 * DAY, NOW, TZ, longest)).toBeNull();
+    });
+
+    it('P3: cuenta días locales de ella, no horas desde la respuesta', () => {
+      // Respondió a las 23:30 locales hace 7 días; a las 00:10 del día 7 ya pasaron 7 días locales.
+      const lateNight = TODAY_START - 7 * DAY + 23.5 * HOUR;
+      const justAfterMidnight = TODAY_START + 10 * 60_000;
+      expect(fewerNewProposal(proposing, lateNight, justAfterMidnight, TZ, planner)).toBe(5);
+      expect(fewerNewProposal(proposing, lateNight, justAfterMidnight - 20 * 60_000, TZ, planner)).toBeNull();
+      // En UTC esas mismas marcas caen en otros días.
+      expect(fewerNewProposal(proposing, lateNight, justAfterMidnight, 'UTC', planner)).toBeNull();
+    });
   });
 });
 

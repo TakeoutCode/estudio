@@ -22,6 +22,11 @@ export const ProfileSettingsSchema = z.object({
   timeZone: z.string().refine(isTimeZone, 'invalid_time_zone').default('America/Mexico_City'),
   /** P6: hora de dormir declarada; `null` usa el inicio de las horas silenciosas. */
   bedtime: LocalTimeSchema.nullable().default(null),
+  /**
+   * P3: cuándo respondió la propuesta de bajar las nuevas (la aceptó o dijo "ahora no"); se
+   * repite solo si la retención sigue baja otros `lowRetentionPersistDays` días (`fewerNewProposal`).
+   */
+  fewerNewAnsweredAt: z.number().int().nonnegative().nullable().default(null),
 });
 
 export type ProfileSettings = z.output<typeof ProfileSettingsSchema>;

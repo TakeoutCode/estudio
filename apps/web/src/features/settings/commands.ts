@@ -158,6 +158,26 @@ export function updateProfile(
   );
 }
 
+/**
+ * P3: su respuesta a la propuesta de bajar las nuevas. Aceptarla cambia el tope (la app nunca lo
+ * baja sola); en los dos casos se anota cuándo respondió, para no volver a proponerlo enseguida
+ * (`fewerNewProposal`). Va en UserSettings para que el otro dispositivo tampoco lo repita.
+ */
+export async function answerFewerNewProposal(
+  accepted: number | null,
+  timeZone: string,
+  options: CommandOptions = {},
+): Promise<void> {
+  const now = options.now ?? Date.now();
+  if (accepted !== null) {
+    await updateStudyConfig(
+      (cfg) => ({ ...cfg, planner: { ...cfg.planner, newPerSessionMax: accepted } }),
+      options,
+    );
+  }
+  await updateProfile((p) => ({ ...p, fewerNewAnsweredAt: now }), timeZone, { ...options, now });
+}
+
 /** SY8: vuelve a enviar lo rechazado (p. ej. si faltaba algo que ya llegó). */
 export async function retryRejected({ database = defaultDb }: CommandOptions = {}): Promise<number> {
   const count = await database.outbox.where('status').equals('rejected').modify({ status: 'pending' });

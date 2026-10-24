@@ -1,4 +1,5 @@
 export {
+  answerFewerNewProposal,
   ensureProfileTimeZone,
   updateGamificationConfig,
   updateNotificationPrefs,

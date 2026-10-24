@@ -14,6 +14,7 @@ import {
   buildSessionQueue,
   type CardState,
   createScheduler,
+  fewerNewProposal,
   finalReviewQueue,
   type PlannerCard,
   type SessionPlan,
@@ -34,6 +35,8 @@ export interface PlanSnapshot {
   readonly cards: readonly PlannerCard[];
   /** Mazos en pausa, que Hoy deja fuera. */
   readonly pausedDecks: number;
+  /** P3: tope de nuevas que se le propone si la retención baja persistió; nunca se aplica solo. */
+  readonly fewerNew: number | null;
 }
 
 /**
@@ -89,7 +92,8 @@ export async function loadPlan(
     const note = notes.get(noteId);
     return note ? [{ noteId, prompt: cardFaces(note.content, 0).prompt }] : [];
   });
-  return { plan, config, profile, toImprove, cards: plannerCards, pausedDecks };
+  const fewerNew = fewerNewProposal(plan, profile.fewerNewAnsweredAt, now, profile.timeZone, config.planner);
+  return { plan, config, profile, toImprove, cards: plannerCards, pausedDecks, fewerNew };
 }
 
 /** Plan para empezar una sesión ahora (una sola lectura: la cola queda fija, §3). */

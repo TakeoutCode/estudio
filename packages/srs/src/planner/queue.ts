@@ -1,4 +1,10 @@
-import { localDayBounds, type PlannerConfig, type ReviewLog, type StudyConfig } from '@estudio/shared';
+import {
+  localDayBounds,
+  localDayNumber,
+  type PlannerConfig,
+  type ReviewLog,
+  type StudyConfig,
+} from '@estudio/shared';
 import type { CardState, Scheduler } from '../fsrs/scheduler.js';
 import {
   applyContrastSets,
@@ -154,6 +160,26 @@ export function buildSessionQueue(input: SessionPlanInput): SessionPlan {
         ? Math.floor(p.newPerSessionMax * p.persistNewFactor)
         : null,
   };
+}
+
+/**
+ * P3: el tope que se le propone mostrar ("proponer la mitad de nuevas"), o null. Solo si la
+ * retención baja persistió y el tope propuesto es menor que el actual; si ella ya respondió (lo
+ * aceptó o dijo "ahora no"), vuelve a proponerse cuando pasaron otros `lowRetentionPersistDays`
+ * días locales desde su respuesta, para no insistir a diario ni bajarlo dos veces seguidas.
+ */
+export function fewerNewProposal(
+  plan: Pick<SessionPlan, 'proposedNewPerSessionMax'>,
+  answeredAt: number | null,
+  now: number,
+  timeZone: string,
+  planner: Pick<PlannerConfig, 'newPerSessionMax' | 'lowRetentionPersistDays'>,
+): number | null {
+  const proposed = plan.proposedNewPerSessionMax;
+  if (proposed === null || proposed >= planner.newPerSessionMax) return null;
+  const daysSince =
+    answeredAt === null ? Infinity : localDayNumber(now, timeZone) - localDayNumber(answeredAt, timeZone);
+  return daysSince >= planner.lowRetentionPersistDays ? proposed : null;
 }
 
 /**

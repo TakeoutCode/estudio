@@ -274,7 +274,7 @@ describe('Ajustes · hora de dormir (P6)', () => {
     });
     expect(screen.getByText(/^De 23:30 a 07:00, la sesión te sugiere parar/)).toBeTruthy();
     await waitFor(async () => {
-      expect(await readProfile(db)).toEqual({ timeZone: 'Europe/Madrid', bedtime: '23:30' });
+      expect(await readProfile(db)).toMatchObject({ timeZone: 'Europe/Madrid', bedtime: '23:30' });
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Quitar esta hora' }));
@@ -292,7 +292,7 @@ describe('Ajustes · hora de dormir (P6)', () => {
       target: { value: '21:00' },
     });
     await waitFor(async () => {
-      expect(await readProfile(db)).toEqual({ timeZone: 'America/Bogota', bedtime: '21:00' });
+      expect(await readProfile(db)).toMatchObject({ timeZone: 'America/Bogota', bedtime: '21:00' });
     });
   });
 

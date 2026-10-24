@@ -8,6 +8,7 @@ import { type PlanSnapshot, useTodayPlan } from '@/features/study';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
+import { FewerNewOffer } from './FewerNewOffer';
 
 // FE9: la gamificación no entra en el JS inicial de Hoy; apagada, ni siquiera se muestra.
 const GamificationCard = lazy(async () => ({
@@ -75,6 +76,13 @@ function Summary({ snapshot }: { readonly snapshot: PlanSnapshot }) {
       {plan.backlogSpreadDays ? (
         <Banner>{t('study.notice.spread', { days: plan.backlogSpreadDays })}</Banner>
       ) : null}
+      {snapshot.fewerNew === null ? null : (
+        <FewerNewOffer
+          proposed={snapshot.fewerNew}
+          current={snapshot.config.planner.newPerSessionMax}
+          days={plan.retention.lowStreakDays}
+        />
+      )}
       <FinalReviewOffers />
       {toImprove.length > 0 ? (
         <section className="flex flex-col gap-2" aria-labelledby="today-improve">

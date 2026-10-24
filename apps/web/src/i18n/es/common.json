@@ -20,6 +20,16 @@
       "hint": "Estas tarjetas quedan aparte: cambiarles la explicación o escribirlas con tus palabras suele ayudar más que repetirlas.",
       "edit": "Reformular"
     },
+    "fewerNew": {
+      "title": "Una propuesta para estos días",
+      "body": "Tu retención en los repasos lleva al menos {{days}} días por debajo de tu objetivo. Te proponemos bajar las nuevas por sesión de {{current}} a {{proposed}} mientras afianzas lo que ya tienes. Lo decides tú.",
+      "hint": "También puede ayudar revisar tu carga y cómo vienes durmiendo.",
+      "week": "Ver Tu semana",
+      "accept_one": "Bajar a {{count}} nueva",
+      "accept_other": "Bajar a {{count}} nuevas",
+      "later": "Ahora no",
+      "failed": "No se pudo guardar tu respuesta. Intenta de nuevo."
+    },
     "finalReview_one": "Repaso previo para {{exam}}: {{count}} tarjeta.",
     "finalReview_other": "Repaso previo para {{exam}}: {{count}} tarjetas.",
     "finalReviewStart": "Empezar"
