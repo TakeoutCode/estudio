@@ -60,7 +60,7 @@ export function createApiClient(deps: ApiClientDeps): ApiClient {
         method: options.method ?? 'GET',
         headers,
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
-        credentials: 'include', // la cookie de refresh viaja solo a /auth (Path=/auth)
+        credentials: 'include', // la cookie de refresh viaja solo a /api/auth (Path=/api/auth)
         keepalive: options.keepalive,
       });
     } catch {

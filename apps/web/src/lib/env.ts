@@ -4,7 +4,9 @@ import { z } from 'zod';
 // público, así que aquí solo existen estas tres variables (AGENTS §5).
 
 const WebEnvSchema = z.object({
-  VITE_API_URL: z.url({ protocol: /^https?$/ }),
+  // ADR-019: en Vercel, una ruta del mismo origen (`/api`); en local, la URL de la API en su
+  // puerto (`http://localhost:3180/api`). Sin barra al final: las rutas empiezan con `/`.
+  VITE_API_URL: z.union([z.url({ protocol: /^https?$/ }).regex(/[^/]$/), z.string().regex(/^(\/[\w-]+)+$/)]),
   // Sin clave VAPID, Ajustes dice que este navegador no permite avisos (NOTIFICATIONS NT8).
   VITE_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
   // FE8: para armar la URL de cada imagen subida. Sin ella, una imagen ya subida muestra un

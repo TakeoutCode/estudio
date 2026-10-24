@@ -3,7 +3,6 @@ import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
@@ -73,10 +72,9 @@ const REQUEST_ID_HEADER = 'x-request-id';
         }),
       ],
     }),
-    // Límite global de BACKEND BE12; auth fija uno más estricto en login y registro.
+    // Límite global de BACKEND BE12, en memoria de cada instancia; los de login y registro van
+    // en Postgres (AuthAttemptsGuard). BE14: sin ScheduleModule, el cron corre en SchedulerModule.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
-    // BE14: cron y envíos programados; las pruebas reemplazan el scheduler por uno vacío.
-    ScheduleModule.forRoot(),
     PrismaModule,
     HealthModule,
     AuthModule,

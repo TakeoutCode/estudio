@@ -54,6 +54,37 @@ model User {
 
 /// BACKEND BE10: refresh opaco guardado como SHA-256, rotado en cada uso. Una familia es
 /// la sesión de un dispositivo; reutilizar un token ya rotado la revoca completa.
+/// BACKEND BE12: intentos de login y registro, para que los límites valgan en todas las
+/// instancias de la función (ADR-018). `key` es el SHA-256 de "ip:<ip>" o "email:<correo>":
+/// ni la IP ni el correo quedan en claro. Cada intento purga los de más de 15 min.
+model AuthAttempt {
+  id  BigInt   @id @default(autoincrement())
+  key String
+  at  DateTime @db.Timestamptz(3)
+
+  @@index([key, at])
+  @@map("auth_attempt")
+}
+
+/// QUALITY QA8: muestras que lee GET /health/checks. Las escriben la función de la API y el
+/// daemon `scheduler`, que no comparten memoria (ADR-018). Sin datos de ella: tiempos,
+/// resultados y la parte usada de la cuota de IA. El tick del cron purga las de más de 24 h.
+model HealthSample {
+  id     BigInt   @id @default(autoincrement())
+  /// sync_push · push_delivery · cron_tick · ai_budget
+  kind   String
+  at     DateTime @db.Timestamptz(3)
+  /// sync_push: duración en ms.
+  ms     Int?
+  /// sync_push: error del servidor. push_delivery: 404 o 410 del servicio push.
+  failed Boolean?
+  /// ai_budget: parte de la cuota diaria ya usada (0-1+).
+  share  Float?
+
+  @@index([kind, at])
+  @@map("health_sample")
+}
+
 model RefreshToken {
   id        String    @id @db.Uuid
   userId    String    @map("user_id") @db.Uuid

@@ -34,7 +34,7 @@ const unlimitedStorage = {
 export interface IntegrationApp {
   readonly app: NestExpressApplication;
   readonly clock: FakeClock;
-  /** Request con la cabecera de contrato que manda la PWA (ARC6). */
+  /** Request con la cabecera de contrato que manda la PWA (ARC6); agrega el prefijo `/api` (ADR-019). */
   readonly api: () => {
     get: (path: string) => request.Test;
     post: (path: string) => request.Test;
@@ -62,34 +62,29 @@ export async function startIntegrationApp(
   const [
     { AppModule },
     { configureApp },
+    { API_PREFIX },
     { Clock },
     { PrismaService },
-    { NotificationsScheduler },
     push,
     media,
-    { EmailThrottleGuard },
-    { SyncPurgeScheduler },
+    { AuthAttemptsGuard },
   ] = await Promise.all([
     import('../app.module.js'),
     import('../bootstrap.js'),
+    import('../common/api-prefix.js'),
     import('../common/clock.js'),
     import('../prisma/prisma.service.js'),
-    import('../modules/notifications/notifications.scheduler.js'),
     import('../modules/notifications/push-sender.js'),
     import('../modules/media/media-purger.js'),
-    import('../modules/auth/email-throttle.guard.js'),
-    import('../modules/sync/sync-purge.scheduler.js'),
+    import('../modules/auth/auth-attempts.guard.js'),
   ]);
 
   const clock = options.clock ?? new FakeClock();
-  // Sin cron: las pruebas corren los ticks a mano con el reloj falso.
+  // Sin cron: AppModule no trae ScheduleModule (corre en SchedulerModule, ADR-018), así que las
+  // pruebas corren los ticks a mano con el reloj falso.
   let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(Clock)
     .useValue(clock)
-    .overrideProvider(NotificationsScheduler)
-    .useValue({})
-    .overrideProvider(SyncPurgeScheduler)
-    .useValue({})
     .overrideProvider(media.MediaPurger)
     .useValue(options.mediaPurger ?? noMediaPurger);
   if (options.pushSender) builder = builder.overrideProvider(push.PushSender).useValue(options.pushSender);
@@ -98,7 +93,7 @@ export async function startIntegrationApp(
     builder = builder
       .overrideProvider(ThrottlerStorage)
       .useValue(unlimitedStorage)
-      .overrideGuard(EmailThrottleGuard)
+      .overrideGuard(AuthAttemptsGuard)
       .useValue({ canActivate: () => true });
   }
   const moduleRef = await builder.compile();
@@ -115,11 +110,12 @@ export async function startIntegrationApp(
     clock,
     api: () => {
       const agent = request(url);
+      const at = (path: string) => `/${API_PREFIX}${path}`;
       return {
-        get: (path) => agent.get(path).set(CONTRACT_HEADER, contract),
-        post: (path) => agent.post(path).set(CONTRACT_HEADER, contract),
-        put: (path) => agent.put(path).set(CONTRACT_HEADER, contract),
-        delete: (path) => agent.delete(path).set(CONTRACT_HEADER, contract),
+        get: (path) => agent.get(at(path)).set(CONTRACT_HEADER, contract),
+        post: (path) => agent.post(at(path)).set(CONTRACT_HEADER, contract),
+        put: (path) => agent.put(at(path)).set(CONTRACT_HEADER, contract),
+        delete: (path) => agent.delete(at(path)).set(CONTRACT_HEADER, contract),
       };
     },
     prisma,

@@ -7,7 +7,7 @@ import {
   signIn,
   startIntegrationApp,
 } from '../../test/integration-app.js';
-import { ACCESS_TTL_MS, REFRESH_REUSE_GRACE_MS } from './constants.js';
+import { ACCESS_TTL_MS, AUTH_ATTEMPTS, REFRESH_REUSE_GRACE_MS } from './constants.js';
 
 const EMAIL = 'ella@ejemplo.mx';
 
@@ -22,7 +22,7 @@ describe('auth (BACKEND BE10, BE11) contra Postgres real', () => {
     await server.close();
   });
 
-  it('registro permitido + login: access token y cookie HttpOnly, SameSite=Lax, Path=/auth', async () => {
+  it('registro permitido + login: access token y cookie HttpOnly, SameSite=Lax, Path=/api/auth', async () => {
     await server.api().post('/auth/register').send({ email: EMAIL, password: PASSWORD }).expect(202);
     const res = await server.api().post('/auth/login').send({ email: EMAIL, password: PASSWORD }).expect(200);
 
@@ -31,7 +31,7 @@ describe('auth (BACKEND BE10, BE11) contra Postgres real', () => {
     expect(cookie).toMatch(/estudio_rt=/);
     expect(cookie).toMatch(/HttpOnly/);
     expect(cookie).toMatch(/SameSite=Lax/);
-    expect(cookie).toMatch(/Path=\/auth/);
+    expect(cookie).toMatch(/Path=\/api\/auth/);
     expect(res.headers['cache-control']).toBe('no-store');
 
     const hash = await server.prisma.$queryRaw<{ password_hash: string }[]>`
@@ -99,7 +99,7 @@ describe('auth (BACKEND BE10, BE11) contra Postgres real', () => {
   });
 });
 
-describe('límite de login (BE12)', () => {
+describe('límites de login y registro en Postgres (BE12, ADR-018)', () => {
   let server: IntegrationApp;
 
   beforeAll(async () => {
@@ -110,11 +110,48 @@ describe('límite de login (BE12)', () => {
     await server.close();
   });
 
-  it('el sexto intento en un minuto responde 429', async () => {
-    const attempt = () =>
-      server.api().post('/auth/login').send({ email: 'otra@ejemplo.mx', password: 'contraseña-incorrecta' });
-    for (let i = 0; i < 5; i += 1) await attempt().expect(401);
-    const blocked = await attempt().expect(429);
+  /** Un intento desde `ip`: TRUST_PROXY_HOPS=1 en las pruebas, así que cuenta la del proxy. */
+  const login = (email: string, ip: string) =>
+    server
+      .api()
+      .post('/auth/login')
+      .set('X-Forwarded-For', ip)
+      .send({ email, password: 'contraseña-incorrecta' });
+
+  it('el sexto intento en un minuto desde la misma IP responde 429; pasado el minuto vuelve a dejar', async () => {
+    for (let i = 0; i < AUTH_ATTEMPTS.ip.limit; i += 1)
+      await login(`otra${String(i)}@ejemplo.mx`, '203.0.113.1').expect(401);
+    const blocked = await login('otra@ejemplo.mx', '203.0.113.1').expect(429);
     expect(blocked.body).toMatchObject({ code: 'rate_limited' });
+    expect(Number(blocked.headers['retry-after'])).toBe(AUTH_ATTEMPTS.ip.windowMs / 1000);
+    await login('otra@ejemplo.mx', '203.0.113.2').expect(401); // otra IP no se ve afectada
+    server.clock.advance(AUTH_ATTEMPTS.ip.windowMs);
+    await login('otra@ejemplo.mx', '203.0.113.1').expect(401);
+  });
+
+  it('por correo normalizado cuenta aunque cambie la IP, y un intento bloqueado no alarga la espera', async () => {
+    for (let i = 0; i < AUTH_ATTEMPTS.email.limit; i += 1) {
+      await login(i % 2 === 0 ? 'Ella@Ejemplo.mx ' : 'ella@ejemplo.mx', `198.51.100.${String(i)}`).expect(
+        401,
+      );
+    }
+    const blocked = await login('ELLA@ejemplo.mx', '198.51.100.200').expect(429);
+    expect(Number(blocked.headers['retry-after'])).toBe(AUTH_ATTEMPTS.email.windowMs / 1000);
+    server.clock.advance(AUTH_ATTEMPTS.email.windowMs - 1000);
+    await login('ella@ejemplo.mx', '198.51.100.201').expect(429);
+    server.clock.advance(1000);
+    await login('ella@ejemplo.mx', '198.51.100.202').expect(401);
+  });
+
+  it('el registro cuenta en los mismos límites, y ni la IP ni el correo se guardan en claro', async () => {
+    await server
+      .api()
+      .post('/auth/register')
+      .set('X-Forwarded-For', '192.0.2.9')
+      .send({ email: EMAIL, password: PASSWORD })
+      .expect(202);
+    const keys = await server.prisma.$queryRaw<{ key: string }[]>`SELECT "key" FROM "auth_attempt"`;
+    expect(keys.length).toBeGreaterThan(0);
+    for (const { key } of keys) expect(key).toMatch(/^[0-9a-f]{64}$/);
   });
 });

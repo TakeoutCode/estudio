@@ -18,8 +18,9 @@ export function readCookie(header: string | undefined, name: string): string | u
 }
 
 /**
- * BE10: HttpOnly, SameSite=Lax y Path=/auth, sin Domain (solo `api.<dominio>`). Secure en
- * producción; en desarrollo la API corre en http://localhost.
+ * BE10: HttpOnly, SameSite=Lax y Path=/api/auth, sin Domain (solo el origen de la app, que
+ * comparte con la API: ADR-019). Secure en producción; en desarrollo la API corre en
+ * http://localhost.
  */
 export const refreshCookieOptions = (secure: boolean, expires?: Date): CookieOptions => ({
   httpOnly: true,

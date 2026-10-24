@@ -8,8 +8,9 @@ import { NotificationsService } from './notifications.service.js';
 const TICK_MS = NOTIFICATION_DELIVERY.reminderTickMinutes * 60_000;
 
 /**
- * BE14: los dos disparadores de NOTIFICATIONS §4. Cada instancia corre los suyos; el advisory
- * lock y la unicidad por (cuenta, día) evitan duplicados en un redeploy solapado (ARC7).
+ * BE14: los dos disparadores de NOTIFICATIONS §4. Solo corren donde se importa
+ * `SchedulerModule` (el daemon `scheduler`, ADR-018). El advisory lock y la unicidad por
+ * (cuenta, día) evitan duplicados mientras el daemon viejo y el nuevo se solapan (ARC7).
  */
 @Injectable()
 export class NotificationsScheduler {
@@ -25,7 +26,7 @@ export class NotificationsScheduler {
   @Cron(`*/${String(NOTIFICATION_DELIVERY.reminderTickMinutes)} * * * *`)
   async reminders(): Promise<void> {
     const now = this.clock.now();
-    this.metrics.recordCronTick(now); // QA8: el cron sigue vivo
+    await this.metrics.recordCronTick(now); // QA8: el cron sigue vivo
     const since = this.lastReminderTick ?? now - TICK_MS;
     this.lastReminderTick = now;
     await this.service.runReminderTick(now, since);

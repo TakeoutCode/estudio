@@ -49,7 +49,7 @@ export async function renameDeck(id: DeckId, name: string) {
 - `workers/projection-api.ts` tiene las funciones (se prueban sin Worker); `workers/projection.ts` crea el worker con Comlink y devuelve `null` donde no hay Worker, y entonces no se calcula.
 - `ensureProjection()` (`sync/projection.ts`) revisa la proyección al guardar la configuración, tras un pull con cambios y al abrir la app. `meta.projectionSettings` guarda la `replaySettingsKey()` con que se armó `cardStates`; si difiere, `reprojectIfStale()` reconstruye todo en el worker y vuelve a proyectar en el hilo principal solo las tarjetas que cambiaron mientras tanto.
 
-**FE5 · DEBE** leer el entorno solo en `lib/env.ts` con `WebEnvSchema`, que admite exactamente `VITE_API_URL`, `VITE_VAPID_PUBLIC_KEY` y `VITE_CLOUDINARY_CLOUD_NAME`. ESLint prohíbe `import.meta.env` fuera de ese archivo. *Razón:* todo `VITE_*` se publica en el bundle (AGENTS §5).
+**FE5 · DEBE** leer el entorno solo en `lib/env.ts` con `WebEnvSchema`, que admite exactamente `VITE_API_URL`, `VITE_VAPID_PUBLIC_KEY` y `VITE_CLOUDINARY_CLOUD_NAME`. `VITE_API_URL` es `/api` en Vercel (mismo origen, ADR-019) y `http://localhost:3180/api` en local. ESLint prohíbe `import.meta.env` fuera de ese archivo. *Razón:* todo `VITE_*` se publica en el bundle (AGENTS §5).
 
 ## 3. PWA y service worker
 

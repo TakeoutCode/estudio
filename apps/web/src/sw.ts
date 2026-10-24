@@ -8,10 +8,11 @@ import { CacheFirst } from 'workbox-strategies';
 
 declare const self: ServiceWorkerGlobalScope;
 
-// FRONTEND FE7: el app shell queda en caché y toda navegación cae a index.html sin red.
+// FRONTEND FE7: el app shell queda en caché y toda navegación cae a index.html sin red, salvo
+// la API, que comparte origen con la app (ADR-019) y siempre va a la red.
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api(\/|$)/] }));
 
 // FRONTEND §5: cada URL de Cloudinary lleva su versión, así que no cambia; una vez vista se
 // sirve desde aquí sin red. Ante falta de espacio se libera esta caché primero (FE7), nunca

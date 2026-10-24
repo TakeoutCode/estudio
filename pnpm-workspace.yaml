@@ -10,6 +10,6 @@ onlyBuiltDependencies:
   - prisma
 
 # Node del proyecto: pnpm lo descarga y lo usa para revisar engines y correr scripts,
-# sin tocar el Node global (.nvmrc dice lo mismo para CI, Vercel y Railway).
+# sin tocar el Node global (.nvmrc dice lo mismo para CI y Vercel; Dockerfile.scheduler usa la misma).
 nodeVersion: 24.22.0
 useNodeVersion: 24.22.0

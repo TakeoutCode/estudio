@@ -48,7 +48,7 @@ export class HealthService {
     } catch {
       failing.push('database');
     }
-    failing.push(...this.metrics.failing(this.clock.now()));
+    failing.push(...(await this.metrics.failing(this.clock.now())));
     return { status: failing.length === 0 ? 'ok' : 'failing', failing };
   }
 }

@@ -19,3 +19,6 @@ test-results/
 
 .DS_Store
 Thumbs.db
+
+# Vercel CLI (vercel link / pull / build)
+.vercel/

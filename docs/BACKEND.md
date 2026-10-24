@@ -18,7 +18,7 @@
 | `notifications` | suscripciones, cron, envíos programados | `POST/DELETE /push/subscriptions`, `POST /notifications/:id/opened`, `PUT/DELETE /notifications/break-end`, `GET /notifications/state`, `POST /notifications/backoff` | — |
 | `health` | ping a la base, chequeos para alertas, errores del cliente (ADR-016) | `GET /health`, `GET /health/checks/:token`, `POST /diagnostics/errors` | — |
 
-`users`, `study` y `health` se suman a los 8 módulos pedidos porque sus entidades no pertenecen a ninguno de ellos. Casi todo el CRUD de contenido entra por `/sync/push`, no por REST (local-first).
+Todas las rutas van bajo `/api` (ADR-019): `POST /api/auth/login`, `GET /api/health`, etc. `users`, `study` y `health` se suman a los 8 módulos pedidos porque sus entidades no pertenecen a ninguno de ellos. Casi todo el CRUD de contenido entra por `/sync/push`, no por REST (local-first).
 
 ```text
 src/modules/decks/
@@ -126,7 +126,7 @@ Solo hay FK hacia `User`. Entre entidades sincronizables no hay FK porque un lot
 - Registro solo si el correo está en `ALLOWED_EMAILS` (ADR-007), con la misma respuesta exista o no la cuenta.
 - Access JWT HS256 de 15 min con `iss` y `aud`, guardado solo en memoria del cliente.
 - Refresh opaco de 256 bits, guardado como SHA-256 y rotado en cada uso. Reutilizar uno ya rotado revoca toda su familia (la sesión de ese dispositivo).
-- Cookie del refresh: `HttpOnly; Secure; SameSite=Lax; Path=/auth` (`Secure` solo en producción: en desarrollo la API corre en http://localhost), sin atributo `Domain` (queda solo en `api.<dominio>`). La web vive en `app.<dominio>` y la API en `api.<dominio>`, el mismo sitio, porque Safari bloquea las cookies de terceros (ADR-015).
+- Cookie del refresh: `HttpOnly; Secure; SameSite=Lax; Path=/api/auth` (`Secure` solo en producción: en desarrollo la API corre en http://localhost), sin atributo `Domain` (queda solo en el origen de la app). La web y la API comparten origen (`/` y `/api`, ADR-019), así que Safari no la trata como de terceros.
 
 **BE11 · DEBE** aplicar un `JwtAuthGuard` global con `@Public()` explícito y tomar el `userId` solo del token. **NO DEBE** aceptar `userId` en el cuerpo ni en la query. *Razón:* evita leer o escribir datos de otra cuenta (ADR-007).
 ```ts
@@ -134,11 +134,11 @@ Solo hay FK hacia `User`. Entre entidades sincronizables no hay FK porque un lot
 // ✅ this.sync.push(user.id, body);            // user = @CurrentUser()
 ```
 
-**BE12 · DEBE** usar las cabeceras de seguridad nativas de Nest 12 (`app.useSecurityHeaders()`, mismos valores que helmet 8), `app.enableCsrfProtection({ trustedOrigins: WEB_ORIGINS })`, CORS con la lista exacta de `WEB_ORIGINS` y `credentials: true`, un límite de cuerpo (1 MB, 2 MB en `/sync/push`) y `@nestjs/throttler` global (login y registro: 5/min por IP y, además, 10 cada 15 min por correo con `EmailThrottleGuard`, para que repartir intentos entre IP no sirva). Detrás del proxy de Railway, `TRUST_PROXY_HOPS=1` hace que la IP sea la que agrega el proxy al final de `X-Forwarded-For` (lo que el cliente escribe antes no cuenta); sin eso, todas las peticiones compartirían un solo límite. La cuota de IA se cuenta en la tabla `ai_usage` por día local de ella, no con throttler. *Razón:* el throttler en memoria se reinicia con cada deploy.
+**BE12 · DEBE** usar las cabeceras de seguridad nativas de Nest 12 (`app.useSecurityHeaders()`, mismos valores que helmet 8), `app.enableCsrfProtection({ trustedOrigins: WEB_ORIGINS })`, CORS con la lista exacta de `WEB_ORIGINS` y `credentials: true`, un límite de cuerpo (1 MB, 2 MB en `/sync/push`) y `@nestjs/throttler` global (100/min, en memoria de cada instancia: solo frena el abuso grueso). Login y registro llevan además `AuthAttemptsGuard`, con los intentos en Postgres (`auth_attempt`, solo el SHA-256 de la IP o del correo): 5/min por IP y 10 cada 15 min por correo, para que repartir intentos entre IP no sirva; un intento bloqueado no cuenta. En Vercel, `TRUST_PROXY_HOPS=1`: Vercel reemplaza `X-Forwarded-For` por la IP del cliente y Express toma la última entrada (lo que el cliente escribe antes no cuenta); sin eso, todas las peticiones compartirían un solo límite. La cuota de IA se cuenta en la tabla `ai_usage` por día local de ella, no con throttler. *Razón:* la API corre en varias instancias de función que no comparten memoria y se reciclan (ADR-018); un límite de login en memoria valdría por instancia.
 
 **BE13 · DEBE** poner a los terceros detrás de puertos (`AiProvider`, `MediaSigner`, `MediaPurger`, `PushSender`), cada uno con implementación real y una falsa para pruebas, con timeouts explícitos (IA 30 s, push 10 s, Cloudinary 10 s) y reintentos solo ante 429/5xx con backoff. *Razón:* pruebas de integración sin red y sin costo.
 
-**BE14 · DEBE** correr el cron y los envíos programados con `@nestjs/schedule` bajo advisory lock (ARC7) y pasar `now` explícito a `srs`. *Razón:* un redeploy solapado no debe duplicar avisos (§3). Detalle en NOTIFICATIONS.md.
+**BE14 · DEBE** correr el cron y los envíos programados con `@nestjs/schedule` en el daemon `scheduler` (`SchedulerModule`, entrada `src/scheduler.ts`), nunca en la función HTTP (`src/main.ts`, sin `ScheduleModule`), bajo advisory lock (ARC7) y con `now` explícito a `srs`. En local, `pnpm dev` junta la API y el cron en un proceso (`src/dev.ts`). *Razón:* la función se pausa entre requests (ADR-018), y mientras el daemon viejo y el nuevo se solapan en un deploy no deben duplicarse avisos (§3). Detalle en NOTIFICATIONS.md.
 
 ## 6. Checklist de revisión
 

@@ -71,4 +71,30 @@ export class AuthRepository {
   async revokeFamily(familyId: string, at: Date): Promise<void> {
     await this.tx.refreshToken.updateMany({ where: { familyId, revokedAt: null }, data: { revokedAt: at } });
   }
+
+  /** BE12: dos intentos con la misma clave se cuentan uno tras otro; se suelta con la transacción. */
+  async lockAttemptKeys(keys: readonly string[]): Promise<void> {
+    // En orden fijo, para que dos intentos con las mismas claves no se bloqueen entre sí.
+    for (const key of [...keys].sort()) {
+      await this.tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`auth_attempt:${key}`}, 0))`;
+    }
+  }
+
+  async pruneAttempts(before: Date): Promise<void> {
+    await this.tx.authAttempt.deleteMany({ where: { at: { lte: before } } });
+  }
+
+  /** Cuántos intentos con esta clave hay después de `since`, y cuándo fue el más viejo. */
+  async recentAttempts(key: string, since: Date): Promise<{ count: number; oldest: number | null }> {
+    const recent = await this.tx.authAttempt.aggregate({
+      where: { key, at: { gt: since } },
+      _count: { _all: true },
+      _min: { at: true },
+    });
+    return { count: recent._count._all, oldest: recent._min.at?.getTime() ?? null };
+  }
+
+  async insertAttempts(keys: readonly string[], at: Date): Promise<void> {
+    await this.tx.authAttempt.createMany({ data: keys.map((key) => ({ key, at })) });
+  }
 }

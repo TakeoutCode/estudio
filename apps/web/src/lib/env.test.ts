@@ -18,6 +18,16 @@ describe('parseWebEnv (FRONTEND FE5)', () => {
     expect(() => parseWebEnv({})).toThrow();
   });
 
+  it('ADR-019: acepta la ruta del mismo origen de Vercel, sin barra al final ni otro host', () => {
+    expect(parseWebEnv({ VITE_API_URL: '/api' })).toEqual({ VITE_API_URL: '/api' });
+    expect(parseWebEnv({ VITE_API_URL: 'http://localhost:3180/api' })).toEqual({
+      VITE_API_URL: 'http://localhost:3180/api',
+    });
+    for (const invalid of ['api', '/api/', '//malicioso.example', 'http://localhost:3180/api/']) {
+      expect(() => parseWebEnv({ VITE_API_URL: invalid })).toThrow();
+    }
+  });
+
   it('FE8: la nube de Cloudinary es opcional, pero solo con letras, números, guion y guion bajo', () => {
     const api = { VITE_API_URL: 'https://api.ejemplo.mx' };
     expect(parseWebEnv({ ...api, VITE_CLOUDINARY_CLOUD_NAME: 'mi-nube' })).toEqual({

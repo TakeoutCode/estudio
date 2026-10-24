@@ -156,7 +156,7 @@ describe('DELETE /me: borrado total de la cuenta (QUALITY QA6)', () => {
 
     const res = await remove(user.token, PASSWORD).expect(204);
     expect(purger.purgeUser).toHaveBeenLastCalledWith(user.userId);
-    expect(String(res.headers['set-cookie'])).toMatch(/estudio_rt=;.*Path=\/auth/);
+    expect(String(res.headers['set-cookie'])).toMatch(/estudio_rt=;.*Path=\/api\/auth/);
     const users = await server.prisma.$queryRaw<
       unknown[]
     >`SELECT 1 FROM "user" WHERE "id" = ${user.userId}::uuid`;

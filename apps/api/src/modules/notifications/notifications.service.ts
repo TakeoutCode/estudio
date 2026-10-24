@@ -356,7 +356,7 @@ export class NotificationsService {
       for (const subscription of subscriptions) {
         const result = await this.sender.send(subscription, item.payload, { ttlSec: item.ttlSec });
         await this.repo.recordDelivery(subscription.id, result, new Date(now));
-        this.metrics.recordPushDelivery(now, result === 'gone'); // QA8: tasa de 410
+        await this.metrics.recordPushDelivery(now, result === 'gone'); // QA8: tasa de 410
         delivered ||= result === 'ok';
       }
       if (item.eventId === null) return;

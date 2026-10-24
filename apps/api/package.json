@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "dev": "nest start --watch",
+    "dev": "nest start --watch --entryFile dev",
     "start": "node dist/main.js",
+    "start:scheduler": "node dist/scheduler.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "test": "vitest run --coverage",

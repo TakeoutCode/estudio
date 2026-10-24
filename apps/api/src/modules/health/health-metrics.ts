@@ -1,6 +1,6 @@
 import type { HealthCheckName } from '@estudio/shared';
-import { Injectable } from '@nestjs/common';
-import { Clock } from '../../common/clock.js';
+import { Injectable, Logger } from '@nestjs/common';
+import { HealthRepository } from './health.repository.js';
 
 /**
  * QUALITY QA8: cuándo falla cada chequeo. Son parámetros de operación, no umbrales de estudio
@@ -22,87 +22,104 @@ export const HEALTH_LIMITS = {
   aiBudgetShare: 0.8,
   /** Una medición de más de un día ya no dice nada del día de hoy. */
   aiBudgetMaxAgeMs: 24 * 60 * 60_000,
+  /** Ninguna ventana pasa de 24 h: lo anterior se purga en cada tick del cron. */
+  retentionMs: 24 * 60 * 60_000,
 } as const;
 
-interface PushSample {
+export interface PushSample {
   readonly at: number;
   readonly ms: number;
   readonly failed: boolean;
 }
 
-interface DeliverySample {
+export interface DeliverySample {
   readonly at: number;
   readonly gone: boolean;
 }
 
-/**
- * QA8: contadores en memoria de esta instancia (Railway corre una). Se pierden con un deploy,
- * y por eso el cron solo cuenta como detenido pasada su ventana desde el arranque.
- */
-@Injectable()
-export class HealthMetrics {
-  private readonly pushes: PushSample[] = [];
-  private readonly deliveries: DeliverySample[] = [];
-  private lastCronTick: number | null = null;
-  private aiBudget: { readonly at: number; readonly share: number } | null = null;
-  private readonly startedAt: number;
-
-  constructor(clock: Clock) {
-    this.startedAt = clock.now();
-  }
-
-  /** Un `POST /sync/push` terminado; `failed` solo si fue un error del servidor. */
-  recordSyncPush(at: number, ms: number, failed: boolean): void {
-    this.pushes.push({ at, ms, failed });
-    prune(this.pushes, at - HEALTH_LIMITS.windowMs);
-  }
-
-  /** Un tick del cron de recordatorios (NT3), haya obtenido el lock o no. */
-  recordCronTick(at: number): void {
-    this.lastCronTick = at;
-  }
-
-  /** Un envío de Web Push; `gone` es un 404 o 410 del servicio push (NT-T9). */
-  recordPushDelivery(at: number, gone: boolean): void {
-    this.deliveries.push({ at, gone });
-    prune(this.deliveries, at - HEALTH_LIMITS.webPushWindowMs);
-  }
-
-  /** La parte de la cuota diaria de IA que ya se usó (0-1+), medida tras cada pedido (LD17). */
-  recordAiBudget(at: number, share: number): void {
-    this.aiBudget = { at, share };
-  }
-
-  failing(now: number): HealthCheckName[] {
-    const failing: HealthCheckName[] = [];
-    const pushes = this.pushes.filter((p) => p.at > now - HEALTH_LIMITS.windowMs);
-    if (pushes.length >= HEALTH_LIMITS.syncPushMinSamples) {
-      const failed = pushes.filter((p) => p.failed).length;
-      if (failed / pushes.length > HEALTH_LIMITS.syncPushFailureShare) failing.push('sync_push_errors');
-      if (p95(pushes.map((p) => p.ms)) > HEALTH_LIMITS.syncPushP95Ms) failing.push('sync_push_slow');
-    }
-    const lastSign = this.lastCronTick ?? this.startedAt;
-    if (now - lastSign > HEALTH_LIMITS.cronStaleMs) failing.push('cron_stale');
-    const deliveries = this.deliveries.filter((d) => d.at > now - HEALTH_LIMITS.webPushWindowMs);
-    if (deliveries.length >= HEALTH_LIMITS.webPushMinSamples) {
-      const gone = deliveries.filter((d) => d.gone).length;
-      if (gone / deliveries.length > HEALTH_LIMITS.webPushGoneShare) failing.push('web_push_gone');
-    }
-    const ai = this.aiBudget;
-    if (ai && now - ai.at < HEALTH_LIMITS.aiBudgetMaxAgeMs && ai.share > HEALTH_LIMITS.aiBudgetShare) {
-      failing.push('ai_budget');
-    }
-    return failing;
-  }
+/** Lo que leen los chequeos: muestras dentro de sus ventanas y las últimas señales. */
+export interface HealthSnapshot {
+  readonly pushes: readonly PushSample[];
+  readonly deliveries: readonly DeliverySample[];
+  readonly lastCronTick: number | null;
+  readonly aiBudget: { readonly at: number; readonly share: number } | null;
 }
 
-function prune(samples: { readonly at: number }[], before: number): void {
-  const keep = samples.findIndex((s) => s.at > before);
-  samples.splice(0, keep < 0 ? samples.length : keep);
+/** QA8: los chequeos que fallan con estas muestras. Un cron que nunca corrió cuenta como detenido. */
+export function failingChecks(snapshot: HealthSnapshot, now: number): HealthCheckName[] {
+  const failing: HealthCheckName[] = [];
+  const pushes = snapshot.pushes.filter((p) => p.at > now - HEALTH_LIMITS.windowMs);
+  if (pushes.length >= HEALTH_LIMITS.syncPushMinSamples) {
+    const failed = pushes.filter((p) => p.failed).length;
+    if (failed / pushes.length > HEALTH_LIMITS.syncPushFailureShare) failing.push('sync_push_errors');
+    if (p95(pushes.map((p) => p.ms)) > HEALTH_LIMITS.syncPushP95Ms) failing.push('sync_push_slow');
+  }
+  const tick = snapshot.lastCronTick;
+  if (tick === null || now - tick > HEALTH_LIMITS.cronStaleMs) failing.push('cron_stale');
+  const deliveries = snapshot.deliveries.filter((d) => d.at > now - HEALTH_LIMITS.webPushWindowMs);
+  if (deliveries.length >= HEALTH_LIMITS.webPushMinSamples) {
+    const gone = deliveries.filter((d) => d.gone).length;
+    if (gone / deliveries.length > HEALTH_LIMITS.webPushGoneShare) failing.push('web_push_gone');
+  }
+  const ai = snapshot.aiBudget;
+  if (ai && now - ai.at < HEALTH_LIMITS.aiBudgetMaxAgeMs && ai.share > HEALTH_LIMITS.aiBudgetShare) {
+    failing.push('ai_budget');
+  }
+  return failing;
 }
 
 /** Percentil 95 por el método del rango más cercano. */
 function p95(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.max(0, Math.ceil(sorted.length * 0.95) - 1)] ?? 0;
+}
+
+/**
+ * QA8: las muestras viven en Postgres (`health_sample`) porque las escriben procesos que no
+ * comparten memoria: las instancias de la función de la API y el daemon `scheduler` (ADR-018).
+ * Una muestra que no se pudo guardar no rompe lo que se estaba midiendo.
+ */
+@Injectable()
+export class HealthMetrics {
+  private readonly logger = new Logger(HealthMetrics.name);
+
+  constructor(private readonly repo: HealthRepository) {}
+
+  /** Un `POST /sync/push` terminado; `failed` solo si fue un error del servidor. */
+  recordSyncPush(at: number, ms: number, failed: boolean): Promise<void> {
+    return this.save(() => this.repo.insertSample({ kind: 'sync_push', at, ms, failed }));
+  }
+
+  /** Un tick del cron de recordatorios (NT3), haya obtenido el lock o no. También purga lo viejo. */
+  recordCronTick(at: number): Promise<void> {
+    return this.save(async () => {
+      await this.repo.insertSample({ kind: 'cron_tick', at });
+      await this.repo.pruneSamples(at - HEALTH_LIMITS.retentionMs);
+    });
+  }
+
+  /** Un envío de Web Push; `gone` es un 404 o 410 del servicio push (NT-T9). */
+  recordPushDelivery(at: number, gone: boolean): Promise<void> {
+    return this.save(() => this.repo.insertSample({ kind: 'push_delivery', at, failed: gone }));
+  }
+
+  /** La parte de la cuota diaria de IA que ya se usó (0-1+), medida tras cada pedido (LD17). */
+  recordAiBudget(at: number, share: number): Promise<void> {
+    return this.save(() => this.repo.insertSample({ kind: 'ai_budget', at, share }));
+  }
+
+  async failing(now: number): Promise<HealthCheckName[]> {
+    return failingChecks(
+      await this.repo.snapshot(now - HEALTH_LIMITS.windowMs, now - HEALTH_LIMITS.webPushWindowMs),
+      now,
+    );
+  }
+
+  private async save(write: () => Promise<void>): Promise<void> {
+    try {
+      await write();
+    } catch (error: unknown) {
+      this.logger.warn({ err: error }, 'No se pudo guardar una muestra de salud');
+    }
+  }
 }

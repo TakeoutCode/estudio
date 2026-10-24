@@ -30,7 +30,7 @@ export default defineConfig({
       // La API de verdad: migraciones desde cero y el build de producción.
       command:
         'pnpm --dir ../api exec prisma migrate deploy && pnpm --dir ../api build && node ../api/dist/main.js',
-      url: `${API}/health`,
+      url: `${API}/api/health`,
       timeout: 180_000,
       reuseExistingServer: !process.env.CI,
       env: {
@@ -50,7 +50,7 @@ export default defineConfig({
       url: WEB,
       timeout: 180_000,
       reuseExistingServer: !process.env.CI,
-      env: { VITE_API_URL: API },
+      env: { VITE_API_URL: `${API}/api` },
     },
   ],
 });

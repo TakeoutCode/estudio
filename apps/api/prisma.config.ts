@@ -3,7 +3,7 @@
 import { existsSync } from 'node:fs';
 import { defineConfig } from 'prisma/config';
 
-// Una URL ya definida (CI, Testcontainers, Railway) manda sobre el .env local.
+// Una URL ya definida (CI, Testcontainers, el build de Vercel) manda sobre el .env local.
 if (!process.env.DIRECT_DATABASE_URL && existsSync('.env')) process.loadEnvFile('.env');
 
 const directUrl = process.env.DIRECT_DATABASE_URL;

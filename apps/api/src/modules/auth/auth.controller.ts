@@ -1,18 +1,15 @@
 import { type Credentials, CredentialsSchema, type SessionResponse } from '@estudio/shared';
 import { Body, Controller, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { ZodPipe } from '../../common/zod.pipe.js';
 import { AppConfig } from '../../config/app-config.js';
+import { AuthAttemptsGuard } from './auth-attempts.guard.js';
 import { AuthService, type IssuedSession } from './auth.service.js';
 import { REFRESH_COOKIE } from './constants.js';
-import { EmailThrottleGuard } from './email-throttle.guard.js';
 import { readCookie, refreshCookieOptions } from './cookies.js';
 import { Public } from './public.js';
 
-/** BE12: login y registro con un límite más estricto que el global (por IP) y otro por correo. */
-const STRICT = { default: { limit: 5, ttl: 60_000 } };
-
+/** BE12: login y registro, además del límite global, con uno por IP y otro por correo. */
 @Controller('auth')
 @Public()
 export class AuthController {
@@ -23,16 +20,14 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(202)
-  @Throttle(STRICT)
-  @UseGuards(EmailThrottleGuard)
+  @UseGuards(AuthAttemptsGuard)
   async register(@Body(new ZodPipe(CredentialsSchema)) body: Credentials): Promise<void> {
     await this.auth.register(body);
   }
 
   @Post('login')
   @HttpCode(200)
-  @Throttle(STRICT)
-  @UseGuards(EmailThrottleGuard)
+  @UseGuards(AuthAttemptsGuard)
   async login(
     @Body(new ZodPipe(CredentialsSchema)) body: Credentials,
     @Res({ passthrough: true }) res: Response,

@@ -11,6 +11,7 @@ import { Public } from './modules/auth/public.js';
 import { TokenService } from './modules/auth/token.service.js';
 import { HealthRepository } from './modules/health/health.repository.js';
 import { PrismaService } from './prisma/prisma.service.js';
+import { FakeHealthRepository } from './test/fake-health-repository.js';
 
 const WEB = 'http://localhost:5180';
 const HEALTH_TOKEN = 'token-de-salud-de-pruebas-de-al-menos-32';
@@ -40,13 +41,15 @@ describe('app (integración HTTP, sin base)', () => {
   let app: NestExpressApplication;
   let tokens: TokenService;
   const ping = vi.fn<() => Promise<void>>();
+  const health = new FakeHealthRepository();
+  health.ping = ping;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule], controllers: [ProbeController] })
       .overrideProvider(PrismaService)
       .useValue({})
       .overrideProvider(HealthRepository)
-      .useValue({ ping })
+      .useValue(health)
       .compile();
     app = configureApp(moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false }));
     await app.init();
@@ -57,29 +60,40 @@ describe('app (integración HTTP, sin base)', () => {
     await app.close();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ping.mockReset().mockResolvedValue(undefined);
+    // QA8: el cron corre en otro proceso (ADR-018); aquí basta con que su última señal sea reciente.
+    health.samples = [];
+    await health.insertSample({ kind: 'cron_tick', at: Date.now() });
   });
 
   it('GET /health responde sin cabecera de contrato', async () => {
-    await request(app.getHttpServer()).get('/health').expect(200, { status: 'ok' });
+    await request(app.getHttpServer()).get('/api/health').expect(200, { status: 'ok' });
+  });
+
+  it('ADR-019: todas las rutas van bajo /api; sin el prefijo no hay nada', async () => {
+    // El 404 problem+json de BE5 es de Nest y vive bajo el prefijo; fuera de él responde Express.
+    // En Vercel esas rutas ni llegan: van a la web.
+    await request(app.getHttpServer()).get('/health').expect(404);
   });
 
   it('QA8: GET /health responde 503 problem+json si la base no contesta', async () => {
     ping.mockRejectedValue(new Error('connection refused'));
-    const res = await request(app.getHttpServer()).get('/health').expect(503);
+    const res = await request(app.getHttpServer()).get('/api/health').expect(503);
     expect(res.headers['content-type']).toContain('application/problem+json');
     expect(res.body).toMatchObject({ code: 'unavailable' });
   });
 
   it('QA8: GET /health/checks/:token solo con el token; 503 con los nombres de lo que falla', async () => {
-    await request(app.getHttpServer()).get('/health/checks/otro-token-de-al-menos-32-caracteres').expect(404);
     await request(app.getHttpServer())
-      .get(`/health/checks/${HEALTH_TOKEN}`)
+      .get('/api/health/checks/otro-token-de-al-menos-32-caracteres')
+      .expect(404);
+    await request(app.getHttpServer())
+      .get(`/api/health/checks/${HEALTH_TOKEN}`)
       .expect(200, { status: 'ok', failing: [] });
     ping.mockRejectedValue(new Error('connection refused'));
     await request(app.getHttpServer())
-      .get(`/health/checks/${HEALTH_TOKEN}`)
+      .get(`/api/health/checks/${HEALTH_TOKEN}`)
       .expect(503, { status: 'failing', failing: ['database'] });
   });
 
@@ -97,7 +111,9 @@ describe('app (integración HTTP, sin base)', () => {
       ],
     };
     const post = () =>
-      request(app.getHttpServer()).post('/diagnostics/errors').set(CONTRACT_HEADER, String(CONTRACT_VERSION));
+      request(app.getHttpServer())
+        .post('/api/diagnostics/errors')
+        .set(CONTRACT_HEADER, String(CONTRACT_VERSION));
     await post().send(report).expect(401);
     const { token } = await tokens.issueAccess(newId());
     await post().set('Authorization', `Bearer ${token}`).send(report).expect(204);
@@ -111,7 +127,7 @@ describe('app (integración HTTP, sin base)', () => {
   it('LD17: sin OPENAI_API_KEY, POST /ai/drafts responde 503 y la captura manual sigue', async () => {
     const { token } = await tokens.issueAccess(newId());
     const res = await request(app.getHttpServer())
-      .post('/ai/drafts')
+      .post('/api/ai/drafts')
       .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
       .set('Authorization', 'Bearer ' + token)
       .send({ sourceText: 'El deltoides está inervado por el nervio axilar.' })
@@ -123,7 +139,7 @@ describe('app (integración HTTP, sin base)', () => {
     const { token } = await tokens.issueAccess(newId());
     const post = (path: string) =>
       request(app.getHttpServer())
-        .post(path)
+        .post(`/api${path}`)
         .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
         .set('Authorization', 'Bearer ' + token);
     await post('/ai/clinical-cases').send({ sourceText: 'El deltoides lo inerva el axilar.' }).expect(503);
@@ -150,24 +166,24 @@ describe('app (integración HTTP, sin base)', () => {
   });
 
   it('ARC6: sin cabecera de contrato responde 426', async () => {
-    const res = await request(app.getHttpServer()).get('/probe').expect(426);
+    const res = await request(app.getHttpServer()).get('/api/probe').expect(426);
     expect(res.body).toMatchObject({ code: 'contract_outdated' });
   });
 
   it('ARC6: un cliente anterior a MIN_SAFE_CONTRACT recibe 426 aunque MIN_CONTRACT sea menor', async () => {
     await request(app.getHttpServer())
-      .get('/probe')
+      .get('/api/probe')
       .set(CONTRACT_HEADER, String(MIN_SAFE_CONTRACT - 1))
       .expect(426);
     await request(app.getHttpServer())
-      .get('/probe')
+      .get('/api/probe')
       .set(CONTRACT_HEADER, String(MIN_SAFE_CONTRACT))
       .expect(200);
   });
 
   it('ARC6: con el contrato vigente deja pasar', async () => {
     await request(app.getHttpServer())
-      .get('/probe')
+      .get('/api/probe')
       .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
       .expect(200, { ok: true });
   });
@@ -175,7 +191,7 @@ describe('app (integración HTTP, sin base)', () => {
   it('BE12: rechaza un POST de otro origen (CSRF) y acepta el de la web', async () => {
     const post = (origin: string) =>
       request(app.getHttpServer())
-        .post('/probe')
+        .post('/api/probe')
         .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
         .set('Origin', origin)
         .set('Sec-Fetch-Site', 'cross-site');
@@ -187,7 +203,7 @@ describe('app (integración HTTP, sin base)', () => {
   it('BE12: CORS solo para la web', async () => {
     const preflight = (origin: string) =>
       request(app.getHttpServer())
-        .options('/probe')
+        .options('/api/probe')
         .set('Origin', origin)
         .set('Access-Control-Request-Method', 'POST');
     expect((await preflight(WEB)).headers['access-control-allow-origin']).toBe(WEB);
@@ -197,7 +213,7 @@ describe('app (integración HTTP, sin base)', () => {
   });
 
   it('SY8: CORS expone Retry-After, para que la web espere lo que pide el servidor', async () => {
-    const res = await request(app.getHttpServer()).get('/health').set('Origin', WEB);
+    const res = await request(app.getHttpServer()).get('/api/health').set('Origin', WEB);
     expect(res.headers['access-control-expose-headers']?.split(',')).toContain('retry-after');
   });
 
@@ -205,7 +221,7 @@ describe('app (integración HTTP, sin base)', () => {
     const ip = async (forwarded: string) =>
       (
         await request(app.getHttpServer())
-          .get('/probe/ip')
+          .get('/api/probe/ip')
           .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
           .set('X-Forwarded-For', forwarded)
           .expect(200)
@@ -216,14 +232,14 @@ describe('app (integración HTTP, sin base)', () => {
   });
 
   it('BE12: cabeceras de seguridad, request id y sin X-Powered-By', async () => {
-    const res = await request(app.getHttpServer()).get('/health').set('x-request-id', 'abc-123');
+    const res = await request(app.getHttpServer()).get('/api/health').set('x-request-id', 'abc-123');
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['x-powered-by']).toBeUndefined();
     expect(res.headers['x-request-id']).toBe('abc-123');
   });
 
   it('BE5: una ruta desconocida responde 404 problem+json', async () => {
-    const res = await request(app.getHttpServer()).get('/no-existe').expect(404);
+    const res = await request(app.getHttpServer()).get('/api/no-existe').expect(404);
     expect(res.body).toMatchObject({ code: 'not_found', status: 404 });
   });
 });

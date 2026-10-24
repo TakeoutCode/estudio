@@ -7,7 +7,7 @@ Guía para personas y agentes que modifican este repo. **Precedencia:** [docs/ST
 ```text
 estudio/
 ├─ apps/web          @estudio/web     React + TS + Vite (PWA), Tailwind, Zustand (estado UI), Dexie (datos locales)
-├─ apps/api          @estudio/api     NestJS + Prisma + Postgres (Neon), cron de notificaciones
+├─ apps/api          @estudio/api     NestJS + Prisma + Postgres (Neon); en Vercel, función bajo /api y daemon del cron
 ├─ packages/shared   @estudio/shared  esquemas zod, tipos, contratos HTTP y sync, HLC, esquemas de configuración
 ├─ packages/srs      @estudio/srs     ts-fsrs, planificador (P1-P8), temporizador (§3), calificación, métricas,
 │                                     gamificación, política de avisos: solo funciones puras
@@ -19,18 +19,18 @@ Dependencias permitidas: `web → shared, srs` · `api → shared, srs` · `srs 
 
 ## 2. Comandos
 
-Requisitos: pnpm 10 (`corepack enable`) y Docker: Postgres local en el puerto 5433 (`pnpm db:up`) y Testcontainers en las pruebas de integración de la api. pnpm descarga Node 24 LTS solo para este repo (`useNodeVersion` en `pnpm-workspace.yaml`) y corre todos los scripts con él; `.nvmrc` dice lo mismo para CI, Vercel y Railway. Antes del primer `pnpm dev`: copia `apps/api/.env.example` a `.env` y `apps/web/.env.example` a `.env`.
+Requisitos: pnpm 10 (`corepack enable`) y Docker: Postgres local en el puerto 5433 (`pnpm db:up`) y Testcontainers en las pruebas de integración de la api. pnpm descarga Node 24 LTS solo para este repo (`useNodeVersion` en `pnpm-workspace.yaml`) y corre todos los scripts con él; `.nvmrc` dice lo mismo para CI y Vercel, y `Dockerfile.scheduler` usa la misma versión. Antes del primer `pnpm dev`: copia `apps/api/.env.example` a `.env` y `apps/web/.env.example` a `.env`.
 
 | Tarea | Comando |
 |---|---|
 | Instalar | `pnpm install` |
 | Base local | `pnpm db:up` y luego `pnpm db:migrate` |
 | Datos de desarrollo | `pnpm db:seed`: mazo "Huesos del esqueleto" (206 huesos) en la cuenta de `SEED_EMAIL` o del primer correo de `ALLOWED_EMAILS`, que ya debe estar registrada. No pisa un mazo existente y no corre con `NODE_ENV=production` (LD16) |
-| Desarrollo | `pnpm dev` (web :5180, api :3180; puertos propios para no compartir origen con otros proyectos) · uno solo: `pnpm dev --filter @estudio/web` |
+| Desarrollo | `pnpm dev` (web :5180, api :3180 bajo `/api` y con el cron en el mismo proceso; puertos propios para no compartir origen con otros proyectos) · uno solo: `pnpm dev --filter @estudio/web` |
 | Pruebas | `pnpm test` · un paquete: `pnpm test --filter @estudio/srs` · e2e: `pnpm test:e2e`, con un Postgres vacío en `E2E_DATABASE_URL` (ver `apps/web/playwright.config.ts`) |
 | Calidad | `pnpm lint` (ESLint + `lint:copy`) · `pnpm typecheck` |
 | Build | `pnpm build` |
-| Prisma | dev: `pnpm db:migrate --name <cambio>` · cliente: `pnpm db:generate` · prod (solo CI): `pnpm db:deploy` |
+| Prisma | dev: `pnpm db:migrate --name <cambio>` · cliente: `pnpm db:generate` · prod: `pnpm db:deploy`, solo desde el build de producción de Vercel (`apps/api/scripts/vercel-build.sh`) |
 
 ## 3. Qué leer antes de tocar cada área
 
@@ -107,7 +107,7 @@ Requisitos: pnpm 10 (`corepack enable`) y Docker: Postgres local en el puerto 54
 | Notificación de "racha en riesgo", más de 2 recordatorios al día, avisos en horas silenciosas o con culpa | §3, R12, R19 |
 | Ranking, penalizaciones, XP por tiempo, racha que se rompe, cuentas regresivas de urgencia u otros patrones oscuros | R19, §5; la gamificación no está investigada (§6) y siempre se puede apagar |
 | Llamar a OpenAI desde el cliente o guardar contenido de IA sin que ella lo revise | Clave solo en el servidor; borrador obligatorio (LEARNING-DESIGN.md) |
-| `prisma db push` contra Neon o editar una migración ya aplicada | En producción solo `migrate deploy` desde CI |
+| `prisma db push` contra Neon o editar una migración ya aplicada | En producción solo `migrate deploy` desde el build de producción |
 | Usar "atrasada", rojo de alarma o lenguaje de culpa para la carga | §5: "pendientes" |
 | Cambiar STUDY-METHODS.md para que encaje con el código | Es la fuente de verdad; solo cambia por decisión explícita y con fuente |
 

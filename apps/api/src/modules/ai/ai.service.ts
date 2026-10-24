@@ -263,6 +263,6 @@ export class AiService {
       used.requests / this.config.get('AI_DAILY_REQUESTS'),
       used.tokens / this.config.get('AI_DAILY_TOKENS'),
     );
-    this.metrics.recordAiBudget(this.clock.now(), share);
+    await this.metrics.recordAiBudget(this.clock.now(), share);
   }
 }

@@ -1,0 +1,15 @@
+# Contexto de Dockerfile.scheduler (ADR-018): el código, sin lo que se instala o genera.
+**/node_modules
+**/dist
+**/dev-dist
+**/coverage
+**/.turbo
+**/*.tsbuildinfo
+apps/api/src/generated
+apps/web/test-results
+apps/web/playwright-report
+.git
+.vercel
+**/.env
+**/.env.*
+!**/.env.example

@@ -1,0 +1,19 @@
+# ADR-018: imagen del daemon `scheduler` de Vercel (vercel.json). Corre el cron y los envíos
+# programados de apps/api (BACKEND BE14) sin HTTP. El contexto es la raíz del repo porque la API
+# depende de packages/shared y packages/srs (workspace de pnpm). Vercel pasa las variables del
+# proyecto como build args, pero aquí no se declara ninguna: los secretos solo llegan al correr.
+FROM node:24.22.0-slim AS build
+WORKDIR /repo
+RUN corepack enable
+COPY . .
+RUN pnpm install --frozen-lockfile --filter "@estudio/api..."
+RUN pnpm --filter @estudio/api db:generate && pnpm --filter "@estudio/api..." run build
+# Solo dependencias de producción, con shared y srs copiados (sin enlaces al workspace).
+RUN pnpm --filter @estudio/api deploy --prod --legacy /out
+
+FROM node:24.22.0-slim
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build --chown=node:node /out .
+USER node
+CMD ["node", "dist/scheduler.js"]

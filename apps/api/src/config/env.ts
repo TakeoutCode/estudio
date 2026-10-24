@@ -38,9 +38,12 @@ export const EnvSchema = z
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     DIRECT_DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+    // CORS y CSRF para la web en otro origen (local: :5180). En Vercel comparten origen (ADR-019)
+    // y una request del mismo origen pasa sin estar en la lista.
     WEB_ORIGINS: csv(OriginSchema),
-    // BE12: proxies delante de la API que agregan X-Forwarded-For (Railway: 1). Con 0, la IP es la
-    // del socket; detrás de un proxy, todas las peticiones compartirían el límite por IP.
+    // BE12: proxies delante de la API que agregan X-Forwarded-For (Vercel: 1, que deja solo la IP
+    // del cliente). Con 0, la IP es la del socket; detrás de un proxy, todas las peticiones
+    // compartirían el límite por IP.
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
     MIN_CONTRACT: z.coerce.number().int().min(1).default(1), // ARC6
     JWT_ACCESS_SECRET: z.string().min(32), // BE10

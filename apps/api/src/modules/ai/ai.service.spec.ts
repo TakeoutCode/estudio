@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Clock } from '../../common/clock.js';
 import { DomainError } from '../../common/domain-error.js';
 import type { AppConfig } from '../../config/app-config.js';
+import { FakeHealthRepository } from '../../test/fake-health-repository.js';
 import { HealthMetrics } from '../health/health-metrics.js';
 import type { AiProvider, AiResult } from './ai-provider.js';
 import type { AiRepository, UsageRow } from './ai.repository.js';
@@ -59,8 +60,9 @@ function setup(results: AiResult[], { requests = 30, tokens = 200_000, configure
   const run = vi.fn<AiProvider['run']>(() => Promise.resolve(results.shift() ?? failed('error')));
   const provider = { configured, run } as unknown as AiProvider;
   const clock: Clock = { now: () => NOW };
-  const metrics = new HealthMetrics(clock);
-  metrics.recordCronTick(NOW);
+  const health = new FakeHealthRepository();
+  void health.insertSample({ kind: 'cron_tick', at: NOW });
+  const metrics = new HealthMetrics(health.asRepository());
   const config = {
     get: (key: string) => ({ AI_DAILY_REQUESTS: requests, AI_DAILY_TOKENS: tokens })[key],
   } as unknown as AppConfig;
@@ -139,10 +141,10 @@ describe('LD14-LD17: borradores de notas', () => {
   it('QA8: avisa al monitor cuando el gasto del día pasa del 80 % de la cuota', async () => {
     const low = setup([ok({ drafts: [] })], { requests: 10 });
     await low.service.draftNotes(USER, { sourceText: 'uno' });
-    expect(low.metrics.failing(NOW)).toEqual([]);
+    expect(await low.metrics.failing(NOW)).toEqual([]);
     const high = setup([ok({ drafts: [] })], { tokens: 160 });
     await high.service.draftNotes(USER, { sourceText: 'uno' });
-    expect(high.metrics.failing(NOW)).toEqual(['ai_budget']);
+    expect(await high.metrics.failing(NOW)).toEqual(['ai_budget']);
   });
 });
 

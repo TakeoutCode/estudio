@@ -65,7 +65,7 @@ También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medi
 6. Playwright `iphone` y `desktop` (job `e2e`: un Postgres de servicio, y `playwright.config.ts` migra la base y levanta la api y la vista previa de la PWA), y Lighthouse sobre el preview de Vercel (pendiente: todavía no hay preview).
 7. `gitleaks` y `pnpm audit --prod --audit-level high`.
 
-Despliegue: Vercel crea un preview por PR. Railway despliega desde `main` con `prisma migrate deploy` antes del arranque. Una migración que falla detiene el deploy.
+Despliegue (ADR-018): un solo proyecto de Vercel con los servicios `web` y `api` y el daemon `scheduler` (`vercel.json`). Vercel crea un preview por PR con la web y la API; el daemon solo corre en producción, así que las previews no mandan avisos. En `main`, el build de la API aplica `prisma migrate deploy` antes de publicar (`apps/api/scripts/vercel-build.sh`); una migración que falla detiene el deploy. Las previews no migran: su base no debe ser la de producción.
 
 ## 6. Seguridad
 
@@ -77,7 +77,7 @@ Despliegue: Vercel crea un preview por PR. Railway despliega desde `main` con `p
 - El trigger impide `UPDATE` y `DELETE` en `review_log`.
 - La firma de Cloudinary fija `public_id = estudio/<userId>/<assetId>` y los formatos de imagen; no firma un asset de otra cuenta, borrado o que no llegó por push, y el handler rechaza un `MediaAsset` con otro `public_id` (`media.int.spec.ts`).
 
-En la web, cabeceras de Vercel: `Content-Security-Policy` con `default-src 'self'; img-src 'self' blob: data: https://res.cloudinary.com; media-src 'self' blob: https://res.cloudinary.com; connect-src 'self' https://api.<dominio> https://api.cloudinary.com https://res.cloudinary.com; frame-src https://www.youtube-nocookie.com` (`res.cloudinary.com` en `connect-src` porque el service worker descarga las imágenes para guardarlas, FRONTEND §5), además de `Referrer-Policy: strict-origin-when-cross-origin` y `Permissions-Policy` (micrófono solo `self`). Renovate actualiza dependencias semanalmente.
+En la web, cabeceras de Vercel (servicio `web` en `vercel.json`): `Content-Security-Policy` con `default-src 'self'; img-src 'self' blob: data: https://res.cloudinary.com; media-src 'self' blob: https://res.cloudinary.com; connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com; frame-src https://www.youtube-nocookie.com` (la API entra por `'self'`: está en el mismo origen, ADR-019) (`res.cloudinary.com` en `connect-src` porque el service worker descarga las imágenes para guardarlas, FRONTEND §5), además de `Referrer-Policy: strict-origin-when-cross-origin` y `Permissions-Policy` (micrófono solo `self`). Renovate actualiza dependencias semanalmente.
 
 ## 7. Privacidad
 
@@ -101,16 +101,16 @@ En la web, cabeceras de Vercel: `Content-Security-Policy` con `default-src 'self
 - la tasa de 410 en Web Push supera el 20 %;
 - el gasto de IA del día pasa del 80 % de la cuota;
 - el `p95` de `/sync/push` supera 1 s.
-Logs JSON de pino en Railway con `requestId`, incluidos los errores del cliente (FE13). *Razón:* con una sola usuaria, un fallo de sync o de avisos puede pasar semanas sin que nadie lo note.
+Logs JSON de pino en los logs de Vercel (función `api` y daemon `scheduler`) con `requestId`, incluidos los errores del cliente (FE13). En Hobby duran 1 h: lo que tiene que avisar más tarde va por estos chequeos. *Razón:* con una sola usuaria, un fallo de sync o de avisos puede pasar semanas sin que nadie lo note.
 - Los nombres son `database`, `sync_push_errors`, `sync_push_slow`, `cron_stale`, `web_push_gone` y `ai_budget` (`HealthChecksSchema` en `shared`); con otro token (o sin `HEALTH_CHECK_TOKEN`, que es obligatorio solo en producción) la ruta responde 404.
-- Los contadores viven en memoria de la instancia (`HealthMetrics`, `HEALTH_LIMITS` en el módulo `health`): un push de sync falla solo con un error del servidor (5xx), no con un 4xx del cliente; push y p95 se juzgan desde 20 envíos en la hora, la tasa de 410 en 24 h y desde 5 envíos, para que con una usuaria un fallo suelto no alarme. Tras un deploy, el cron cuenta como detenido solo pasados 15 min desde el arranque.
+- Las muestras viven en Postgres (`health_sample`; `HealthMetrics` y `HEALTH_LIMITS` en el módulo `health`) porque las escriben la función de la API y el daemon `scheduler`, que no comparten memoria (ADR-018). Un push de sync falla solo con un error del servidor (5xx), no con un 4xx del cliente; push y p95 se juzgan desde 20 envíos en la hora, la tasa de 410 en 24 h y desde 5 envíos, para que con una usuaria un fallo suelto no alarme. El cron cuenta como detenido si su último tick tiene más de 15 min o si nunca corrió; cada tick purga las muestras de más de 24 h.
 - `ai_budget`: `AiService` mide tras cada pedido qué parte de la cuota del día de ella ya se usó (pedidos o tokens, lo que sea mayor) y el chequeo falla por encima de 80 %.
 
 ## 10. Checklist previo a producción
 
-- [ ] Dominio propio configurado: `app.<dominio>` en Vercel y `api.<dominio>` en Railway, con HTTPS (ADR-015).
+- [ ] Dominio propio en el proyecto de Vercel, con HTTPS: la web en `/` y la API en `/api` (ADR-019). Root Directory del proyecto vacío (la raíz del repo): los daemons no funcionan con un subdirectorio.
 - [ ] Par de claves `age` generado y la privada guardada fuera de GitHub; secretos `BACKUP_DATABASE_URL` y `BACKUP_AGE_RECIPIENT` cargados y el workflow de respaldo corrido una vez a mano; `HEALTH_CHECK_TOKEN` cargado y el monitor configurado.
-- [ ] Todas las variables de `EnvSchema` cargadas en Railway, y solo las 3 `VITE_*` en Vercel.
+- [ ] Todas las variables de `EnvSchema` cargadas en Vercel para Production (las leen la función `api` y el daemon `scheduler`), con `NODE_ENV=production`, `TRUST_PROXY_HOPS=1` y `WEB_ORIGINS` con el dominio; de las `VITE_*`, solo las 3, con `VITE_API_URL=/api`. Las de Preview, con una base que no sea la de producción.
 - [ ] `ALLOWED_EMAILS` con su correo; registro abierto deshabilitado.
 - [ ] Claves VAPID generadas y respaldadas (si se pierden, todas las suscripciones dejan de servir).
 - [ ] `prisma migrate deploy` aplicado; trigger, secuencia e índices verificados en Neon.

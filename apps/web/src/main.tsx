@@ -1,3 +1,4 @@
+import './lib/zod-config';
 import './index.css';
 import common from './i18n/es/common.json';
 
