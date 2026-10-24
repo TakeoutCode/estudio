@@ -246,6 +246,14 @@ describe('StudyScreen (LEARNING-DESIGN §4)', () => {
     expect((await db.timerSessions.toArray())[0]?.state).toBe('focus');
   });
 
+  it('UX3: si no se pudo armar la sesión, dice qué pasó y "Reintentar" la vuelve a armar', async () => {
+    vi.spyOn(db.reviewLogs, 'toArray').mockRejectedValueOnce(new Error('lectura fallida'));
+    renderStudy();
+    expect(await screen.findByText(/Algo no salió bien/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText(humerus.front)).toBeTruthy();
+  });
+
   it('FE12: Espacio revela y los números califican; ningún atajo salta el intento', async () => {
     renderStudy();
     await screen.findByText(humerus.front);

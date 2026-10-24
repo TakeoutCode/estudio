@@ -93,8 +93,10 @@ export function StudyScreen() {
     [examId, deckId, tagId],
   );
   const key = scopeKey(scope);
-  /** Clave del alcance que no se pudo armar (p. ej. un mazo borrado). */
-  const [failed, setFailed] = useState<string | null>(null);
+  /** Alcance que no se pudo armar: borrado (un mazo o una etiqueta que ya no existe) o un fallo al leer. */
+  const [failed, setFailed] = useState<{ readonly key: string; readonly missing: boolean } | null>(null);
+  /** UX3: "Reintentar" vuelve a armar la sesión. */
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (session && scopeKey(session.scope) === key) return;
@@ -121,19 +123,35 @@ export function StudyScreen() {
           });
         }
       })
-      .catch(() => {
-        if (!cancelled) setFailed(key);
+      .catch((error: unknown) => {
+        const missing = error instanceof Error && error.message.endsWith('_not_found');
+        if (!cancelled) setFailed({ key, missing });
       });
     return () => {
       cancelled = true;
     };
-  }, [session, start, scope, key]);
+  }, [session, start, scope, key, attempt]);
 
-  if (failed === key) {
-    const missing = { deck: 'study.deck.missing', tag: 'study.tag.missing' } as const;
+  if (failed?.key === key) {
+    if (failed.missing && (scope.kind === 'deck' || scope.kind === 'tag')) {
+      const missing = { deck: 'study.deck.missing', tag: 'study.tag.missing' } as const;
+      return <EmptyState message={t(missing[scope.kind])} />;
+    }
     return (
       <EmptyState
-        message={t(scope.kind === 'deck' || scope.kind === 'tag' ? missing[scope.kind] : 'error.generic')}
+        message={t('error.generic')}
+        action={
+          <button
+            type="button"
+            className={`inline-flex min-h-11 items-center px-2 text-primary ${focus}`}
+            onClick={() => {
+              setFailed(null);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            {t('error.retry')}
+          </button>
+        }
       />
     );
   }
