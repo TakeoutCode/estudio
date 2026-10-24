@@ -54,6 +54,7 @@ export const NotificationDeliverySchema = z.object({
   breakEndPollSeconds: int(5, 120).default(30), // NT4 · diseño · sin evidencia
   reminderTtlSeconds: int(60, 86_400).default(4 * 3600), // NT5 · diseño · sin evidencia
   breakEndTtlSeconds: int(30, 3600).default(300), // NT5 · diseño · sin evidencia
+  topicsInText: int(1, 5).default(3), // NT6 · diseño · sin evidencia: temas que nombra un recordatorio
 });
 export type NotificationDelivery = z.output<typeof NotificationDeliverySchema>;
 export const NOTIFICATION_DELIVERY: NotificationDelivery = NotificationDeliverySchema.parse({});

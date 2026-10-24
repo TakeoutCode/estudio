@@ -1,4 +1,4 @@
-import { NotificationPrefsSchema, Rating } from '@estudio/shared';
+import { NOTIFICATION_DELIVERY, NotificationPrefsSchema, Rating } from '@estudio/shared';
 import { describe, expect, it } from 'vitest';
 import { createScheduler } from '../fsrs/scheduler.js';
 import {
@@ -170,6 +170,7 @@ describe('NT3: qué recordatorios califican', () => {
     exams: [],
     notifiedExamDays: new Set<string>(),
     prefs,
+    delivery: NOTIFICATION_DELIVERY,
     now: NOW,
     timeZone: TZ,
   };
@@ -181,7 +182,23 @@ describe('NT3: qué recordatorios califican', () => {
       reviewCard(20, { due: NOW + 3 * DAY, topic: 'cardio' }),
     ];
     const result = reminderCandidates({ ...base, cards });
-    expect(result.dueToday).toEqual({ count: 7, topicIds: ['nervios', 'huesos'] });
+    expect(result.dueToday).toEqual({ count: 7, topicIds: ['nervios', 'huesos'], moreTopics: 0 });
+  });
+
+  it('NT6: nombra hasta `topicsInText` temas y dice cuántos más hay', () => {
+    const topics = ['a', 'b', 'c', 'd', 'e', 'f'];
+    // El tema i tiene 6 − i tarjetas: el orden por peso es a, b, c…
+    const cards = topics.flatMap((topic, i) =>
+      range(100 * (i + 1), topics.length - i).map((n) => reviewCard(n, { topic })),
+    );
+    const named = (topicsInText: number) =>
+      reminderCandidates({ ...base, cards, delivery: { topicsInText } }).dueToday;
+    expect(named(NOTIFICATION_DELIVERY.topicsInText)).toMatchObject({
+      topicIds: ['a', 'b', 'c'],
+      moreTopics: 3,
+    });
+    expect(named(1)).toMatchObject({ topicIds: ['a'], moreTopics: 5 });
+    expect(named(5)).toMatchObject({ topicIds: ['a', 'b', 'c', 'd', 'e'], moreTopics: 1 });
   });
 
   it('mazos en pausa: no cuentan como pendientes, pero el plan del examen sí ve sus tarjetas', () => {
@@ -189,8 +206,8 @@ describe('NT3: qué recordatorios califican', () => {
     const paused = [...range(10, 4).map((n) => reviewCard(n, { topic: 'huesos' })), newCard(20, 'huesos')];
     const exams = [{ id: 'parcial', date: TODAY_START + 10 * DAY, topicIds: ['huesos'] }];
     const result = reminderCandidates({ ...base, cards: [...active, ...paused], dueCards: active, exams });
-    expect(result.dueToday).toEqual({ count: 3, topicIds: ['nervios'] });
-    expect(result.studyPlan).toEqual({ newToday: 1, topicIds: ['huesos'] });
+    expect(result.dueToday).toEqual({ count: 3, topicIds: ['nervios'], moreTopics: 0 });
+    expect(result.studyPlan).toEqual({ newToday: 1, topicIds: ['huesos'], moreTopics: 0 });
     // Sin `dueCards`, cuenta todas (compatibilidad).
     expect(reminderCandidates({ ...base, cards: [...active, ...paused] }).dueToday.count).toBe(7);
   });
@@ -213,6 +230,7 @@ describe('NT3: qué recordatorios califican', () => {
     expect(reminderCandidates({ ...base, cards, exams }).studyPlan).toEqual({
       newToday: 2,
       topicIds: ['nervios'],
+      moreTopics: 0,
     });
     const started = [id(1), id(2)].map((cardId) => log(NOW - HOUR, Rating.Good, { type: 'learn', cardId }));
     expect(reminderCandidates({ ...base, cards, exams, logs: started }).studyPlan).toBeNull();

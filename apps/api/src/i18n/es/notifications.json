@@ -11,6 +11,8 @@
   "studyPlanNoTopic_one": "Plan de hoy: {{count}} nueva",
   "studyPlanNoTopic_other": "Plan de hoy: {{count}} nuevas",
   "and": "y",
+  "moreTopics_one": "{{count}} tema más",
+  "moreTopics_other": "{{count}} temas más",
   "breakEnd": "Terminó el descanso",
   "breakEndBody": "Sigue cuando quieras."
 }

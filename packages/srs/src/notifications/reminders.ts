@@ -5,6 +5,7 @@ import {
   localMinuteOfDay,
   type LocalTime,
   minutesOfDay,
+  type NotificationDelivery,
   type NotificationPrefs,
   type ReviewLog,
   type StudyConfig,
@@ -15,9 +16,6 @@ import { buildSessionQueue, type PlannerCard } from '../planner/queue.js';
 
 // Qué recordatorios califican en un tick del cron (NOTIFICATIONS §1 y NT3). La decisión de
 // enviarlos (horas silenciosas, tope, reducción) es de `decideNotification`.
-
-/** Cuántos temas se nombran en el texto (NT6: solo nombres de temas, nunca contenido). */
-const TOPICS_IN_TEXT = 3;
 
 export interface ReminderInput {
   /** Todas sus tarjetas vivas: el plan de cada examen las toma por tema (LD11). */
@@ -31,16 +29,24 @@ export interface ReminderInput {
   /** `examId:N` ya avisados: un aviso por examen y por cada N (NT-T11). */
   readonly notifiedExamDays: ReadonlySet<string>;
   readonly prefs: Pick<NotificationPrefs, 'examSoonDaysBefore'>;
+  /** NT6: cuántos temas se nombran en el texto (solo nombres de temas, nunca contenido). */
+  readonly delivery: Pick<NotificationDelivery, 'topicsInText'>;
   readonly now: number;
   readonly timeZone: string;
 }
 
+/** NT6: los temas que se nombran y cuántos más hay ("… y 2 temas más"). */
+export interface NamedTopics {
+  readonly topicIds: readonly string[];
+  readonly moreTopics: number;
+}
+
 export interface ReminderCandidates {
   /** NT3: pendientes de hoy, contadas igual que en Hoy, y los temas que más pesan. */
-  readonly dueToday: { readonly count: number; readonly topicIds: readonly string[] };
+  readonly dueToday: { readonly count: number } & NamedTopics;
   readonly examSoon: readonly { readonly examId: string; readonly days: number }[];
   /** LD11: el plan sugiere nuevas para hoy y todavía no completó esa cuota (NT-T12). */
-  readonly studyPlan: { readonly newToday: number; readonly topicIds: readonly string[] } | null;
+  readonly studyPlan: ({ readonly newToday: number } & NamedTopics) | null;
 }
 
 /**
@@ -69,13 +75,12 @@ export function newStartedToday(logs: readonly ReviewLog[], now: number, timeZon
   return [...first.values()].filter((at) => localDayNumber(at, timeZone) === today).length;
 }
 
-const topTopics = (topicIds: readonly (string | null)[]): string[] => {
+/** Los temas con más tarjetas primero, hasta `max`. */
+const topTopics = (topicIds: readonly (string | null)[], max: number): NamedTopics => {
   const counts = new Map<string, number>();
   for (const id of topicIds) if (id !== null) counts.set(id, (counts.get(id) ?? 0) + 1);
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
-    .slice(0, TOPICS_IN_TEXT)
-    .map(([id]) => id);
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+  return { topicIds: ranked.slice(0, max).map(([id]) => id), moreTopics: Math.max(0, ranked.length - max) };
 };
 
 export function reminderCandidates(input: ReminderInput): ReminderCandidates {
@@ -105,18 +110,28 @@ export function reminderCandidates(input: ReminderInput): ReminderCandidates {
     ...plans.filter(({ plan: p }) => !p.past).map(({ plan: p }) => p.suggestedNewPerDay),
   );
   const newToday = newStartedToday(input.logs, now, timeZone);
-  const studyTopics = plans.flatMap(({ plan: p }) =>
-    p.topics.filter((t) => t.newRemaining > 0).map((t) => t.topicId),
-  );
+  const studyTopics = [
+    ...new Set(
+      plans.flatMap(({ plan: p }) => p.topics.filter((t) => t.newRemaining > 0).map((t) => t.topicId)),
+    ),
+  ];
+  const max = input.delivery.topicsInText;
   return {
     dueToday: {
       count: plan.due,
-      topicIds: topTopics(plan.queue.filter((q) => q.kind === 'review').map((q) => q.topicId)),
+      ...topTopics(
+        plan.queue.filter((q) => q.kind === 'review').map((q) => q.topicId),
+        max,
+      ),
     },
     examSoon,
     studyPlan:
       suggested > newToday
-        ? { newToday: suggested - newToday, topicIds: [...new Set(studyTopics)].slice(0, TOPICS_IN_TEXT) }
+        ? {
+            newToday: suggested - newToday,
+            topicIds: studyTopics.slice(0, max),
+            moreTopics: Math.max(0, studyTopics.length - max),
+          }
         : null,
   };
 }

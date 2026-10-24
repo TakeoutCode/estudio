@@ -61,7 +61,7 @@ export function decideNotification(i: DecideInput): Decision {
 
 **NT5 · DEBE** juntar en **una sola notificación** los recordatorios que califican en el mismo tick, en este orden: examen, plan, pendientes. Es un solo `NotificationEvent` y cuenta 1 para el tope aunque llegue a varios dispositivos. Usa `tag: 'reminder'` (reemplaza al anterior en el dispositivo) o `tag: 'break'`, un TTL de 4 h (recordatorio) o 5 min (descanso) y `Urgency: normal`. *Razón:* evitar la saturación (§3d).
 
-**NT6 · DEBE** usar textos neutros desde el catálogo i18n y solo nombres de temas, nunca el contenido de las tarjetas, porque se ven en la pantalla bloqueada. *Razón:* §3e, R19 y privacidad.
+**NT6 · DEBE** usar textos neutros desde el catálogo i18n y solo nombres de temas, nunca el contenido de las tarjetas, porque se ven en la pantalla bloqueada. Se nombran hasta `topicsInText` temas, los que más pesan (3, *diseño*, en `NotificationDeliverySchema`); si hay más, el texto lo dice ("… y 2 temas más") para no dar a entender que son todos. *Razón:* §3e, R19 y privacidad.
 
 | ✅ | ❌ |
 |---|---|

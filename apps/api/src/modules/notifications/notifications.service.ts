@@ -239,6 +239,7 @@ export class NotificationsService {
       exams: data.exams,
       notifiedExamDays: sent.examDays,
       prefs: ctx.prefs,
+      delivery: NOTIFICATION_DELIVERY,
       now,
       timeZone: ctx.timeZone,
     });
@@ -292,9 +293,15 @@ export class NotificationsService {
       reason: null,
       payload: {
         examSoon: examSoon.map((e) => ({ title: examTitles.get(e.examId) ?? '', days: e.days })),
-        studyPlan: plan ? { count: plan.newToday, topics: topicNames(plan.topicIds) } : null,
+        studyPlan: plan
+          ? { count: plan.newToday, topics: topicNames(plan.topicIds), more: plan.moreTopics }
+          : null,
         due: sending.has('daily_reminder')
-          ? { count: candidates.dueToday.count, topics: topicNames(candidates.dueToday.topicIds) }
+          ? {
+              count: candidates.dueToday.count,
+              topics: topicNames(candidates.dueToday.topicIds),
+              more: candidates.dueToday.moreTopics,
+            }
           : null,
       },
       examDays: examSoon.map((e) => `${e.examId}:${String(e.days)}`),

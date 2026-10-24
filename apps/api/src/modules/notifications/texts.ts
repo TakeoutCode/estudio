@@ -23,11 +23,24 @@ export function list(items: readonly string[]): string {
   return `${items.slice(0, -1).join(', ')} ${text('and')} ${items.at(-1) ?? ''}`;
 }
 
+/** NT6: "A, B y C" si están todos; si no, "A, B y 2 temas más", para no dar a entender que son todos. */
+export function topicList(topics: readonly string[], more: number): string {
+  return more > 0
+    ? `${topics.join(', ')} ${text('and')} ${text('moreTopics', { count: more })}`
+    : list(topics);
+}
+
+interface NamedTopics {
+  readonly topics: readonly string[];
+  /** Temas que no se nombran (`topicsInText`). */
+  readonly more: number;
+}
+
 /** Lo que dice un recordatorio agrupado (NT5); se guarda con el evento para revisarlo (§6). */
 export type ReminderParams = {
   readonly examSoon: readonly { readonly title: string; readonly days: number }[];
-  readonly studyPlan: { readonly count: number; readonly topics: readonly string[] } | null;
-  readonly due: { readonly count: number; readonly topics: readonly string[] } | null;
+  readonly studyPlan: ({ readonly count: number } & NamedTopics) | null;
+  readonly due: ({ readonly count: number } & NamedTopics) | null;
 };
 
 /** NT5: examen, plan y pendientes, en ese orden, en una sola línea. */
@@ -37,15 +50,14 @@ export function reminderBody(params: ReminderParams): string {
   if (studyPlan) {
     parts.push(
       studyPlan.topics.length > 0
-        ? text('studyPlan', { count: studyPlan.count, topics: list(studyPlan.topics) })
+        ? text('studyPlan', { count: studyPlan.count, topics: topicList(studyPlan.topics, studyPlan.more) })
         : text('studyPlanNoTopic', { count: studyPlan.count }),
     );
   }
   if (due) {
-    // Solo los temas que más pesan: con comas, sin "y", para no dar a entender que son todos.
     parts.push(
       due.topics.length > 0
-        ? text('dueWithTopics', { count: due.count, topics: due.topics.join(', ') })
+        ? text('dueWithTopics', { count: due.count, topics: topicList(due.topics, due.more) })
         : text('due', { count: due.count }),
     );
   }

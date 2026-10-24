@@ -51,13 +51,16 @@ describe('NotificationPrefs (STUDY-METHODS §3, NOTIFICATIONS §1)', () => {
     expect(REMINDER_KINDS).not.toContain('break_end');
   });
 
-  it('NT3-NT5: entrega cada 5 min y 30 s, con TTL de 4 h y 5 min', () => {
+  it('NT3-NT6: entrega cada 5 min y 30 s, con TTL de 4 h y 5 min, y hasta 3 temas en el texto', () => {
     expect(NOTIFICATION_DELIVERY).toEqual({
       reminderTickMinutes: 5,
       breakEndPollSeconds: 30,
       reminderTtlSeconds: 14_400,
       breakEndTtlSeconds: 300,
+      topicsInText: 3,
     });
     expect(NotificationDeliverySchema.safeParse({ reminderTickMinutes: 31 }).success).toBe(false);
+    expect(NotificationDeliverySchema.safeParse({ topicsInText: 0 }).success).toBe(false);
+    expect(NotificationDeliverySchema.safeParse({ topicsInText: 6 }).success).toBe(false);
   });
 });
