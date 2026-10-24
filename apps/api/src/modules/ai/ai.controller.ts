@@ -5,6 +5,9 @@ import {
   type AiDraftRequest,
   AiDraftRequestSchema,
   type AiDraftResponse,
+  type AiExplanationCheck,
+  type AiExplanationCheckRequest,
+  AiExplanationCheckRequestSchema,
   type AiFeedbackRequest,
   AiFeedbackRequestSchema,
   type AiOpenFeedback,
@@ -57,5 +60,17 @@ export class AiController {
     @Body(new ZodPipe(AiFeedbackRequestSchema)) body: AiFeedbackRequest,
   ): Promise<AiOpenFeedback> {
     return this.ai.feedback(user.id, body);
+  }
+
+  /** LD14: si su autoexplicación de una tarjeta que olvidó es correcta; no toca FSRS. */
+  @Post('explanation-check')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  @Throttle(AI_CALLS)
+  explanationCheck(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(AiExplanationCheckRequestSchema)) body: AiExplanationCheckRequest,
+  ): Promise<AiExplanationCheck> {
+    return this.ai.checkExplanation(user.id, body);
   }
 }

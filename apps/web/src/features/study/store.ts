@@ -75,6 +75,8 @@ export interface StudySession {
   readonly plan: SessionPlan;
   /** R6, LD6: pedir confianza antes de revelar (`review.askConfidence`). */
   readonly askConfidence: boolean;
+  /** §1, LD14: tras olvidar una tarjeta aprendida, pedirle explicarla (`review.explainLapses`). */
+  readonly explainLapses: boolean;
   /** LD2: lo que `toRating()` necesita de la configuración, fijo al empezar como la cola. */
   readonly ratingConfig: RatingConfig;
   readonly scope: StudyScope;

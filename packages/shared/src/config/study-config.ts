@@ -109,6 +109,9 @@ export const MetricsConfigSchema = z.object({
 
 export const ReviewConfigSchema = z.object({
   askConfidence: z.boolean().default(false), // R6: opcional en repasos
+  // §1 (elaboración en tarjetas con fallos) · decisión del responsable: tras olvidar una tarjeta
+  // aprendida se le pide explicarla con sus palabras; se puede apagar.
+  explainLapses: z.boolean().default(true),
 });
 
 export const ExamConfigSchema = z.object({

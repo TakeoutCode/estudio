@@ -177,6 +177,37 @@ describe('LD14: retroalimentación de respuestas abiertas', () => {
   });
 });
 
+describe('LD14: revisión de su autoexplicación tras un fallo', () => {
+  const check = {
+    verdict: 'partial',
+    missing: ['Falta que inerva también el redondo menor'],
+    misconceptions: [],
+    suggestion: 'Asócialo con los dos músculos que rodean el cuello quirúrgico.',
+  };
+  const request = {
+    question: '¿Qué inerva el axilar?',
+    key: 'Deltoides y redondo menor. Rodea el cuello quirúrgico del húmero.',
+    explanation: 'El axilar va al deltoides porque rodea el húmero.',
+  };
+
+  it('manda pregunta, clave y su explicación; devuelve el veredicto validado, sin puntaje', async () => {
+    const { service, run, repo } = setup([ok(check)]);
+    expect(await service.checkExplanation(USER, request)).toEqual(check);
+    const task = run.mock.calls[0]?.[0];
+    expect(task?.name).toBe('explanation_check');
+    expect(task?.input).toContain('Deltoides y redondo menor');
+    expect(task?.input).toContain('rodea el húmero');
+    expect(task?.instructions).toMatch(/No pongas nota/);
+    expect(repo.usage.map((u) => u.task)).toEqual(['explanation_check']);
+  });
+
+  it('un veredicto fuera de correct, partial o incorrect no pasa (LD15): se reintenta y luego 503', async () => {
+    const { service, repo } = setup([ok({ ...check, verdict: 'bien' }), ok({ ...check, score: 8 })]);
+    expect(await code(service.checkExplanation(USER, request))).toBe('unavailable');
+    expect(repo.usage.map((u) => u.status)).toEqual(['invalid', 'invalid']);
+  });
+});
+
 describe('LD14: distractores de opción múltiple', () => {
   const request = {
     question: '¿Qué nervio inerva el deltoides?',

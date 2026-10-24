@@ -4,6 +4,9 @@ import {
   type AiDistractorsResponse,
   type AiDraftRequest,
   type AiDraftResponse,
+  type AiExplanationCheck,
+  type AiExplanationCheckRequest,
+  AiExplanationCheckSchema,
   type AiFeedbackRequest,
   type AiOpenFeedback,
   AiOpenFeedbackSchema,
@@ -56,6 +59,26 @@ const FEEDBACK_INSTRUCTIONS = [
   'suggestion: una sola sugerencia breve y concreta para la próxima vez.',
   'No pongas nota, puntaje ni calificación: la calificación es de ella.',
   'Usa solo la pregunta y la clave como referencia; no agregues datos de otra fuente.',
+  'Escribe en español neutro, en frases breves, sin juicios ni culpa. Deja vacías las listas que no apliquen.',
+].join('\n');
+
+/** LD17: un veredicto, 8 puntos por lista y una sugerencia caben con margen. Parámetro de costo. */
+const EXPLANATION_MAX_OUTPUT_TOKENS = 2000;
+
+const EXPLANATION_SCHEMA = strictJsonSchema(AiExplanationCheckSchema);
+
+/**
+ * LD14 (decisión del responsable, 2026-10-23): si su autoexplicación de una tarjeta que olvidó es
+ * correcta frente a la clave de la tarjeta. El veredicto no toca FSRS: la calificación ya es suya.
+ */
+const EXPLANATION_INSTRUCTIONS = [
+  'Revisas la explicación que una estudiante de Quiropráctica escribió con sus palabras sobre una tarjeta que acaba de olvidar.',
+  'Compárala con la clave: la respuesta y la explicación de la tarjeta, que escribió ella misma.',
+  'verdict: correct si lo que explica es correcto y cubre lo esencial de la clave; partial si es correcto pero le falta algo esencial;',
+  'incorrect si afirma algo que contradice la clave.',
+  'missing: lo esencial de la clave que no menciona. misconceptions: lo que afirma y contradice la clave.',
+  'suggestion: una sola sugerencia breve y concreta para recordarla mejor la próxima vez.',
+  'Usa solo la pregunta y la clave como referencia; no agregues datos de otra fuente. No pongas nota ni puntaje.',
   'Escribe en español neutro, en frases breves, sin juicios ni culpa. Deja vacías las listas que no apliquen.',
 ].join('\n');
 
@@ -136,6 +159,24 @@ export class AiService {
       },
       (output) => {
         const parsed = AiOpenFeedbackSchema.safeParse(output);
+        return parsed.success ? parsed.data : null;
+      },
+    );
+  }
+
+  /** LD14: si su autoexplicación tras un fallo es correcta; no toca FSRS ni califica la tarjeta. */
+  async checkExplanation(userId: string, request: AiExplanationCheckRequest): Promise<AiExplanationCheck> {
+    return this.generate(
+      userId,
+      {
+        name: 'explanation_check',
+        instructions: EXPLANATION_INSTRUCTIONS,
+        input: `Pregunta:\n${request.question}\n\nClave:\n${request.key}\n\nSu explicación:\n${request.explanation}`,
+        schema: EXPLANATION_SCHEMA,
+        maxOutputTokens: EXPLANATION_MAX_OUTPUT_TOKENS,
+      },
+      (output) => {
+        const parsed = AiExplanationCheckSchema.safeParse(output);
         return parsed.success ? parsed.data : null;
       },
     );

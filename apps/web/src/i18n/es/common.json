@@ -684,7 +684,9 @@
     "review": {
       "title": "Repaso",
       "askConfidence": "Pedir tu confianza antes de mostrar la respuesta",
-      "askConfidenceHint": "Opcional. Con eso, Tu semana compara tu intuición con lo que pasó."
+      "askConfidenceHint": "Opcional. Con eso, Tu semana compara tu intuición con lo que pasó.",
+      "explainLapses": "Pedirte explicar las tarjetas que olvides",
+      "explainLapsesHint": "Tras un «Otra vez» en una tarjeta que ya sabías. Con conexión, la IA revisa si tu explicación es correcta; tu calificación no cambia."
     },
     "mocks": {
       "title": "Simulacros",
@@ -1217,6 +1219,29 @@
       "quota": "Ya usaste la IA de hoy. Disponible de nuevo a las 00:00.",
       "offline": "Requiere conexión.",
       "failed": "No se pudo pedir la retroalimentación. Puedes calificarte igual."
+    }
+  },
+  "lapse": {
+    "title": "Explícalo con tus palabras",
+    "hint": "Ya la sabías y esta vez se te pasó; es parte de recordar. Escribir por qué es así ayuda a afianzarla. Es opcional.",
+    "label": "Tu explicación",
+    "check": "Revisar con IA",
+    "checking": "Revisando…",
+    "next": "Seguir",
+    "result": "Revisión de la IA",
+    "verdict": {
+      "correct": "Tu explicación es correcta.",
+      "partial": "Va bien, pero le falta algo.",
+      "incorrect": "Algo no coincide con tu tarjeta."
+    },
+    "missing": "Le faltó",
+    "misconceptions": "No coincide con tu tarjeta",
+    "suggestion": "Para la próxima:",
+    "yours": "Es una opinión de la IA frente a tu tarjeta; no cambia tu calificación.",
+    "error": {
+      "quota": "Ya usaste la IA de hoy. Disponible de nuevo a las 00:00.",
+      "offline": "Requiere conexión.",
+      "failed": "No se pudo revisar con la IA. Tu explicación igual te sirvió."
     }
   }
 }

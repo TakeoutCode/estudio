@@ -15,6 +15,8 @@ import {
   AiDraftRequestSchema,
   AiDraftSchema,
   AiFeedbackRequestSchema,
+  AiExplanationCheckRequestSchema,
+  AiExplanationCheckSchema,
   AiFeedbackSchema,
   type AiNoteDraft,
   AiNoteDraftSchema,
@@ -266,5 +268,31 @@ describe('LD15: retroalimentación de respuestas abiertas', () => {
     expect(
       AiFeedbackSchema.safeParse({ id: newId(), cardId: newId(), requestedAt: 1, feedback }).success,
     ).toBe(true);
+  });
+});
+
+describe('LD14: revisión de su autoexplicación tras un fallo', () => {
+  const check = {
+    verdict: 'incorrect',
+    missing: [],
+    misconceptions: ['Dice que inerva el bíceps'],
+    suggestion: 'Repasa qué músculos rodean el cuello quirúrgico.',
+  };
+
+  it('el veredicto es correct, partial o incorrect, sin puntaje ni campos de más', () => {
+    expect(AiExplanationCheckSchema.safeParse(check).success).toBe(true);
+    expect(AiExplanationCheckSchema.safeParse({ ...check, verdict: 'bien' }).success).toBe(false);
+    expect(AiExplanationCheckSchema.safeParse({ ...check, score: 3 }).success).toBe(false);
+    expect(
+      AiExplanationCheckRequestSchema.safeParse({ question: 'q', key: 'k', explanation: '  ' }).success,
+    ).toBe(false);
+  });
+
+  it('se guarda como AiFeedback con su texto; una forma mezclada no pasa', () => {
+    const row = (feedback: object) =>
+      AiFeedbackSchema.safeParse({ id: newId(), cardId: newId(), requestedAt: 1, feedback }).success;
+    expect(row({ ...check, explanation: 'El axilar inerva el bíceps.' })).toBe(true);
+    expect(row(check)).toBe(false); // sin su texto
+    expect(row({ ...check, explanation: 'x', covered: [] })).toBe(false);
   });
 });

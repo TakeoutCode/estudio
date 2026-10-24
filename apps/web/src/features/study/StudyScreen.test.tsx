@@ -254,6 +254,62 @@ describe('StudyScreen (LEARNING-DESIGN §4)', () => {
     expect(await screen.findByText(humerus.front)).toBeTruthy();
   });
 
+  describe('§1, LD14: explicarla tras olvidarla', () => {
+    /** El húmero, ya aprendido y vencido hoy: "Otra vez" es un olvido (lapso). */
+    const learnedHumerus = async () => {
+      const note = (await db.notes.toArray()).find(
+        (n) => n.content.kind === 'basic' && n.content.front === humerus.front,
+      );
+      await db.cardStates.put({
+        cardId: cardIdFor(note?.id ?? '', 0),
+        due: T0 - DAY,
+        stability: 10,
+        difficulty: 5,
+        scheduledDays: 10,
+        learningSteps: 0,
+        reps: 3,
+        lapses: 0,
+        phase: 'review',
+        lastReview: T0 - 11 * DAY,
+      });
+    };
+
+    it('tras "Otra vez" en una tarjeta que ya sabía, pide explicarla; "Seguir" pasa a la siguiente', async () => {
+      await learnedHumerus();
+      renderStudy();
+      await screen.findByText(humerus.front);
+      fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Otra vez' }));
+
+      expect(await screen.findByRole('heading', { name: 'Explícalo con tus palabras' })).toBeTruthy();
+      expect(screen.queryByText(femur.front)).toBeNull(); // la siguiente espera
+      expect((await db.reviewLogs.toArray()).map((l) => l.rating)).toEqual([Rating.Again]); // ya guardada
+      fireEvent.click(screen.getByRole('button', { name: 'Seguir' }));
+      expect(await screen.findByText(femur.front)).toBeTruthy();
+    });
+
+    it('una nueva que falla no lo pide, y con la opción apagada tampoco', async () => {
+      renderStudy();
+      await screen.findByText(humerus.front);
+      fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Otra vez' }));
+      expect(await screen.findByText(femur.front)).toBeTruthy(); // nueva: fallar es parte de aprender
+      expect(screen.queryByRole('heading', { name: 'Explícalo con tus palabras' })).toBeNull();
+    });
+
+    it('apagada en Ajustes, no aparece', async () => {
+      await db.meta.put({ key: 'accountUserId', value: '0192f1a0-0000-7000-8000-00000000c0de' });
+      await updateStudyConfig((cfg) => ({ ...cfg, review: { ...cfg.review, explainLapses: false } }));
+      await learnedHumerus();
+      renderStudy();
+      await screen.findByText(humerus.front);
+      fireEvent.click(screen.getByRole('button', { name: 'Mostrar respuesta' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Otra vez' }));
+      expect(await screen.findByText(femur.front)).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: 'Explícalo con tus palabras' })).toBeNull();
+    });
+  });
+
   it('FE12: Espacio revela y los números califican; ningún atajo salta el intento', async () => {
     renderStudy();
     await screen.findByText(humerus.front);
@@ -455,6 +511,7 @@ describe('StudyScreen · P5 y P6 (sugerencias que nunca bloquean)', () => {
       startedAt: T0,
       plan,
       askConfidence: false,
+      explainLapses: false,
       ratingConfig: defaultStudyConfig(),
       scope: { kind: 'today' },
       scopeName: null,

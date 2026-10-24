@@ -260,13 +260,50 @@ export const AiFeedbackRequestSchema = z
   .strict();
 export type AiFeedbackRequest = z.infer<typeof AiFeedbackRequestSchema>;
 
-/** La retroalimentación que pidió para una tarjeta (solo inserción, SYNC §1). */
+/** Si su autoexplicación tras un fallo es correcta (decisión del responsable, 2026-10-23). */
+export const AiExplanationVerdictSchema = z.enum(['correct', 'partial', 'incorrect']);
+export type AiExplanationVerdict = z.infer<typeof AiExplanationVerdictSchema>;
+
+/**
+ * LD14: lo que dice la IA de su autoexplicación de una tarjeta que olvidó, frente a la respuesta
+ * y la explicación de la tarjeta. El veredicto no toca FSRS: la calificación ya es suya.
+ */
+export const AiExplanationCheckSchema = z
+  .object({
+    verdict: AiExplanationVerdictSchema,
+    missing: z.array(feedbackPoint).max(AI_FEEDBACK_POINTS_MAX),
+    misconceptions: z.array(feedbackPoint).max(AI_FEEDBACK_POINTS_MAX),
+    suggestion: z.string().trim().max(500),
+  })
+  .strict();
+export type AiExplanationCheck = z.infer<typeof AiExplanationCheckSchema>;
+
+/** `POST /ai/explanation-check`: la pregunta, la clave (respuesta y explicación) y lo que escribió. */
+export const AiExplanationCheckRequestSchema = z
+  .object({
+    question: z.string().trim().min(1).max(8000),
+    key: z.string().trim().min(1).max(2000),
+    explanation: z.string().trim().min(1).max(2000),
+  })
+  .strict();
+export type AiExplanationCheckRequest = z.infer<typeof AiExplanationCheckRequestSchema>;
+
+/** Lo que se guarda de esa revisión: el veredicto y su texto, para volver a verlo. */
+export const AiLapseExplanationSchema = AiExplanationCheckSchema.extend({
+  explanation: z.string().trim().min(1).max(2000),
+}).strict();
+export type AiLapseExplanation = z.infer<typeof AiLapseExplanationSchema>;
+
+/**
+ * La retroalimentación que pidió para una tarjeta (solo inserción, SYNC §1): de una respuesta
+ * abierta o, desde el contrato 28, de su autoexplicación tras un fallo.
+ */
 export const AiFeedbackSchema = z
   .object({
     id: z.uuid(),
     cardId: z.uuid(),
     requestedAt: z.number().int().nonnegative(),
-    feedback: AiOpenFeedbackSchema,
+    feedback: z.union([AiOpenFeedbackSchema, AiLapseExplanationSchema]),
   })
   .strict();
 export type AiFeedback = z.infer<typeof AiFeedbackSchema>;

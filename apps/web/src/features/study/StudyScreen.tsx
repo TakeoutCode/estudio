@@ -11,7 +11,7 @@ import {
   type TimerBlockRecord,
   toRating,
 } from '@estudio/srs';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
@@ -63,6 +63,11 @@ import { useSessionSuggestion } from './use-session-suggestion';
 import { useStudyShortcuts } from './use-study-shortcuts';
 
 const MINUTE_MS = 60_000;
+
+// FE9: la IA carga solo cuando ella olvida una tarjeta que ya sabía.
+const LapseExplain = lazy(async () => ({
+  default: (await import('@/features/ai-drafts')).LapseExplain,
+}));
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const primary = `inline-flex min-h-14 w-full items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy disabled:opacity-60 ${focus}`;
@@ -118,6 +123,7 @@ export function StudyScreen() {
             startedAt: Date.now(),
             plan,
             askConfidence: config.review.askConfidence,
+            explainLapses: config.review.explainLapses,
             ratingConfig: { exam: config.exam, exercise: config.exercise },
             scope,
             scopeName,
@@ -302,9 +308,19 @@ function Session({
       ? step.item.topicId
       : null;
   const introReady = explained !== undefined && introTopic === null;
+  // §1 y LD14: tras olvidar una tarjeta que ya sabía, "Explícalo con tus palabras" antes de
+  // seguir; la siguiente se presenta después, así su duración no incluye la escritura (R3).
+  const explainLapses = useStudy((s) => s.session?.explainLapses ?? false);
+  const [lapse, setLapse] = useState<string | null>(null);
+  const lapseDone = useCallback(() => {
+    setLapse(null);
+    setClock(Date.now());
+  }, []);
   useEffect(() => {
-    if (nextId && currentCardId === null && !onBreak && introReady) present(nextId, Date.now());
-  }, [nextId, currentCardId, onBreak, introReady, present]);
+    if (nextId && currentCardId === null && !onBreak && introReady && lapse === null) {
+      present(nextId, Date.now());
+    }
+  }, [nextId, currentCardId, onBreak, introReady, lapse, present]);
 
   // Una tarjeta en aprendizaje vuelve en unos minutos: se repinta cuando vence (§3).
   const waitUntil = step?.kind === 'wait' ? step.until : null;
@@ -416,11 +432,12 @@ function Session({
       ) : null}
       <PlanNotices plan={plan} />
       {onBreak ? <BreakPanel session={timer.session} at={serverNow} /> : null}
-      {!onBreak && step.kind === 'done' ? (
+      {!onBreak && lapse ? <LapseStep cardId={lapse} onDone={lapseDone} /> : null}
+      {!onBreak && !lapse && step.kind === 'done' ? (
         <SessionDone bedtime={bedtime} sessionId={sessionId} startedAt={startedAt} />
       ) : null}
-      {!onBreak && step.kind === 'wait' ? <Waiting until={step.until} now={clock} /> : null}
-      {!onBreak && introTopic ? (
+      {!onBreak && !lapse && step.kind === 'wait' ? <Waiting until={step.until} now={clock} /> : null}
+      {!onBreak && !lapse && introTopic ? (
         <TopicIntro
           key={introTopic}
           topicId={introTopic}
@@ -450,6 +467,10 @@ function Session({
           onAnswered={(state) => {
             // Responder es seguir: el aviso en pantalla no se repite.
             if (suggestion) dismiss();
+            const before = states?.get(state.cardId);
+            if (explainLapses && before?.phase === 'review' && state.lapses > before.lapses) {
+              setLapse(state.cardId);
+            }
             setAnswered((prev) => new Map(prev).set(state.cardId, state));
             setClock(Date.now());
             // R13: en estructurado, el bloque que ya llegó a 0 cierra al terminar la tarjeta, y
@@ -463,6 +484,22 @@ function Session({
         />
       ) : null}
     </>
+  );
+}
+
+/** §1, LD14: su autoexplicación de la tarjeta que olvidó, frente a su respuesta y explicación. */
+function LapseStep({ cardId, onDone }: { readonly cardId: string; readonly onDone: () => void }) {
+  const card = useStudyCard(cardId);
+  // Borrada mientras tanto (p. ej. desde otro dispositivo): no hay nada que explicar.
+  useEffect(() => {
+    if (card === null) onDone();
+  }, [card, onDone]);
+  if (!card) return null;
+  const answerKey = [card.answer, card.explanation].filter((part) => part.trim() !== '').join('\n');
+  return (
+    <Suspense fallback={null}>
+      <LapseExplain cardId={cardId} question={card.prompt} answerKey={answerKey} onDone={onDone} />
+    </Suspense>
   );
 }
 

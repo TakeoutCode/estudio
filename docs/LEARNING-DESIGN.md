@@ -64,6 +64,8 @@ Cada tipo es un contenido de `Note` (§1) y se crea desde un mazo con "Nuevo eje
 
 **Explícaselo a alguien** (técnica Feynman de STUDY-METHODS §1, por analogía con [11]; la forma es *diseño*): modo opcional desde la pantalla de un tema (`/topics/:id/explicar`), cuando ella quiera. Primero escribe la explicación sin ver sus apuntes, como si se la diera a alguien que no conoce el tema (o anota lo esencial de lo que dijo en voz alta). Después la compara con `Topic.explanation` y con la pregunta de cada nota del tema (`notePrompt`: sin respuestas y con todos los huecos de un cloze tapados, R1) y, si quiere, anota lo que le faltó. Se guarda como `SelfExplanation` con `kind: 'teach'` y `gaps` (las de LD5 son `kind: 'self'`). Como LD5, no escribe `ReviewLog` ni toca FSRS (R15), y la siguiente vez dice cuándo lo explicó por última vez.
 
+**Explicarla tras un fallo** (STUDY-METHODS §1, elaboración en "tarjetas con fallos"; *decisión del responsable, 2026-10-23*): si califica `Again` una tarjeta que estaba en repaso (un lapso, no una nueva que está aprendiendo), antes de la siguiente se le pide "Explícalo con tus palabras", si `review.explainLapses` (inicial `true`, se apaga en Ajustes › Repaso). Es opcional ("Seguir" sin escribir) y la calificación ya quedó guardada: no escribe otro `ReviewLog` ni toca FSRS (R15). Con red puede pedir "Revisar con IA" (`POST /ai/explanation-check`, §8), que responde si es correcta, incompleta o incorrecta frente a la respuesta y la explicación de la tarjeta, con lo que faltó o no coincide; se guarda con su texto como `AiFeedback`. Sin red escribe igual y sigue.
+
 **LD6 · DEBE** pedir la confianza (1-3) antes de revelar: siempre en simulacros y, en repasos, solo si `review.askConfidence` (inicial `false`). *Razón:* R6.
 
 **LD7 · NO DEBE** existir un modo de releer, subrayar o resumir que genere `ReviewLog` o que se presente como forma principal de estudiar. *Razón:* R15.
@@ -122,7 +124,7 @@ Cada tipo es un contenido de `Note` (§1) y se crea desde un mazo con "Nuevo eje
 
 ## 8. IA (opcional; la captura manual siempre existe)
 
-**LD14 · DEBE** usar la IA solo para: borradores de notas a partir de texto que ella pega, distractores de opción múltiple, borradores de casos clínicos y retroalimentación de respuestas abiertas. **NO DEBE** calificar para FSRS, programar repasos ni guardar contenido sin que ella lo revise. *Razón:* la clave vive solo en el servidor y la calificación es de ella.
+**LD14 · DEBE** usar la IA solo para: borradores de notas a partir de texto que ella pega, distractores de opción múltiple, borradores de casos clínicos, retroalimentación de respuestas abiertas y revisar si su autoexplicación tras un fallo es correcta (*decisión del responsable, 2026-10-23*). **NO DEBE** calificar para FSRS, programar repasos ni guardar contenido sin que ella lo revise. *Razón:* la clave vive solo en el servidor y la calificación es de ella.
 
 **LD15 · DEBE** definir la salida con esquemas zod de `shared`, convertidos con `z.toJSONSchema` a `json_schema` estricto (todos los campos requeridos; los opcionales como `nullable`), y validarla otra vez con zod. *Razón:* la forma garantizada evita contenido a medias.
 ```ts
@@ -145,6 +147,8 @@ export const AiOpenFeedbackSchema = z.object({
 Los distractores (`POST /ai/distractors`) se piden desde el editor de una opción múltiple, o de una subpregunta de opción múltiple de un caso (con la viñeta como contexto), una vez escritas la pregunta y la correcta, y en un mazo que ya existe. A diferencia de los borradores, salen del conocimiento general del modelo, porque son opciones incorrectas: no tienen cita (`supported: true`) y la app pide revisar que ninguno sea también correcto. Se guardan como `AiDraft` y ella elige cada uno, que pasa a una opción editable; nada llega a su nota hasta que la guarda, y la nota sigue con `origin: 'manual'`, porque la pregunta y la correcta son suyas. Usar alguno deja el `AiDraft` `accepted` (sin `noteId`); descartarlos sin usar ninguno, `rejected`.
 
 La retroalimentación de respuestas abiertas (`POST /ai/feedback`) compara lo que escribió con su clave y responde con `AiOpenFeedbackSchema`: lo cubierto, lo que faltó, lo que contradice la clave y una sugerencia, sin nota ni puntaje; se guarda como `AiFeedback` (solo inserción) y no escribe ningún `ReviewLog`: los 4 botones siguen siendo suyos.
+
+La revisión de su autoexplicación tras un fallo (`POST /ai/explanation-check`, §4) compara lo que escribió con la respuesta y la explicación de la tarjeta y responde con `AiExplanationCheckSchema`: un veredicto (`correct`, `partial` o `incorrect`), lo que faltó, lo que contradice la tarjeta y una sugerencia, sin nota ni puntaje. Se guarda como `AiFeedback` junto con su texto (`AiLapseExplanationSchema`) y tampoco toca FSRS: la calificación de la tarjeta ya era suya.
 
 El mazo de desarrollo de `pnpm db:seed` ("Huesos del esqueleto") tampoco pasó por su revisión, y entra con `origin: 'manual'` aunque no lo escribió ella. Por eso el seeder no corre con `NODE_ENV=production`: en su cuenta real, toda `Note` la escribió o la aceptó ella.
 

@@ -10,6 +10,9 @@ import {
   aiDraftToNoteContent,
   AiDraftResponseSchema,
   AiDraftSchema,
+  type AiExplanationCheck,
+  type AiExplanationCheckRequest,
+  AiExplanationCheckSchema,
   type AiFeedbackRequest,
   AiFeedbackSchema,
   type AiNoteDraft,
@@ -279,4 +282,38 @@ export async function requestAiFeedback(
   );
   syncScheduler.poke();
   return feedback;
+}
+
+/** El pedido de revisión de su autoexplicación a la API (con red); en las pruebas se reemplaza. */
+export type AiExplanationChecker = (request: AiExplanationCheckRequest) => Promise<AiExplanationCheck>;
+
+const explanationCheckFromApi: AiExplanationChecker = (request) =>
+  authorizedApi('/ai/explanation-check', { method: 'POST', body: request, schema: AiExplanationCheckSchema });
+
+/**
+ * LD14 (decisión del responsable, 2026-10-23): si su autoexplicación de una tarjeta que olvidó es
+ * correcta. Se guarda con su texto como AiFeedback (solo inserción) para volver a verla; el
+ * veredicto no toca FSRS: la calificación de la tarjeta ya quedó guardada.
+ */
+export async function requestExplanationCheck(
+  cardId: string,
+  request: AiExplanationCheckRequest,
+  {
+    database = defaultDb,
+    now = Date.now(),
+    ask = explanationCheckFromApi,
+  }: CommandOptions & { readonly ask?: AiExplanationChecker } = {},
+): Promise<AiExplanationCheck> {
+  const check = await ask(request);
+  const row = AiFeedbackSchema.parse({
+    id: newId(),
+    cardId,
+    requestedAt: now,
+    feedback: { ...check, explanation: request.explanation },
+  });
+  await database.transaction('rw', [database.aiFeedback, database.outbox, database.meta], () =>
+    writeAndQueue(database, 'aiFeedback', row, now),
+  );
+  syncScheduler.poke();
+  return check;
 }

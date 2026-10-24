@@ -90,6 +90,7 @@ function SettingsForm({
     sessionBlocksDefault: config.planner.sessionBlocksDefault,
   }));
   const [askConfidence, setAskConfidence] = useState(config.review.askConfidence);
+  const [explainLapses, setExplainLapses] = useState(config.review.explainLapses);
   const [mockImmediate, setMockImmediate] = useState(config.exam.feedbackTiming === 'immediate');
   const [visible, setVisible] = useState<Record<MetricKey, boolean>>(() => ({
     activeTime: config.metrics.visible.activeTime,
@@ -113,6 +114,7 @@ function SettingsForm({
     TIMER_KEYS.some((key) => timer[key] !== config.timer[key]) ||
     PLANNER_KEYS.some((key) => planner[key] !== config.planner[key]) ||
     askConfidence !== config.review.askConfidence ||
+    explainLapses !== config.review.explainLapses ||
     mockImmediate !== (config.exam.feedbackTiming === 'immediate') ||
     METRIC_KEYS.some((key) => visible[key] !== config.metrics.visible[key]);
   const choose = (next: number) => {
@@ -142,7 +144,7 @@ function SettingsForm({
         longBreakMin: chosen('longBreakMin'),
         cyclesBeforeLong: chosen('cyclesBeforeLong'),
       },
-      review: { ...cfg.review, askConfidence },
+      review: { ...cfg.review, askConfidence, explainLapses },
       exam: { ...cfg.exam, feedbackTiming: mockImmediate ? 'immediate' : 'end' },
       metrics: { ...cfg.metrics, visible: { ...cfg.metrics.visible, ...visible } },
     }))
@@ -280,6 +282,15 @@ function SettingsForm({
           checked={askConfidence}
           onChange={(checked) => {
             setAskConfidence(checked);
+            setStatus('idle');
+          }}
+        />
+        <Toggle
+          label={t('settings.review.explainLapses')}
+          hint={t('settings.review.explainLapsesHint')}
+          checked={explainLapses}
+          onChange={(checked) => {
+            setExplainLapses(checked);
             setStatus('idle');
           }}
         />

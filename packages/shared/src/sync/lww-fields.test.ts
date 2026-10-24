@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { CONTRACT_VERSION, MIN_SAFE_CONTRACT } from '../contract.js';
-import { ENTITY_STRATEGY } from './entities.js';
 import { SYNC_ROW_SCHEMAS } from './row-schemas.js';
 
 /** Las rutas de campos de un JSON Schema (`note.content.kind`, `userSettings.data.timer.focusMin`…). */
@@ -31,24 +30,27 @@ function fnv1a(text: string): string {
   return hash.toString(16).padStart(8, '0');
 }
 
+/**
+ * Todas las entidades que viajan: las LWW porque un cliente viejo borraría el campo al editar, y
+ * todas porque sus esquemas estrictos no aceptan una forma nueva al leerla en el pull.
+ */
 const lwwFields = (): string[] => {
   const out = new Set<string>();
   for (const [entity, schema] of Object.entries(SYNC_ROW_SCHEMAS)) {
-    if (ENTITY_STRATEGY[entity as keyof typeof SYNC_ROW_SCHEMAS] !== 'lww') continue;
     fieldPaths(z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }), entity, out);
   }
   return [...out].sort();
 };
 
-describe('ARC6: campos de las entidades LWW frente a MIN_SAFE_CONTRACT', () => {
-  it('ARC6: agregar o quitar un campo LWW obliga a revisar MIN_SAFE_CONTRACT', () => {
-    // Si esto falla, cambió la forma de una entidad LWW o de UserSettings. Si agregaste un campo,
-    // sube CONTRACT_VERSION y MIN_SAFE_CONTRACT al mismo número: un cliente viejo lo borraría al
-    // editar la fila. Si fue otro cambio, revisa que un cliente viejo pueda seguir escribiendo.
-    // Después actualiza aquí la huella.
+describe('ARC6: forma de las filas que viajan frente a MIN_SAFE_CONTRACT', () => {
+  it('ARC6: agregar o quitar un campo obliga a revisar MIN_SAFE_CONTRACT', () => {
+    // Si esto falla, cambió la forma de una fila que viaja (o de UserSettings). Si agregaste un
+    // campo, sube CONTRACT_VERSION y MIN_SAFE_CONTRACT al mismo número: un cliente viejo lo
+    // borraría al editar la fila o no podría leerla. Si fue otro cambio, revisa que un cliente
+    // viejo pueda seguir escribiendo y leyendo. Después actualiza aquí la huella.
     expect({ minSafe: MIN_SAFE_CONTRACT, fields: fnv1a(lwwFields().join('\n')) }).toEqual({
-      minSafe: 27,
-      fields: '8d6f3ba6',
+      minSafe: 28,
+      fields: 'bbed3fa4',
     });
   });
 

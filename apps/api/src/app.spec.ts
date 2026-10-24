@@ -119,7 +119,7 @@ describe('app (integración HTTP, sin base)', () => {
     expect(res.body).toMatchObject({ code: 'unavailable' });
   });
 
-  it('LD14: casos clínicos y distractores también responden 503 sin IA, tras validar el pedido', async () => {
+  it('LD14: casos clínicos, distractores y la revisión de autoexplicaciones responden 503 sin IA, tras validar el pedido', async () => {
     const { token } = await tokens.issueAccess(newId());
     const post = (path: string) =>
       request(app.getHttpServer())
@@ -138,6 +138,15 @@ describe('app (integración HTTP, sin base)', () => {
       .send({ ...distractors, correct: '' })
       .expect(422);
     expect(invalid.body).toMatchObject({ code: 'validation_failed' });
+    const explanation = {
+      question: '¿Qué inerva el axilar?',
+      key: 'El deltoides',
+      explanation: 'El deltoides',
+    };
+    await post('/ai/explanation-check').send(explanation).expect(503);
+    await post('/ai/explanation-check')
+      .send({ ...explanation, explanation: '' })
+      .expect(422);
   });
 
   it('ARC6: sin cabecera de contrato responde 426', async () => {
