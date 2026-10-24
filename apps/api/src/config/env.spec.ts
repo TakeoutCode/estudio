@@ -31,16 +31,19 @@ describe('EnvSchema (BACKEND BE4)', () => {
     expect(EnvSchema.safeParse({ ...base, ALLOWED_EMAILS: 'no-es-correo' }).success).toBe(false);
   });
 
-  it.each([
-    'DATABASE_URL',
-    'DIRECT_DATABASE_URL',
-    'WEB_ORIGINS',
-    'NODE_ENV',
-    'JWT_ACCESS_SECRET',
-    'ALLOWED_EMAILS',
-  ])('falla si falta %s', (key) => {
-    const env = Object.fromEntries(Object.entries(base).filter(([k]) => k !== key));
-    expect(EnvSchema.safeParse(env).success).toBe(false);
+  it.each(['DATABASE_URL', 'DIRECT_DATABASE_URL', 'WEB_ORIGINS', 'JWT_ACCESS_SECRET', 'ALLOWED_EMAILS'])(
+    'falla si falta %s',
+    (key) => {
+      const env = Object.fromEntries(Object.entries(base).filter(([k]) => k !== key));
+      expect(EnvSchema.safeParse(env).success).toBe(false);
+    },
+  );
+
+  it('ADR-018: sin NODE_ENV (en Vercel no se carga) vale production, con todo lo que exige', () => {
+    const { NODE_ENV: _omitted, ...withoutNodeEnv } = base;
+    expect(EnvSchema.parse(withoutNodeEnv).NODE_ENV).toBe('production');
+    const { VAPID_PRIVATE_KEY: _vapid, ...withoutVapid } = withoutNodeEnv;
+    expect(EnvSchema.safeParse(withoutVapid).success).toBe(false);
   });
 
   it.each(['https://app.ejemplo.mx/', 'https://app.ejemplo.mx/login', 'ftp://app.ejemplo.mx', ''])(

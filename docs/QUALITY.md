@@ -110,7 +110,7 @@ Logs JSON de pino en los logs de Vercel (función `api` y daemon `scheduler`) co
 
 - [ ] Dominio propio en el proyecto de Vercel, con HTTPS: la web en `/` y la API en `/api` (ADR-019). Root Directory del proyecto vacío (la raíz del repo): los daemons no funcionan con un subdirectorio.
 - [ ] Par de claves `age` generado y la privada guardada fuera de GitHub; secretos `BACKUP_DATABASE_URL` y `BACKUP_AGE_RECIPIENT` cargados y el workflow de respaldo corrido una vez a mano; `HEALTH_CHECK_TOKEN` cargado y el monitor configurado.
-- [ ] Todas las variables de `EnvSchema` cargadas en Vercel para Production (las leen la función `api` y el daemon `scheduler`), con `NODE_ENV=production`, `TRUST_PROXY_HOPS=1` y `WEB_ORIGINS` con el dominio; de las `VITE_*`, solo las 3, con `VITE_API_URL=/api`. Las de Preview, con una base que no sea la de producción.
+- [ ] Todas las variables de `EnvSchema` cargadas en Vercel para Production (las leen la función `api` y el daemon `scheduler`), sin `NODE_ENV` (la API asume `production`; cargarla hace que pnpm no instale las devDependencies y el build falla), con `TRUST_PROXY_HOPS=1` y `WEB_ORIGINS` con el dominio (plantilla: `.env.vercel`, que no se versiona); de las `VITE_*`, solo las 3, con `VITE_API_URL=/api`. Las de Preview, con una base que no sea la de producción.
 - [ ] `ALLOWED_EMAILS` con su correo; registro abierto deshabilitado.
 - [ ] Claves VAPID generadas y respaldadas (si se pierden, todas las suscripciones dejan de servir).
 - [ ] `prisma migrate deploy` aplicado; trigger, secuencia e índices verificados en Neon.

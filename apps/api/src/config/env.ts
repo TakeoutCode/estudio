@@ -33,7 +33,9 @@ const optional = (schema: z.ZodString) =>
 
 export const EnvSchema = z
   .object({
-    NODE_ENV: z.enum(['development', 'test', 'production']),
+    // Sin NODE_ENV vale production, lo más estricto: en Vercel no se carga a mano, porque con
+    // NODE_ENV=production pnpm no instala las devDependencies y el build falla (ADR-018).
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
     PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
