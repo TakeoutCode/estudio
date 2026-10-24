@@ -1,4 +1,4 @@
-import { CONTRACT_HEADER, CONTRACT_VERSION, newId } from '@estudio/shared';
+import { CONTRACT_HEADER, CONTRACT_VERSION, MIN_SAFE_CONTRACT, newId } from '@estudio/shared';
 import { Controller, Get, Post, Req } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { Request } from 'express';
@@ -143,6 +143,17 @@ describe('app (integración HTTP, sin base)', () => {
   it('ARC6: sin cabecera de contrato responde 426', async () => {
     const res = await request(app.getHttpServer()).get('/probe').expect(426);
     expect(res.body).toMatchObject({ code: 'contract_outdated' });
+  });
+
+  it('ARC6: un cliente anterior a MIN_SAFE_CONTRACT recibe 426 aunque MIN_CONTRACT sea menor', async () => {
+    await request(app.getHttpServer())
+      .get('/probe')
+      .set(CONTRACT_HEADER, String(MIN_SAFE_CONTRACT - 1))
+      .expect(426);
+    await request(app.getHttpServer())
+      .get('/probe')
+      .set(CONTRACT_HEADER, String(MIN_SAFE_CONTRACT))
+      .expect(200);
   });
 
   it('ARC6: con el contrato vigente deja pasar', async () => {

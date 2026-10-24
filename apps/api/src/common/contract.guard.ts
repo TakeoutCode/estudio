@@ -1,4 +1,4 @@
-import { CONTRACT_HEADER } from '@estudio/shared';
+import { CONTRACT_HEADER, MIN_SAFE_CONTRACT } from '@estudio/shared';
 import { type CanActivate, type ExecutionContext, Injectable, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
@@ -12,7 +12,8 @@ export const SkipContractCheck = () => SetMetadata(SKIP_CONTRACT, true);
 
 /**
  * ARCHITECTURE ARC6: cada request de la PWA trae `X-Estudio-Contract`. Si falta o es menor
- * que `MIN_CONTRACT`, responde 426 y la PWA actualiza su service worker.
+ * que `MIN_CONTRACT` o que `MIN_SAFE_CONTRACT` (el más viejo que escribe sin borrar campos de
+ * otro dispositivo), responde 426 y la PWA actualiza su service worker.
  */
 @Injectable()
 export class ContractGuard implements CanActivate {
@@ -30,7 +31,8 @@ export class ContractGuard implements CanActivate {
 
     const raw = context.switchToHttp().getRequest<Request>().headers[CONTRACT_HEADER];
     const version = Number(Array.isArray(raw) ? raw[0] : raw);
-    if (!Number.isInteger(version) || version < this.config.get('MIN_CONTRACT')) {
+    const minimum = Math.max(this.config.get('MIN_CONTRACT'), MIN_SAFE_CONTRACT);
+    if (!Number.isInteger(version) || version < minimum) {
       throw new DomainError('contract_outdated');
     }
     return true;
