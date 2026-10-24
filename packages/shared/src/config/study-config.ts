@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 const int = (min: number, max: number) => z.number().int().min(min).max(max);
 const share = () => z.number().min(0).max(1);
+const ranged = (range: { readonly min: number; readonly max: number }) => int(range.min, range.max);
 
 /** R2: rango de la retención objetivo; Ajustes lo usa para su control. */
 export const RETENTION_RANGE = { min: 0.8, max: 0.95 } as const;
@@ -19,13 +20,19 @@ export const FsrsConfigSchema = z.object({
   projectionDays: int(7, 90).default(30), // R2, LD8 · diseño · sin evidencia: días simulados de la carga proyectada
 });
 
+/** P1: rangos que ella edita en Ajustes; los campos de la UI salen de aquí. */
+export const PLANNER_RANGES = {
+  newPerSessionMax: { min: 0, max: 30 },
+  sessionBlocksDefault: { min: 1, max: 12 },
+} as const;
+
 export const PlannerConfigSchema = z
   .object({
-    newPerSessionMax: int(0, 30).default(10), // P1 · hipótesis
+    newPerSessionMax: ranged(PLANNER_RANGES.newPerSessionMax).default(10), // P1 · hipótesis
     bootstrapReviewSec: int(1, 600).default(20), // P1 · hipótesis
     bootstrapNewSec: int(1, 1800).default(60), // P1 · hipótesis
     timingMinSamples: int(1, 500).default(20), // P1 · diseño · sin evidencia: muestras antes de usar sus medianas
-    sessionBlocksDefault: int(1, 12).default(1), // P1 · diseño · sin evidencia: bloques planeados si no elige
+    sessionBlocksDefault: ranged(PLANNER_RANGES.sessionBlocksDefault).default(1), // P1 · diseño · sin evidencia: bloques planeados si no elige
     overdueFactorForZeroNew: z.number().min(1).max(5).default(2), // P2 · hipótesis
     lowRetentionWindowDays: int(1, 14).default(3), // P3 · hipótesis
     lowRetentionDropPts: int(1, 50).default(10), // P3 · hipótesis
@@ -58,8 +65,6 @@ export const TIMER_RANGES = {
   longBreakMin: { min: 5, max: 60 },
   cyclesBeforeLong: { min: 2, max: 6 },
 } as const;
-
-const ranged = (range: { readonly min: number; readonly max: number }) => int(range.min, range.max);
 
 export const TimerConfigSchema = z.object({
   focusMin: ranged(TIMER_RANGES.focusMin).default(25), // R7 · 25 por ser el más estudiado con estudiantes, no por óptimo (R17)

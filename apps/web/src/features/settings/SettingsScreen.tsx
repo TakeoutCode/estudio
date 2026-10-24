@@ -1,4 +1,4 @@
-import { RETENTION_RANGE, type StudyConfig, TIMER_RANGES } from '@estudio/shared';
+import { PLANNER_RANGES, RETENTION_RANGE, type StudyConfig, TIMER_RANGES } from '@estudio/shared';
 import { type ReactNode, type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -24,6 +24,11 @@ const MAX_POINTS = toPoints(RETENTION_RANGE.max);
 const TIMER_KEYS = ['focusMin', 'shortBreakMin', 'longBreakMin', 'cyclesBeforeLong'] as const;
 type TimerKey = (typeof TIMER_KEYS)[number];
 type TimerDraft = Record<TimerKey, number | null>;
+
+/** P1: tope de nuevas por sesión y bloques de enfoque que planea, que deciden el presupuesto. */
+const PLANNER_KEYS = ['newPerSessionMax', 'sessionBlocksDefault'] as const;
+type PlannerKey = (typeof PLANNER_KEYS)[number];
+type PlannerDraft = Record<PlannerKey, number | null>;
 
 /** UX9: cada métrica de Tu semana se puede apagar por separado. El sueño (§5) es opcional. */
 const METRIC_KEYS = [
@@ -79,6 +84,10 @@ function SettingsForm({
     longBreakMin: config.timer.longBreakMin,
     cyclesBeforeLong: config.timer.cyclesBeforeLong,
   }));
+  const [planner, setPlanner] = useState<PlannerDraft>(() => ({
+    newPerSessionMax: config.planner.newPerSessionMax,
+    sessionBlocksDefault: config.planner.sessionBlocksDefault,
+  }));
   const [askConfidence, setAskConfidence] = useState(config.review.askConfidence);
   const [visible, setVisible] = useState<Record<MetricKey, boolean>>(() => ({
     activeTime: config.metrics.visible.activeTime,
@@ -95,10 +104,12 @@ function SettingsForm({
   const percent = (p: number) =>
     new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 0 }).format(p / 100);
 
-  const invalid = TIMER_KEYS.some((key) => timer[key] === null);
+  const invalid =
+    TIMER_KEYS.some((key) => timer[key] === null) || PLANNER_KEYS.some((key) => planner[key] === null);
   const dirty =
     points !== savedPoints ||
     TIMER_KEYS.some((key) => timer[key] !== config.timer[key]) ||
+    PLANNER_KEYS.some((key) => planner[key] !== config.planner[key]) ||
     askConfidence !== config.review.askConfidence ||
     METRIC_KEYS.some((key) => visible[key] !== config.metrics.visible[key]);
   const choose = (next: number) => {
@@ -110,11 +121,17 @@ function SettingsForm({
     event.preventDefault();
     if (invalid || !dirty || busy) return;
     const chosen = (key: TimerKey) => timer[key] ?? config.timer[key];
+    const planned = (key: PlannerKey) => planner[key] ?? config.planner[key];
     setBusy(true);
     // LD9: la retención solo cambia aquí, cuando ella guarda.
     updateStudyConfig((cfg) => ({
       ...cfg,
       fsrs: { ...cfg.fsrs, requestRetention: points / 100 },
+      planner: {
+        ...cfg.planner,
+        newPerSessionMax: planned('newPerSessionMax'),
+        sessionBlocksDefault: planned('sessionBlocksDefault'),
+      },
       timer: {
         ...cfg.timer,
         focusMin: chosen('focusMin'),
@@ -204,6 +221,28 @@ function SettingsForm({
         <p className="m-0 text-caption text-muted">
           {t('settings.retention.expected', { value: percent(points), forget: 100 - points })}
         </p>
+      </section>
+
+      <section aria-labelledby={`${ids}-new`} className="flex flex-col gap-3">
+        <h2 id={`${ids}-new`} className="m-0 text-body font-semibold">
+          {t('settings.newCards.title')}
+        </h2>
+        <p className="m-0 text-caption text-muted">{t('settings.newCards.hint')}</p>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+          {PLANNER_KEYS.map((key) => (
+            <NumberField
+              key={key}
+              label={t(`settings.newCards.${key}`)}
+              defaultValue={config.planner[key]}
+              min={PLANNER_RANGES[key].min}
+              max={PLANNER_RANGES[key].max}
+              onChange={(value) => {
+                setPlanner((prev) => ({ ...prev, [key]: value }));
+                setStatus('idle');
+              }}
+            />
+          ))}
+        </div>
       </section>
 
       <section aria-labelledby={`${ids}-timer`} className="flex flex-col gap-3">

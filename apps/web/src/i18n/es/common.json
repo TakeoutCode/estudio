@@ -633,6 +633,12 @@
       "loadEmpty": "Cuando tengas tarjetas, aquí verás cuántos repasos al día implica cada valor.",
       "loadFailed": "No se pudo calcular la carga. Puedes guardar igual."
     },
+    "newCards": {
+      "title": "Tarjetas nuevas",
+      "hint": "Las nuevas entran después de lo pendiente, si caben en el tiempo de la sesión (bloques × enfoque). Ningún número está probado: ajústalo con lo que veas en Tu semana.",
+      "newPerSessionMax": "Nuevas por sesión (máx.)",
+      "sessionBlocksDefault": "Bloques por sesión"
+    },
     "timer": {
       "title": "Temporizador",
       "focusMin": "Enfoque (min)",

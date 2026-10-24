@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   defaultStudyConfig,
+  PLANNER_RANGES,
   RETENTION_RANGE,
   StudyConfigSchema,
   TIMER_PRESETS,
@@ -123,7 +124,7 @@ describe('StudyConfig: rangos', () => {
     expect(r.success).toBe(true);
   });
 
-  it('R2, R7: los rangos exportados para la UI son los del esquema', () => {
+  it('P1, R2, R7: los rangos exportados para la UI son los del esquema', () => {
     const accepts = (input: object) => StudyConfigSchema.safeParse(input).success;
     expect(accepts({ fsrs: { requestRetention: RETENTION_RANGE.min } })).toBe(true);
     expect(accepts({ fsrs: { requestRetention: RETENTION_RANGE.max } })).toBe(true);
@@ -134,6 +135,12 @@ describe('StudyConfig: rangos', () => {
       expect(accepts({ timer: { [key]: range.max } })).toBe(true);
       expect(accepts({ timer: { [key]: range.min - 1 } })).toBe(false);
       expect(accepts({ timer: { [key]: range.max + 1 } })).toBe(false);
+    }
+    for (const [key, range] of Object.entries(PLANNER_RANGES)) {
+      expect(accepts({ planner: { [key]: range.min } })).toBe(true);
+      expect(accepts({ planner: { [key]: range.max } })).toBe(true);
+      expect(accepts({ planner: { [key]: range.min - 1 } })).toBe(false);
+      expect(accepts({ planner: { [key]: range.max + 1 } })).toBe(false);
     }
   });
 });

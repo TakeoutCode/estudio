@@ -151,6 +151,26 @@ describe('Ajustes · temporizador (R7)', () => {
   });
 });
 
+describe('Ajustes · tarjetas nuevas (P1)', () => {
+  it('P1: el tope de nuevas y los bloques planeados se editan dentro de sus rangos', async () => {
+    renderSettings();
+    const save = await screen.findByRole('button', { name: 'Guardar cambios' });
+    const cap = screen.getByLabelText('Nuevas por sesión (máx.)');
+    expect((cap as HTMLInputElement).value).toBe('10');
+    fireEvent.change(cap, { target: { value: '31' } });
+    expect(screen.getByText('Escribe un número de 0 a 30.')).toBeTruthy();
+    expect(save.hasAttribute('disabled')).toBe(true);
+
+    fireEvent.change(cap, { target: { value: '15' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sumar uno: Bloques por sesión' }));
+    fireEvent.click(save);
+
+    expect(await screen.findByText('Cambios guardados.')).toBeTruthy();
+    const config = await readStudyConfig(db);
+    expect(config.planner).toMatchObject({ newPerSessionMax: 15, sessionBlocksDefault: 2 });
+  });
+});
+
 describe('Ajustes · confianza y métricas (R6, UX9)', () => {
   it('R6, UX9: pedir confianza y ocultar una métrica se guardan con "Guardar cambios"', async () => {
     renderSettings();
