@@ -4,6 +4,9 @@
 # el builder de Vercel la empaqueta desde src/main.ts. Si encuentra apps/api/dist/main.js, toma
 # dist/ como raíz de la función, sin el "type": "module" de apps/api/package.json ni sus
 # node_modules, y la función no carga ("Failed to load the ES module: /var/task/main.js").
+# La instalación de este servicio es hoisted (installCommand en vercel.json): el builder copia la
+# carpeta real de cada paquete, no el symlink de pnpm en apps/api/node_modules por el que la
+# función los busca ("Cannot find module '@nestjs/throttler'").
 # Solo en producción, aplica las migraciones pendientes antes de publicar: si una falla, el
 # deploy no sale (QUALITY §5). Las previews no migran: su base no debe ser la de producción.
 set -eu
