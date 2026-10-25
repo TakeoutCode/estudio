@@ -1,0 +1,21 @@
+# `vercel deploy` sube la carpeta tal cual: no lee .gitignore. Sin esta lista suben los .env
+# locales (prisma.config.ts y ConfigModule los cargarían en el build y en la función) y
+# apps/api/dist, que el builder tomaría como la función (ver apps/api/scripts/vercel-build.sh).
+node_modules/
+dist/
+dev-dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+apps/api/src/generated/
+
+playwright-report/
+test-results/
+
+.vercel/
+.neon
