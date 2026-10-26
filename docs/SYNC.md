@@ -42,7 +42,7 @@ export const PushResultSchema = z.object({
 2. Abrir la transacción y tomar `pg_advisory_xact_lock(hashtextextended(userId, 0))`.
 3. Por cada mutación, en orden: `INSERT INTO applied_mutation … ON CONFLICT DO NOTHING`. Si ya existía, responde `duplicate`.
 4. LWW: ejecutar el upsert condicional; si afecta 0 filas, responde `stale` (perdió y el ganador le llegará por pull). Append: insertar; si hay conflicto, `duplicate`.
-5. Volver a ejecutar `replay()` para las tarjetas afectadas y aplicar la unicidad del temporizador (§8). Confirmar y devolver `results[]` en el mismo orden.
+5. Aplicar la unicidad del temporizador (§8). Confirmar y devolver `results[]` en el mismo orden. El servidor no guarda la proyección FSRS: el cron la calcula con `replay()` desde el `ReviewLog` cada vez que evalúa los avisos de una cuenta (NOTIFICATIONS NT3), así nunca queda atrasada respecto del log.
 
 El push es idempotente aunque se purgue `applied_mutation` (a los 30 días): un HLC igual nunca es mayor, y un `id` repetido en append choca.
 ```sql

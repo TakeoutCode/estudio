@@ -8,7 +8,7 @@
 |---|---|---|---|
 | `auth` | registro por lista permitida, login, refresh rotativo, logout | `POST /auth/{register,login,refresh,logout}` | — |
 | `users` | cuenta, ajustes por sección, borrado total (pide la contraseña; QUALITY QA6) | `DELETE /me` | `UserSettings` |
-| `sync` | push/pull, idempotencia, cursor, registro de handlers, proyecciones (`replay`), purga diaria de borrados (SYNC §6) | `POST /sync/push`, `GET /sync/pull` | — |
+| `sync` | push/pull, idempotencia, cursor, registro de handlers, purga diaria de borrados (SYNC §6) | `POST /sync/push`, `GET /sync/pull` | — |
 | `decks` | mazos, subtemas, etiquetas, notas (también los ejercicios), tarjetas, grupos de contraste | — | `Deck`, `Topic`, `Tag`, `Note`, `Card`, `ContrastGroup` |
 | `study` | repasos, sesiones, temporizador, autoexplicaciones, premios, sueño | — | `ReviewLog`, `StudySession`, `TimerSession`, `TimerBlockLog`, `SelfExplanation`, `Reward`, `RewardRedemption`, `SleepLog` |
 | `exams` | exámenes y su alcance (un simulacro es una `StudySession` con `mode: 'exam'`) | — | `Exam` |

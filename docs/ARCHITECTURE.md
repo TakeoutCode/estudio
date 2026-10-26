@@ -54,7 +54,7 @@ flowchart TD
 2. **Sync.** El cliente envía el outbox por lotes con `mutationId`. La API aplica todo en una transacción bajo `pg_advisory_xact_lock(user)`, asigna `server_seq` y confirma. Luego el cliente hace pull desde su cursor y vuelve a ejecutar `replay()` sobre las tarjetas afectadas. Detalle en SYNC.md.
 3. **Media.** `POST /media/signature` → subida directa a Cloudinary → entidad `MediaAsset` (`publicId`, `version`) que se sincroniza como cualquier otra. Sin red, el blob espera en IndexedDB hasta poder subirse.
 4. **IA (solo con red).** `POST /ai/drafts` → cuota diaria → OpenAI con JSON Schema estricto → validación zod → `AiDraft` en estado `draft` (sincronizado). Solo se convierte en tarjeta o ejercicio cuando ella lo acepta.
-5. **Notificaciones.** El cron calcula pendientes por tema con `srs` sobre las proyecciones del servidor y aplica la política de §3 (`decideNotification`, función pura). Envía Web Push y registra `NotificationEvent`; el service worker reporta si se abrió.
+5. **Notificaciones.** El cron reproduce con `srs.replay()` el `ReviewLog` de la cuenta, calcula las pendientes por tema y aplica la política de §3 (`decideNotification`, función pura). Envía Web Push y registra `NotificationEvent`; el service worker reporta si se abrió.
 6. **Temporizador.** Hay una `TimerSession` activa por cuenta. Su estado `{state, startedAt, pausedMs, blockIndex, plannedMs}` lo valida la máquina de `srs`, y el tiempo restante sale de marcas de tiempo (§3).
 
 ## 4. Reglas
