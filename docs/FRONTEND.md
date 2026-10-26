@@ -7,14 +7,14 @@
 ```text
 apps/web/src/
 ├─ app/          router (React Router 8, rutas lazy), providers, layout, error boundaries
-├─ features/     study · timer · decks · notes · media · contrast · exercises · exams · plan · dashboard
+├─ features/     today · study · timer · decks · notes · media · contrast · exercises · exams · dashboard
 │  │             sleep · ai-drafts · gamification · notifications · settings · backup · auth
-│  └─ <feature>/ components/ hooks/ queries.ts commands.ts store.ts index.ts
+│  └─ <feature>/ Componentes.tsx, use-*.ts, queries.ts, commands.ts, store.ts e index.ts, sin subcarpetas
 ├─ db/           schema.ts (versiones de Dexie), alive(), hlc local, outbox
 ├─ sync/         cliente push/pull, scheduler, Web Locks
 ├─ workers/      projection.worker.ts (replay, métricas, gamificación) vía Comlink
 ├─ ui/           componentes del sistema de diseño, sin lógica de features
-├─ lib/          env.ts, i18n, cliente HTTP, media
+├─ lib/          env.ts, i18n, cliente HTTP, media, candado de sesión, almacenamiento
 └─ sw.ts         service worker (injectManifest)
 ```
 

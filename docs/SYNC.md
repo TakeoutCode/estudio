@@ -113,7 +113,7 @@ syncScheduler.poke();
 **SY8 · DEBE** disparar la sync con `poke()` tras cada escritura (con debounce de 2 s), con el evento `online`, al volver a primer plano, al abrir la app y cada 60 s con la app visible. iOS no tiene Background Sync, así que lo que se responde sin red queda seguro en Dexie (R3). Reintentos con backoff `1 s × 2ⁿ` con jitter, hasta 5 min:
 - `401`: refrescar el token una vez.
 - `426`: pausar la sync hasta que la app se actualice (ARC6).
-- `429` o `503`: respetar `Retry-After` (CORS la expone, porque la web y la API están en orígenes distintos).
+- `429` o `503`: respetar `Retry-After`. En Vercel la web y la API comparten origen (ADR-019); en local están en orígenes distintos (`:5180` y `:3180`), y por eso CORS la expone.
 - `rejected`: queda en el outbox con su `code`, visible en Ajustes › Sincronización y almacenamiento con el motivo, donde ella puede reintentarlo (a veces faltaba algo que ya llegó) o descartarlo después de un aviso: el cambio sigue en ese dispositivo pero no llega a los otros. **NO DEBE** borrarse sin avisar.
 
 ## 10. Migraciones del esquema de Dexie
