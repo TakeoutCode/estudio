@@ -20,8 +20,16 @@ const renderEditor = () =>
     </MemoryRouter>,
   );
 
+const T0 = Date.UTC(2026, 9, 20, 15);
+
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'] }); // QA1: reloj falso, nunca el real
+  vi.setSystemTime(T0);
   await db.delete({ disableAutoOpen: false });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('editor de notas · desde un mazo (?mazo=)', () => {
@@ -590,7 +598,7 @@ describe('editor de notas · mnemotecnia (R14)', () => {
     id: newId(),
     cardId,
     cardKind: 'basic' as const,
-    reviewedAt: Date.now(),
+    reviewedAt: T0,
     rating,
     durationMs: 4000,
     type: 'review' as const,

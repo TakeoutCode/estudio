@@ -50,6 +50,8 @@ export function MilestoneCelebration() {
   return on ? (
     <div
       data-gamification=""
+      // QUALITY QA1: cuántas respuestas de la sesión ya evaluó; las pruebas esperan esto, no un tiempo.
+      data-evaluated={baseline && added ? added.logs.length : undefined}
       role="status"
       className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-30 flex justify-center px-4"
     >

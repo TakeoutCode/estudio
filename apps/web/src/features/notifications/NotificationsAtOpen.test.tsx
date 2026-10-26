@@ -4,7 +4,7 @@ import { MemoryRouter, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
 import { readNotificationPrefs } from '@/db/settings';
-import { updateNotificationPrefs } from '@/features/settings';
+import { updateNotificationPrefs, useNotificationPrefs } from '@/features/settings';
 import { NotificationsAtOpen } from './NotificationsAtOpen';
 import { useAtOpen } from './store';
 
@@ -29,11 +29,17 @@ function Search() {
   return <output data-testid="search">{useLocation().search}</output>;
 }
 
+/** QA1: los ajustes que lee NotificationsAtOpen ya cargaron (su efecto ya decidió). */
+function PrefsLoaded() {
+  return useNotificationPrefs() ? <output data-testid="prefs" /> : null;
+}
+
 const renderAt = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <NotificationsAtOpen />
       <Search />
+      <PrefsLoaded />
     </MemoryRouter>,
   );
 
@@ -75,7 +81,7 @@ describe('NT7: al abrir la app', () => {
 
     unmount();
     renderAt('/'); // volver a Hoy en la misma apertura no vuelve a preguntar
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await screen.findByTestId('prefs');
     expect(mocks.state).toHaveBeenCalledOnce();
     expect(screen.queryByText('¿Quieres seguir recibiendo recordatorios?')).toBeNull();
   });

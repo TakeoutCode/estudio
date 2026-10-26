@@ -11,6 +11,7 @@ vi.mock('@/features/auth', async (importOriginal) => ({
   authorizedApi: api.authorizedApi,
 }));
 
+const T0 = Date.UTC(2026, 9, 20, 15); // QA1: reloj falso, nunca el real
 const SESSION = { userId: '0192f1a0-0000-7000-8000-00000000c0de', accessToken: 't', expiresAt: 9e12 };
 
 /** La API de sync, sin red: acepta todo lo que se empuja y no trae nada nuevo. */
@@ -22,7 +23,7 @@ const fakeApi = (path: string, init?: { body?: unknown }) => {
     });
   }
   if (path.startsWith('/sync/pull')) {
-    return Promise.resolve({ changes: [], cursor: '0', hasMore: false, serverNow: Date.now() });
+    return Promise.resolve({ changes: [], cursor: '0', hasMore: false, serverNow: T0 });
   }
   return Promise.resolve(undefined);
 };
@@ -34,12 +35,15 @@ const idle = () =>
   });
 
 beforeAll(async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(T0);
   await db.delete({ disableAutoOpen: false });
   await db.meta.put({ key: 'accountUserId', value: SESSION.userId });
   api.authorizedApi.mockImplementation(fakeApi);
 });
 
 afterAll(() => {
+  vi.useRealTimers();
   useAuth.setState({ session: null });
 });
 

@@ -8,6 +8,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { z } from 'zod';
 import { AppModule } from './app.module.js';
 import { configureApp } from './bootstrap.js';
+import { Clock } from './common/clock.js';
 import { ResponseSchema } from './common/response-schema.js';
 import { Public } from './modules/auth/public.js';
 import { TokenService } from './modules/auth/token.service.js';
@@ -16,6 +17,8 @@ import { PrismaService } from './prisma/prisma.service.js';
 import { FakeHealthRepository } from './test/fake-health-repository.js';
 
 const WEB = 'http://localhost:5180';
+/** QA1: reloj fijo, nunca el real (firma y verificación de tokens, muestras de salud). */
+const T0 = Date.UTC(2026, 9, 20, 15);
 const HEALTH_TOKEN = 'token-de-salud-de-pruebas-de-al-menos-32';
 
 const OkSchema = z.object({ ok: z.literal(true) }).strict();
@@ -70,6 +73,8 @@ describe('app (integración HTTP, sin base)', () => {
       .useValue({})
       .overrideProvider(HealthRepository)
       .useValue(health)
+      .overrideProvider(Clock)
+      .useValue({ now: () => T0 })
       .compile();
     app = configureApp(moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false }));
     await app.init();
@@ -84,7 +89,7 @@ describe('app (integración HTTP, sin base)', () => {
     ping.mockReset().mockResolvedValue(undefined);
     // QA8: el cron corre en otro proceso (ADR-018); aquí basta con que su última señal sea reciente.
     health.samples = [];
-    await health.insertSample({ kind: 'cron_tick', at: Date.now() });
+    await health.insertSample({ kind: 'cron_tick', at: T0 });
   });
 
   it('GET /health responde sin cabecera de contrato', async () => {
@@ -126,7 +131,7 @@ describe('app (integración HTTP, sin base)', () => {
           stack: null,
           route: '/study',
           appVersion: '19',
-          occurredAt: Date.now(),
+          occurredAt: T0,
         },
       ],
     };

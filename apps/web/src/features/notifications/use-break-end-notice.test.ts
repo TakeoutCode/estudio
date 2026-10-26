@@ -2,7 +2,7 @@ import { TimerConfigSchema, type TimerSession } from '@estudio/shared';
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
-import { updateNotificationPrefs } from '@/features/settings';
+import { updateNotificationPrefs, useNotificationPrefs } from '@/features/settings';
 import type { TimerView } from '@/features/timer';
 import { useBreakEndNotice } from './use-break-end-notice';
 
@@ -109,10 +109,14 @@ describe('NT4, FE11: fin de descanso en segundo plano', () => {
 
   it('con el aviso de descanso apagado no programa nada', async () => {
     await updateNotificationPrefs((p) => ({ ...p, breakEnd: { enabled: false } }));
-    renderHook(() => {
+    // QA1: se espera a que el hook lea los ajustes (apagados), no un tiempo.
+    const { result } = renderHook(() => {
       useBreakEndNotice(view());
+      return useNotificationPrefs();
     });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitFor(() => {
+      expect(result.current?.breakEnd.enabled).toBe(false);
+    });
     goTo('hidden');
     expect(mocks.schedule).not.toHaveBeenCalled();
   });

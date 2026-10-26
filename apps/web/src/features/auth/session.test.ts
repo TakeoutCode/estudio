@@ -6,22 +6,26 @@ import { AccountMismatchError, accountUserId, bindDeviceToAccount } from './comm
 import { login, refreshSession, setAuthClientForTests } from './session';
 import { useAuth } from './store';
 
+const T0 = Date.UTC(2026, 9, 20, 15); // QA1: reloj falso, nunca el real
 const USER_A = newId();
 const USER_B = newId();
 const session = (userId: string) => ({
   userId,
   accessToken: `token-${userId}`,
-  expiresAt: Date.now() + 900_000,
+  expiresAt: T0 + 900_000,
 });
 
 let database: EstudioDb;
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(T0);
   database = new EstudioDb(`auth-${newId()}`);
   useAuth.getState().signOut();
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   await database.delete();
 });
 

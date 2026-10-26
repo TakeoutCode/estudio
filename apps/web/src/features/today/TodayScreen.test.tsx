@@ -51,7 +51,9 @@ describe('TodayScreen', () => {
 
   it('P1 por día: con el tope del día cumplido no ofrece más nuevas y lo dice sin presión', async () => {
     await createNote({ deck: { name: 'Huesos' }, content });
-    const now = Date.now();
+    const now = Date.UTC(2026, 9, 20, 15);
+    vi.useFakeTimers({ toFake: ['Date'] }); // QA1: reloj falso, nunca el real
+    vi.setSystemTime(now);
     // Diez tarjetas que empezó hoy en otra sesión: el tope inicial (10) ya se cumplió.
     await db.reviewLogs.bulkAdd(
       Array.from({ length: 10 }, (_, i) => ({

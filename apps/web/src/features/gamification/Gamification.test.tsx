@@ -1,7 +1,7 @@
 import { newId, type ReviewLog } from '@estudio/shared';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/schema';
 import { updateGamificationConfig } from '@/features/settings';
 import { TodayScreen } from '@/features/today';
@@ -9,6 +9,7 @@ import { answerGamification, saveReward } from './commands';
 import { GamificationCard } from './GamificationCard';
 import { GamificationSection } from './GamificationSection';
 import { MilestoneCelebration } from './MilestoneCelebration';
+import { useGamificationConfig } from './queries';
 import { RewardsScreen } from './RewardsScreen';
 
 // jsdom no tiene Worker: el worker corre en el mismo hilo.
@@ -45,8 +46,14 @@ const answered = (count: number, at = T0) =>
 const inRouter = (node: React.ReactNode) => render(<MemoryRouter>{node}</MemoryRouter>);
 
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'] }); // QA1: reloj falso, nunca el real
+  vi.setSystemTime(T0);
   await db.delete({ disableAutoOpen: false });
   await db.meta.put({ key: 'accountUserId', value: ME });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('UX10: la pregunta del onboarding', () => {
@@ -78,7 +85,7 @@ describe('UX10: la pregunta del onboarding', () => {
 
   it('racha opcional: aparece solo si la activa, y en pausa sin texto de pérdida', async () => {
     await answerGamification(true);
-    await db.reviewLogs.add(review(Date.now() - 5 * 86_400_000));
+    await db.reviewLogs.add(review(T0 - 5 * 86_400_000));
     const { container } = inRouter(<GamificationCard />);
     expect(await screen.findByText('Nivel 1')).toBeTruthy();
     expect(container.textContent).not.toMatch(/racha/i);
@@ -164,24 +171,30 @@ describe('UX10: Ajustes', () => {
   });
 });
 
+/** La configuración que lee la celebración, para esperar a que esté cargada (QA1). */
+function CelebrationsSetting() {
+  const config = useGamificationConfig();
+  return config ? <output>{`celebraciones: ${config.celebrations ? 'sí' : 'no'}`}</output> : null;
+}
+
 describe('UX6: celebraciones solo en hitos', () => {
   it('avisa al subir de nivel o ganar un logro durante la sesión, no en cada tarjeta', async () => {
     await answerGamification(true);
-    await answered(8, Date.now() - 60_000);
+    await answered(8, T0 - 60_000);
     render(<MilestoneCelebration />);
     const region = await screen.findByRole('status');
-    // Deja que el resumen base del worker llegue antes de responder.
-    await vi.waitFor(async () => {
-      await db.reviewLogs.count();
-      expect(region.dataset.gamification).toBe('');
+    // El resumen base del worker llega antes de responder.
+    await vi.waitFor(() => {
+      expect(region.dataset.evaluated).toBe('0');
     });
-    await new Promise((resolve) => setTimeout(resolve, 50));
 
-    await db.reviewLogs.add(review(Date.now() + 1000));
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await db.reviewLogs.add(review(T0 + 1000));
+    await vi.waitFor(() => {
+      expect(region.dataset.evaluated).toBe('1');
+    });
     expect(region.textContent).toBe(''); // 90 XP: sin hito
 
-    await db.reviewLogs.add(review(Date.now() + 2000, 'contrast'));
+    await db.reviewLogs.add(review(T0 + 2000, 'contrast'));
     expect(await within(region).findByText('Nivel 2')).toBeTruthy();
     expect(within(region).getByText('Logro: Primer set de contraste')).toBeTruthy();
     fireEvent.click(within(region).getByRole('button'));
@@ -191,10 +204,17 @@ describe('UX6: celebraciones solo en hitos', () => {
   it('con las celebraciones apagadas no aparece nada', async () => {
     await answerGamification(true);
     await updateGamificationConfig((c) => ({ ...c, celebrations: false }));
-    const { container } = render(<MilestoneCelebration />);
-    await db.reviewLogs.add(review(Date.now() + 1000, 'contrast'));
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(container.innerHTML).toBe('');
+    const { container } = render(
+      <>
+        <MilestoneCelebration />
+        <CelebrationsSetting />
+      </>,
+    );
+    // Ya leyó la configuración (apagada) cuando llega el repaso que daría un logro.
+    await screen.findByText('celebraciones: no');
+    await db.reviewLogs.add(review(T0 + 1000, 'contrast'));
+    expect(await db.reviewLogs.count()).toBeGreaterThan(0);
+    expect(container.querySelector('[data-gamification]')).toBeNull();
   });
 });
 

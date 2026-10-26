@@ -6,6 +6,8 @@ import { accountUserId, bindDeviceToAccount } from './commands';
 import { deleteAccount } from './session';
 import { useAuth } from './store';
 
+const T0 = Date.UTC(2026, 9, 20, 15); // QA1: reloj falso, nunca el real
+
 const USER = newId();
 
 let database: EstudioDb;
@@ -47,11 +49,14 @@ async function seed() {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(T0);
   database = new EstudioDb(`borrar-${newId()}`);
-  useAuth.getState().signIn({ userId: USER, accessToken: 'token', expiresAt: Date.now() + 900_000 });
+  useAuth.getState().signIn({ userId: USER, accessToken: 'token', expiresAt: T0 + 900_000 });
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   await database.delete();
 });
