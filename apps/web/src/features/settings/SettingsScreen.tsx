@@ -1,4 +1,10 @@
-import { PLANNER_RANGES, RETENTION_RANGE, type StudyConfig, TIMER_RANGES } from '@estudio/shared';
+import {
+  METRICS_RANGES,
+  PLANNER_RANGES,
+  RETENTION_RANGE,
+  type StudyConfig,
+  TIMER_RANGES,
+} from '@estudio/shared';
 import { type ReactNode, type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionBar } from '@/ui/ActionBar';
@@ -44,8 +50,9 @@ type MetricKey = (typeof METRIC_KEYS)[number];
 
 /**
  * Ajustes de estudio: retención objetivo con su carga (R2, LD8), nuevas por sesión (P1),
- * temporizador (R7), hora de dormir (P6), confianza en repasos (R6), retroalimentación de los
- * simulacros (P7) y métricas visibles (UX9). `children`: secciones de otras features (avisos),
+ * temporizador y su pausa máxima (R7, §3), hora de dormir (P6), confianza en repasos (R6),
+ * olvidos para reformular (P3), retroalimentación de los simulacros (P7), métricas visibles (UX9)
+ * y el corte de inactividad del tiempo activo (R21). `children`: secciones de otras features (avisos),
  * que el router compone para que `settings` no dependa de ellas; `end`: las que van al final
  * (respaldo, borrar la cuenta).
  */
@@ -89,6 +96,10 @@ function SettingsForm({
     newPerSessionMax: config.planner.newPerSessionMax,
     sessionBlocksDefault: config.planner.sessionBlocksDefault,
   }));
+  // §3, P3 y R21: STUDY-METHODS los declara configurables; `null` mientras no son válidos.
+  const [pauseTimeout, setPauseTimeout] = useState<number | null>(config.timer.pauseTimeoutMin);
+  const [leechLapses, setLeechLapses] = useState<number | null>(config.planner.leechLapses);
+  const [inactivityCutoff, setInactivityCutoff] = useState<number | null>(config.metrics.inactivityCutoffSec);
   const [askConfidence, setAskConfidence] = useState(config.review.askConfidence);
   const [explainLapses, setExplainLapses] = useState(config.review.explainLapses);
   const [mockImmediate, setMockImmediate] = useState(config.exam.feedbackTiming === 'immediate');
@@ -108,11 +119,18 @@ function SettingsForm({
     new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 0 }).format(p / 100);
 
   const invalid =
-    TIMER_KEYS.some((key) => timer[key] === null) || PLANNER_KEYS.some((key) => planner[key] === null);
+    TIMER_KEYS.some((key) => timer[key] === null) ||
+    PLANNER_KEYS.some((key) => planner[key] === null) ||
+    pauseTimeout === null ||
+    leechLapses === null ||
+    inactivityCutoff === null;
   const dirty =
     points !== savedPoints ||
     TIMER_KEYS.some((key) => timer[key] !== config.timer[key]) ||
     PLANNER_KEYS.some((key) => planner[key] !== config.planner[key]) ||
+    pauseTimeout !== config.timer.pauseTimeoutMin ||
+    leechLapses !== config.planner.leechLapses ||
+    inactivityCutoff !== config.metrics.inactivityCutoffSec ||
     askConfidence !== config.review.askConfidence ||
     explainLapses !== config.review.explainLapses ||
     mockImmediate !== (config.exam.feedbackTiming === 'immediate') ||
@@ -136,6 +154,7 @@ function SettingsForm({
         ...cfg.planner,
         newPerSessionMax: planned('newPerSessionMax'),
         sessionBlocksDefault: planned('sessionBlocksDefault'),
+        leechLapses,
       },
       timer: {
         ...cfg.timer,
@@ -143,10 +162,15 @@ function SettingsForm({
         shortBreakMin: chosen('shortBreakMin'),
         longBreakMin: chosen('longBreakMin'),
         cyclesBeforeLong: chosen('cyclesBeforeLong'),
+        pauseTimeoutMin: pauseTimeout,
       },
       review: { ...cfg.review, askConfidence, explainLapses },
       exam: { ...cfg.exam, feedbackTiming: mockImmediate ? 'immediate' : 'end' },
-      metrics: { ...cfg.metrics, visible: { ...cfg.metrics.visible, ...visible } },
+      metrics: {
+        ...cfg.metrics,
+        inactivityCutoffSec: inactivityCutoff,
+        visible: { ...cfg.metrics.visible, ...visible },
+      },
     }))
       .then(() => {
         setStatus('saved');
@@ -261,7 +285,18 @@ function SettingsForm({
               }}
             />
           ))}
+          <NumberField
+            label={t('settings.timer.pauseTimeoutMin')}
+            defaultValue={config.timer.pauseTimeoutMin}
+            min={TIMER_RANGES.pauseTimeoutMin.min}
+            max={TIMER_RANGES.pauseTimeoutMin.max}
+            onChange={(value) => {
+              setPauseTimeout(value);
+              setStatus('idle');
+            }}
+          />
         </div>
+        <p className="m-0 text-caption text-muted">{t('settings.timer.pauseTimeoutHint')}</p>
       </section>
 
       <BreakUsageSection />
@@ -294,6 +329,17 @@ function SettingsForm({
             setStatus('idle');
           }}
         />
+        <NumberField
+          label={t('settings.review.leechLapses')}
+          defaultValue={config.planner.leechLapses}
+          min={PLANNER_RANGES.leechLapses.min}
+          max={PLANNER_RANGES.leechLapses.max}
+          onChange={(value) => {
+            setLeechLapses(value);
+            setStatus('idle');
+          }}
+        />
+        <p className="m-0 text-caption text-muted">{t('settings.review.leechLapsesHint')}</p>
       </section>
 
       <section aria-labelledby={`${ids}-mocks`} className="flex flex-col gap-2">
@@ -328,6 +374,17 @@ function SettingsForm({
             }}
           />
         ))}
+        <NumberField
+          label={t('settings.metrics.inactivityCutoffSec')}
+          defaultValue={config.metrics.inactivityCutoffSec}
+          min={METRICS_RANGES.inactivityCutoffSec.min}
+          max={METRICS_RANGES.inactivityCutoffSec.max}
+          onChange={(value) => {
+            setInactivityCutoff(value);
+            setStatus('idle');
+          }}
+        />
+        <p className="m-0 text-caption text-muted">{t('settings.metrics.inactivityCutoffHint')}</p>
       </section>
 
       {end}

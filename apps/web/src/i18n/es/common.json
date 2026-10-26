@@ -663,7 +663,9 @@
       "focusMin": "Enfoque (min)",
       "shortBreakMin": "Descanso corto (min)",
       "longBreakMin": "Descanso largo (min)",
-      "cyclesBeforeLong": "Bloques antes del largo"
+      "cyclesBeforeLong": "Bloques antes del largo",
+      "pauseTimeoutMin": "Pausa máxima (min)",
+      "pauseTimeoutHint": "Si un bloque queda en pausa, o con la app cerrada, más que esto, se cierra como interrumpido y cuenta solo el tiempo activo. Al volver te pregunta si seguiste estudiando fuera de la app."
     },
     "breaks": {
       "title": "Tus descansos",
@@ -686,7 +688,9 @@
       "askConfidence": "Pedir tu confianza antes de mostrar la respuesta",
       "askConfidenceHint": "Opcional. Con eso, Tu semana compara tu intuición con lo que pasó.",
       "explainLapses": "Pedirte explicar las tarjetas que olvides",
-      "explainLapsesHint": "Tras un «Otra vez» en una tarjeta que ya sabías. Con conexión, la IA revisa si tu explicación es correcta; tu calificación no cambia."
+      "explainLapsesHint": "Tras un «Otra vez» en una tarjeta que ya sabías. Con conexión, la IA revisa si tu explicación es correcta; tu calificación no cambia.",
+      "leechLapses": "Olvidos para reformular",
+      "leechLapsesHint": "Una tarjeta que olvidas esta cantidad de veces pasa a «Para mejorar», que te sugiere reformularla en lugar de repetirla igual."
     },
     "mocks": {
       "title": "Simulacros",
@@ -703,7 +707,9 @@
       "improveList": "Para mejorar",
       "mockExams": "Simulacros",
       "sleep": "Tu sueño",
-      "sleepHint": "Opcional. Si lo activas, Hoy te pregunta cómo dormiste, con un toque."
+      "sleepHint": "Opcional. Si lo activas, Hoy te pregunta cómo dormiste, con un toque.",
+      "inactivityCutoffSec": "Pausa que no cuenta (s)",
+      "inactivityCutoffHint": "Entre dos respuestas, lo que pase de este tiempo no suma al tiempo activo de Tu semana: tener la app abierta no es estudiar."
     },
     "theme": {
       "title": "Apariencia",

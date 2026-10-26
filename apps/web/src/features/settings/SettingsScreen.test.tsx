@@ -169,6 +169,34 @@ describe('Ajustes · tarjetas nuevas (P1)', () => {
     const config = await readStudyConfig(db);
     expect(config.planner).toMatchObject({ newPerSessionMax: 15, sessionBlocksDefault: 2 });
   });
+
+  it('§3, P3, R21: la pausa máxima, los olvidos para reformular y el corte de inactividad se editan', async () => {
+    renderSettings();
+    const save = await screen.findByRole('button', { name: 'Guardar cambios' });
+    const pause = screen.getByLabelText('Pausa máxima (min)');
+    const leech = screen.getByLabelText('Olvidos para reformular');
+    const cutoff = screen.getByLabelText('Pausa que no cuenta (s)');
+    expect([pause, leech, cutoff].map((input) => (input as HTMLInputElement).value)).toEqual([
+      '10',
+      '6',
+      '90',
+    ]);
+
+    fireEvent.change(leech, { target: { value: '1' } });
+    expect(screen.getByText('Escribe un número de 2 a 20.')).toBeTruthy();
+    expect(save.hasAttribute('disabled')).toBe(true);
+
+    fireEvent.change(pause, { target: { value: '15' } });
+    fireEvent.change(leech, { target: { value: '8' } });
+    fireEvent.change(cutoff, { target: { value: '120' } });
+    fireEvent.click(save);
+
+    expect(await screen.findByText('Cambios guardados.')).toBeTruthy();
+    const config = await readStudyConfig(db);
+    expect(config.timer.pauseTimeoutMin).toBe(15);
+    expect(config.planner.leechLapses).toBe(8);
+    expect(config.metrics.inactivityCutoffSec).toBe(120);
+  });
 });
 
 describe('Ajustes · simulacros (P7)', () => {

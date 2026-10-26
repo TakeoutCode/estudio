@@ -24,6 +24,7 @@ export const FsrsConfigSchema = z.object({
 export const PLANNER_RANGES = {
   newPerSessionMax: { min: 0, max: 30 },
   sessionBlocksDefault: { min: 1, max: 12 },
+  leechLapses: { min: 2, max: 20 },
 } as const;
 
 export const PlannerConfigSchema = z
@@ -37,7 +38,7 @@ export const PlannerConfigSchema = z
     lowRetentionWindowDays: int(1, 14).default(3), // P3 · hipótesis
     lowRetentionDropPts: int(1, 50).default(10), // P3 · hipótesis
     lowRetentionMinReviews: int(1, 500).default(20), // P3 · diseño · sin evidencia: repasos para juzgar la ventana
-    leechLapses: int(2, 20).default(6), // P3 · hipótesis
+    leechLapses: ranged(PLANNER_RANGES.leechLapses).default(6), // P3 · hipótesis
     lowRetentionPersistDays: int(2, 30).default(7), // P3 · hipótesis
     persistNewFactor: share().default(0.5), // P3 · hipótesis
     reviewMaxSameTopicRun: int(1, 50).default(5), // P4 · hipótesis
@@ -64,6 +65,7 @@ export const TIMER_RANGES = {
   shortBreakMin: { min: 1, max: 30 },
   longBreakMin: { min: 5, max: 60 },
   cyclesBeforeLong: { min: 2, max: 6 },
+  pauseTimeoutMin: { min: 1, max: 120 },
 } as const;
 
 export const TimerConfigSchema = z.object({
@@ -72,7 +74,7 @@ export const TimerConfigSchema = z.object({
   longBreakMin: ranged(TIMER_RANGES.longBreakMin).default(20), // R7, §3
   cyclesBeforeLong: ranged(TIMER_RANGES.cyclesBeforeLong).default(4), // R7
   mode: TimerModeSchema.default('flexible'), // R8 · diseño · sin evidencia
-  pauseTimeoutMin: int(1, 120).default(10), // §3 · hipótesis
+  pauseTimeoutMin: ranged(TIMER_RANGES.pauseTimeoutMin).default(10), // §3 · hipótesis
   endOfBlockGraceSec: int(0, 300).default(60), // §3, R13 · hipótesis
   flexExtendMin: int(1, 30).default(5), // §3 · hipótesis
 });
@@ -86,8 +88,12 @@ export const TIMER_PRESETS = [
   { id: '90-20', focusMin: 90, shortBreakMin: 20 },
 ] as const;
 
+export const METRICS_RANGES = {
+  inactivityCutoffSec: { min: 10, max: 600 },
+} as const;
+
 export const MetricsConfigSchema = z.object({
-  inactivityCutoffSec: int(10, 600).default(90), // R21 · diseño sin fuente empírica
+  inactivityCutoffSec: ranged(METRICS_RANGES.inactivityCutoffSec).default(90), // R21 · diseño sin fuente empírica
   minReviewsToShow: int(0, 1000).default(100), // §5 · diseño
   baselineWeeks: int(1, 12).default(4), // §5 · diseño · sin evidencia
   calibrationMinSamples: int(5, 500).default(20), // §5 · diseño · sin evidencia: respuestas con confianza para juzgar la semana
