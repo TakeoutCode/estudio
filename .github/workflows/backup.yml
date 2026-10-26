@@ -1,6 +1,8 @@
 # QUALITY QA7 y ADR-017: volcado semanal de la base de producción, cifrado con age y guardado
 # como artifact privado por 90 días. Antes de cifrarlo se restaura en un Postgres efímero y se
-# comparan los conteos de filas: un respaldo que nunca se restauró no está probado.
+# comparan los conteos de filas: un respaldo que nunca se restauró no está probado. El artifact
+# lleva también esos conteos (solo nombres de tabla y números), para la restauración mensual en
+# una rama de Neon que corres tú con `tools/restore-check.sh`.
 #
 # Secretos del repositorio (Settings › Secrets and variables › Actions):
 #   BACKUP_DATABASE_URL   la URL directa de Neon (no la del pooler); mejor con un rol de solo lectura
@@ -81,15 +83,20 @@ jobs:
             echo "La copia restaurada no coincide en:" && echo "$missing" && exit 1
           fi
           echo "Coinciden $(echo "$stable" | wc -l) tablas"
+          echo "$stable" > counts.txt
 
       - name: Cifrado
         run: |
-          age --encrypt --recipient "$AGE_RECIPIENT" --output "estudio-$(date -u +%F).dump.age" estudio.dump
+          name="estudio-$(date -u +%F)"
+          age --encrypt --recipient "$AGE_RECIPIENT" --output "$name.dump.age" estudio.dump
           shred -u estudio.dump
+          mv counts.txt "$name.counts.txt"
 
       - uses: actions/upload-artifact@v4
         with:
           name: respaldo-${{ github.run_id }}
-          path: estudio-*.dump.age
+          path: |
+            estudio-*.dump.age
+            estudio-*.counts.txt
           retention-days: 90
           if-no-files-found: error
