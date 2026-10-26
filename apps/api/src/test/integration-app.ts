@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import request from 'supertest';
 import { inject } from 'vitest';
+import type { AiProvider } from '../modules/ai/ai-provider.js';
 import type { MediaPurger } from '../modules/media/media-purger.js';
 import type { PushSender } from '../modules/notifications/push-sender.js';
 import type { PrismaService as PrismaServiceType } from '../prisma/prisma.service.js';
@@ -24,6 +25,12 @@ const noMediaPurger: MediaPurger = {
   purgeUser: () => Promise.resolve('unconfigured'),
   deleteAssets: (_userId, ids) => Promise.resolve([...ids]),
 };
+
+/** QUALITY §1: ninguna prueba llama a OpenAI; sin un `FakeAiProvider`, /ai/* responde 503. */
+const noAi = {
+  configured: false,
+  run: () => Promise.reject(new Error('Ninguna prueba llama a OpenAI')),
+} as unknown as AiProvider;
 
 /** Sin límite de tasa: las pruebas inician sesión muchas veces desde la misma IP. */
 const unlimitedStorage = {
@@ -56,6 +63,7 @@ export async function startIntegrationApp(
     readonly throttle?: boolean;
     readonly pushSender?: PushSender;
     readonly mediaPurger?: MediaPurger;
+    readonly aiProvider?: AiProvider;
   } = {},
 ): Promise<IntegrationApp> {
   process.env.DATABASE_URL = inject('databaseUrl');
@@ -67,6 +75,7 @@ export async function startIntegrationApp(
     { PrismaService },
     push,
     media,
+    ai,
     { AuthAttemptsGuard },
   ] = await Promise.all([
     import('../app.module.js'),
@@ -76,6 +85,7 @@ export async function startIntegrationApp(
     import('../prisma/prisma.service.js'),
     import('../modules/notifications/push-sender.js'),
     import('../modules/media/media-purger.js'),
+    import('../modules/ai/ai-provider.js'),
     import('../modules/auth/auth-attempts.guard.js'),
   ]);
 
@@ -86,7 +96,9 @@ export async function startIntegrationApp(
     .overrideProvider(Clock)
     .useValue(clock)
     .overrideProvider(media.MediaPurger)
-    .useValue(options.mediaPurger ?? noMediaPurger);
+    .useValue(options.mediaPurger ?? noMediaPurger)
+    .overrideProvider(ai.AiProvider)
+    .useValue(options.aiProvider ?? noAi);
   if (options.pushSender) builder = builder.overrideProvider(push.PushSender).useValue(options.pushSender);
   if (!options.throttle) {
     // BE12: los dos límites (por IP y por correo) solo corren en las pruebas que los miden.
