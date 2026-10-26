@@ -28,7 +28,6 @@
     "api": {
       "root": "apps/api",
       "framework": "nestjs",
-      "installCommand": "pnpm install --frozen-lockfile --config.node-linker=hoisted",
       "buildCommand": "sh scripts/vercel-build.sh",
       "outputDirectory": "vercel-function"
     }

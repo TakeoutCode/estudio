@@ -15,6 +15,8 @@ export default estudioConfig({
     { object: 'process', property: 'env', message: 'Lee el entorno solo con AppConfig (BACKEND BE4).' },
   ],
   overrides: [
+    // La función de Vercel empaquetada (scripts/bundle-vercel.ts), salida de build como dist/.
+    { ignores: ['vercel-function/**'] },
     {
       // src/test/ fija el entorno antes de importar ConfigModule (pruebas de integración);
       // prisma/seed.ts es un script de la CLI de Prisma, como prisma.config.ts.

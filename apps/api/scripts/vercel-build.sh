@@ -3,9 +3,7 @@
 # Compila con turbo (shared, srs, cliente de Prisma y la API) y empaqueta la función en
 # vercel-function/main.mjs (scripts/bundle-vercel.ts), que Vercel usa tal cual (outputDirectory):
 # si la empaquetara él desde src/main.ts, los paquetes CommonJS harían require de Nest 12 (solo
-# ESM), que su runtime no permite. La instalación de este servicio es hoisted (installCommand):
-# así @node-rs/argon2, lo único que queda fuera del bundle, llega a node_modules en la raíz de la
-# función, junto a main.mjs, y no detrás de un symlink de pnpm.
+# ESM), que su runtime no permite.
 # Solo en producción, aplica las migraciones pendientes antes de publicar: si una falla, el
 # deploy no sale (QUALITY §5). Las previews no migran: su base no debe ser la de producción.
 set -eu
