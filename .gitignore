@@ -10,8 +10,9 @@ coverage/
 .env.*
 !.env.example
 
-# Cliente Prisma generado
+# Cliente Prisma generado y función de Vercel empaquetada
 apps/api/src/generated/
+apps/api/vercel-function/
 
 # Playwright
 playwright-report/
