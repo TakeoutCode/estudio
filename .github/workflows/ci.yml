@@ -1,5 +1,7 @@
-# QUALITY QA4: checks obligatorios para fusionar a main. La integración de la api con
-# Testcontainers corre dentro de `pnpm test`; Playwright va en su job; Lighthouse todavía no (deuda).
+# QUALITY QA4: checks obligatorios para fusionar a main, en orden: `checks` (pasos 1-5; la
+# integración de la api con Testcontainers corre dentro de `pnpm test`) y, si pasa, `e2e` (paso 6).
+# `security` (paso 7) corre en paralelo para que un secreto se vea aunque falle lo demás.
+# Lighthouse todavía no (deuda).
 name: CI
 
 on:
@@ -26,6 +28,13 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+
+      # QA4 paso 1: caché de Turbo; una tarea cuyas entradas no cambiaron no se vuelve a correr.
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
 
       - name: Instalar
         run: pnpm install --frozen-lockfile
@@ -60,6 +69,7 @@ jobs:
 
   # QA4 paso 6: Playwright en iPhone (WebKit) y escritorio (Chromium) contra la API real.
   e2e:
+    needs: checks
     runs-on: ubuntu-latest
     services:
       postgres:

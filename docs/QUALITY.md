@@ -56,7 +56,7 @@ También son obligatorias: P1 (fórmula con tiempos de arranque y luego con medi
 
 ## 5. CI (GitHub Actions)
 
-**QA4 · DEBE** correr en cada PR, como checks obligatorios para fusionar a `main`, en este orden. *Razón:* AGENTS AG10; es la única barrera automática.
+**QA4 · DEBE** correr en cada PR, como checks obligatorios para fusionar a `main`, en este orden: los pasos 1 a 5 en el job `checks` y el 6 (`e2e`) solo si pasan; el 7 (`security`) corre en paralelo, para que un secreto filtrado se vea aunque falle lo demás. *Razón:* AGENTS AG10; es la única barrera automática.
 1. `pnpm install --frozen-lockfile` (con caché de pnpm y de Turbo).
 2. `pnpm typecheck` y `pnpm lint`. Incluye `lint:copy`, los `no-restricted-imports` de ARC1 y `vitest/no-disabled-tests` y `no-focused-tests` como error, más `it.todo` y `test.todo` prohibidos con `no-restricted-properties`.
 3. `pnpm test` con cobertura mínima: `srs` 90 % de líneas y ramas; módulos `sync` (api y web) 85 % de líneas y ramas (en la api, unitarias e integración juntas).
@@ -77,7 +77,7 @@ Despliegue (ADR-018): un solo proyecto de Vercel con los servicios `web` y `api`
 - El trigger impide `UPDATE` y `DELETE` en `review_log`.
 - La firma de Cloudinary fija `public_id = estudio/<userId>/<assetId>` y los formatos de imagen; no firma un asset de otra cuenta, borrado o que no llegó por push, y el handler rechaza un `MediaAsset` con otro `public_id` (`media.int.spec.ts`).
 
-En la web, cabeceras de Vercel (servicio `web` en `vercel.json`): `Content-Security-Policy` con `default-src 'self'; img-src 'self' blob: data: https://res.cloudinary.com; media-src 'self' blob: https://res.cloudinary.com; connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com; frame-src https://www.youtube-nocookie.com` (la API entra por `'self'`: está en el mismo origen, ADR-019) (`res.cloudinary.com` en `connect-src` porque el service worker descarga las imágenes para guardarlas, FRONTEND §5), además de `Referrer-Policy: strict-origin-when-cross-origin` y `Permissions-Policy` (micrófono solo `self`). Renovate actualiza dependencias semanalmente.
+En la web, cabeceras de Vercel (servicio `web` en `vercel.json`): `Content-Security-Policy` con `default-src 'self'; img-src 'self' blob: data: https://res.cloudinary.com; media-src 'self' blob: https://res.cloudinary.com; connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com; frame-src https://www.youtube-nocookie.com` (la API entra por `'self'`: está en el mismo origen, ADR-019) (`res.cloudinary.com` en `connect-src` porque el service worker descarga las imágenes para guardarlas, FRONTEND §5), además de `Referrer-Policy: strict-origin-when-cross-origin` y `Permissions-Policy` (micrófono solo `self`). Renovate actualiza dependencias semanalmente (`renovate.json`: lunes antes de las 9:00 de México, versiones exactas, las menores de desarrollo en un solo PR); necesita la app de Renovate instalada en el repositorio de GitHub.
 
 ## 7. Privacidad
 
