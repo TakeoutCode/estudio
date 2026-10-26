@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
@@ -10,6 +10,7 @@ import { ClockModule } from './common/clock.js';
 import { ContractGuard } from './common/contract.guard.js';
 import { requestLogProps } from './common/log-props.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
+import { ResponseValidationInterceptor } from './common/response-schema.js';
 import { AppConfig } from './config/app-config.js';
 import { AppConfigModule } from './config/config.module.js';
 import { AiModule } from './modules/ai/ai.module.js';
@@ -94,6 +95,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     { provide: APP_GUARD, useClass: ContractGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },
+    { provide: APP_INTERCEPTOR, useClass: ResponseValidationInterceptor }, // BE3, solo en pruebas
   ],
 })
 export class AppModule {}

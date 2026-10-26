@@ -49,6 +49,10 @@ export const HealthChecksSchema = z
   .strict();
 export type HealthChecks = z.infer<typeof HealthChecksSchema>;
 
+/** QA8: `GET /health`, el ping a la base. */
+export const HealthStatusSchema = z.object({ status: z.literal('ok') }).strict();
+export type HealthStatus = z.infer<typeof HealthStatusSchema>;
+
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const QUOTED = /"[^"]*"|'[^']*'|`[^`]*`|«[^»]*»|“[^”]*”/g;
 

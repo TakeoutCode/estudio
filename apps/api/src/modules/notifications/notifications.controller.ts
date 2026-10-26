@@ -6,6 +6,7 @@ import {
   type BreakEndSchedule,
   BreakEndScheduleSchema,
   type NotificationState,
+  NotificationStateSchema,
   type PushSubscriptionInput,
   PushSubscriptionInputSchema,
   type PushUnsubscribe,
@@ -13,6 +14,7 @@ import {
 } from '@estudio/shared';
 import { Body, Controller, Delete, Get, Header, HttpCode, Param, Post, Put } from '@nestjs/common';
 import { z } from 'zod';
+import { ResponseSchema } from '../../common/response-schema.js';
 import { ZodPipe } from '../../common/zod.pipe.js';
 import { type AuthUser, CurrentUser } from '../auth/current-user.js';
 import { NotificationsService } from './notifications.service.js';
@@ -68,6 +70,7 @@ export class NotificationsController {
     await this.service.markOpened(user.id, id);
   }
 
+  @ResponseSchema(NotificationStateSchema)
   @Get('notifications/state')
   @Header('Cache-Control', 'no-store')
   async state(@CurrentUser() user: AuthUser): Promise<NotificationState> {

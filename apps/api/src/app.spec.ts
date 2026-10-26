@@ -5,8 +5,10 @@ import type { Request } from 'express';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { AppModule } from './app.module.js';
 import { configureApp } from './bootstrap.js';
+import { ResponseSchema } from './common/response-schema.js';
 import { Public } from './modules/auth/public.js';
 import { TokenService } from './modules/auth/token.service.js';
 import { HealthRepository } from './modules/health/health.repository.js';
@@ -16,24 +18,42 @@ import { FakeHealthRepository } from './test/fake-health-repository.js';
 const WEB = 'http://localhost:5180';
 const HEALTH_TOKEN = 'token-de-salud-de-pruebas-de-al-menos-32';
 
+const OkSchema = z.object({ ok: z.literal(true) }).strict();
+
 // Pública para aislar contrato, CSRF y CORS; el access token se prueba en auth.int.spec.ts.
 @Controller('probe')
 @Public()
 class ProbeController {
+  @ResponseSchema(OkSchema)
   @Get()
   read() {
     return { ok: true };
   }
 
+  @ResponseSchema(OkSchema)
   @Post()
   write() {
     return { ok: true };
   }
 
   /** La IP con la que cuenta el throttler (BE12). */
+  @ResponseSchema(z.object({ ip: z.string() }))
   @Get('ip')
   ip(@Req() req: Request) {
     return { ip: req.ip };
+  }
+
+  /** BE3: responde algo que su esquema no admite. */
+  @ResponseSchema(OkSchema)
+  @Get('fuera-de-contrato')
+  broken() {
+    return { ok: 'sí' };
+  }
+
+  /** BE3: responde un cuerpo sin declarar su esquema. */
+  @Get('sin-esquema')
+  undeclared() {
+    return { ok: true };
   }
 }
 
@@ -187,6 +207,17 @@ describe('app (integración HTTP, sin base)', () => {
       .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
       .expect(200, { ok: true });
   });
+
+  it.each(['fuera-de-contrato', 'sin-esquema'])(
+    'BE3: en pruebas, una respuesta %s falla en lugar de llegar a la web',
+    async (route) => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/probe/${route}`)
+        .set(CONTRACT_HEADER, String(CONTRACT_VERSION))
+        .expect(500);
+      expect(res.body).toMatchObject({ code: 'internal' });
+    },
+  );
 
   it('BE12: rechaza un POST de otro origen (CSRF) y acepta el de la web', async () => {
     const post = (origin: string) =>

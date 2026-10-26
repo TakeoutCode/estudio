@@ -2,18 +2,23 @@ import {
   type AiDistractorsRequest,
   AiDistractorsRequestSchema,
   type AiDistractorsResponse,
+  AiDistractorsResponseSchema,
   type AiDraftRequest,
   AiDraftRequestSchema,
   type AiDraftResponse,
+  AiDraftResponseSchema,
   type AiExplanationCheck,
   type AiExplanationCheckRequest,
   AiExplanationCheckRequestSchema,
+  AiExplanationCheckSchema,
   type AiFeedbackRequest,
   AiFeedbackRequestSchema,
   type AiOpenFeedback,
+  AiOpenFeedbackSchema,
 } from '@estudio/shared';
 import { Body, Controller, Header, HttpCode, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ResponseSchema } from '../../common/response-schema.js';
 import { ZodPipe } from '../../common/zod.pipe.js';
 import { type AuthUser, CurrentUser } from '../auth/current-user.js';
 import { AiService } from './ai.service.js';
@@ -27,6 +32,7 @@ export class AiController {
   constructor(private readonly ai: AiService) {}
 
   /** LD14: borradores de notas a partir de texto que ella pega; ella los revisa (LD16). */
+  @ResponseSchema(AiDraftResponseSchema)
   @Post('drafts')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
@@ -39,6 +45,7 @@ export class AiController {
   }
 
   /** LD14: distractores para su pregunta de opción múltiple; ella elige cuáles usa (LD16). */
+  @ResponseSchema(AiDistractorsResponseSchema)
   @Post('distractors')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
@@ -51,6 +58,7 @@ export class AiController {
   }
 
   /** LD14: retroalimentación de su respuesta abierta frente a su clave; ella se califica. */
+  @ResponseSchema(AiOpenFeedbackSchema)
   @Post('feedback')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
@@ -63,6 +71,7 @@ export class AiController {
   }
 
   /** LD14: si su autoexplicación de una tarjeta que olvidó es correcta; no toca FSRS. */
+  @ResponseSchema(AiExplanationCheckSchema)
   @Post('explanation-check')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')

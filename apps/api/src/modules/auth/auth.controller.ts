@@ -1,6 +1,12 @@
-import { type Credentials, CredentialsSchema, type SessionResponse } from '@estudio/shared';
+import {
+  type Credentials,
+  CredentialsSchema,
+  type SessionResponse,
+  SessionResponseSchema,
+} from '@estudio/shared';
 import { Body, Controller, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { ResponseSchema } from '../../common/response-schema.js';
 import { ZodPipe } from '../../common/zod.pipe.js';
 import { AppConfig } from '../../config/app-config.js';
 import { AuthAttemptsGuard } from './auth-attempts.guard.js';
@@ -25,6 +31,7 @@ export class AuthController {
     await this.auth.register(body);
   }
 
+  @ResponseSchema(SessionResponseSchema)
   @Post('login')
   @HttpCode(200)
   @UseGuards(AuthAttemptsGuard)
@@ -35,6 +42,7 @@ export class AuthController {
     return this.respond(res, await this.auth.login(body));
   }
 
+  @ResponseSchema(SessionResponseSchema)
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<SessionResponse> {

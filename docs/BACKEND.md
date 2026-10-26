@@ -56,7 +56,7 @@ export class NoteSyncHandler implements LwwHandler<Note> {
 
 ## 3. Validación, configuración y errores
 
-**BE3 · DEBE** validar cuerpo y query con `ZodPipe` y los esquemas de `@estudio/shared`. **NO DEBE** usar class-validator ni DTOs duplicados (ADR-012). En `NODE_ENV=test`, un interceptor valida también cada respuesta contra su esquema. *Razón:* un solo contrato.
+**BE3 · DEBE** validar cuerpo y query con `ZodPipe` y los esquemas de `@estudio/shared`. **NO DEBE** usar class-validator ni DTOs duplicados (ADR-012). En `NODE_ENV=test`, un interceptor (`ResponseValidationInterceptor`) valida también cada respuesta contra el esquema que declara su ruta con `@ResponseSchema(...)`, y falla si una ruta responde un cuerpo sin declararlo. *Razón:* un solo contrato.
 ```ts
 export class ZodPipe<S extends z.ZodType> implements PipeTransform<unknown, z.output<S>> {
   constructor(private readonly schema: S) {}
@@ -144,7 +144,7 @@ Solo hay FK hacia `User`. Entre entidades sincronizables no hay FK porque un lot
 
 - [ ] ¿Algún controller con Prisma, o algún repository que lance `HttpException` (BE1)?
 - [ ] ¿La entidad nueva tiene `@SyncHandler`, valida referencias y tiene sus columnas de sync e índice `(user_id, server_seq)` (BE2, BE8)?
-- [ ] ¿Toda entrada pasa por `ZodPipe` con un esquema de `shared` (BE3)?
+- [ ] ¿Toda entrada pasa por `ZodPipe` y toda respuesta con cuerpo declara `@ResponseSchema`, con esquemas de `shared` (BE3)?
 - [ ] ¿Algún `process.env` fuera de `config/`, o una variable nueva sin agregar a `EnvSchema` (BE4)?
 - [ ] ¿Errores con `code` de `ApiErrorCode` y logs sin contenido de ella (BE5, BE6)?
 - [ ] ¿Alguna llamada a un tercero dentro de `@Transactional()` (BE7)?

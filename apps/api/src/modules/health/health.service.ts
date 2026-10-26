@@ -1,15 +1,11 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-import type { HealthCheckName, HealthChecks } from '@estudio/shared';
+import type { HealthCheckName, HealthChecks, HealthStatus } from '@estudio/shared';
 import { Injectable } from '@nestjs/common';
 import { Clock } from '../../common/clock.js';
 import { DomainError } from '../../common/domain-error.js';
 import { AppConfig } from '../../config/app-config.js';
 import { HealthMetrics } from './health-metrics.js';
 import { HealthRepository } from './health.repository.js';
-
-export interface HealthStatus {
-  readonly status: 'ok';
-}
 
 const digest = (value: string): Buffer => createHash('sha256').update(value).digest();
 

@@ -1,6 +1,12 @@
-import { type AiClinicalCasesResponse, type AiDraftRequest, AiDraftRequestSchema } from '@estudio/shared';
+import {
+  type AiClinicalCasesResponse,
+  AiClinicalCasesResponseSchema,
+  type AiDraftRequest,
+  AiDraftRequestSchema,
+} from '@estudio/shared';
 import { Body, Controller, Header, HttpCode, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ResponseSchema } from '../../common/response-schema.js';
 import { ZodPipe } from '../../common/zod.pipe.js';
 import { type AuthUser, CurrentUser } from '../auth/current-user.js';
 import { ClinicalCaseDraftsService } from './clinical-case-drafts.service.js';
@@ -14,6 +20,7 @@ export class ExercisesController {
   constructor(private readonly cases: ClinicalCaseDraftsService) {}
 
   /** LD14: borradores de casos clínicos a partir de texto que ella pega; ella los revisa (LD16). */
+  @ResponseSchema(AiClinicalCasesResponseSchema)
   @Post('clinical-cases')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
