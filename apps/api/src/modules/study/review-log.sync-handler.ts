@@ -1,10 +1,9 @@
 import { type ApiErrorCode, MAX_HLC_DRIFT_MS, type ReviewLog } from '@estudio/shared';
-import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
-import type { PrismaTxHost } from '../../prisma/transaction.js';
 import { DecksRepository } from '../decks/decks.repository.js';
-import { dbNumber, dbNumberOrNull, insertAppendSql } from '../sync/sql.js';
+import { dbNumber, dbNumberOrNull } from '../sync/sql.js';
 import { type ApplyStatus, type EntitySyncHandler, SyncHandler } from '../sync/sync-handler.js';
+import { StudyRepository } from './study.repository.js';
 
 /** R3: el ReviewLog es solo de inserción; Postgres impide UPDATE y DELETE con un trigger. */
 @Injectable()
@@ -14,7 +13,7 @@ export class ReviewLogSyncHandler implements EntitySyncHandler<'reviewLog'> {
   readonly table = 'review_log';
 
   constructor(
-    private readonly txHost: TransactionHost,
+    private readonly repo: StudyRepository,
     private readonly decks: DecksRepository,
   ) {}
 
@@ -27,24 +26,8 @@ export class ReviewLogSyncHandler implements EntitySyncHandler<'reviewLog'> {
     return (await this.decks.owns('card', userId, row.cardId)) ? null : 'not_found';
   }
 
-  async apply(userId: string, row: ReviewLog): Promise<ApplyStatus> {
-    const rows = await (this.txHost as PrismaTxHost).tx.$queryRaw<{ server_seq: bigint }[]>(
-      insertAppendSql('review_log', [
-        { name: 'id', value: row.id, cast: 'uuid' },
-        { name: 'user_id', value: userId, cast: 'uuid' },
-        { name: 'card_id', value: row.cardId, cast: 'uuid' },
-        { name: 'card_kind', value: row.cardKind },
-        { name: 'reviewed_at', value: row.reviewedAt, cast: 'bigint' },
-        { name: 'rating', value: row.rating, cast: 'smallint' },
-        { name: 'duration_ms', value: row.durationMs, cast: 'integer' },
-        { name: 'type', value: row.type },
-        { name: 'confidence', value: row.confidence, cast: 'smallint' },
-        { name: 'session_id', value: row.sessionId, cast: 'uuid' },
-        { name: 'device_id', value: row.deviceId, cast: 'uuid' },
-        { name: 'answer', value: row.answer ? JSON.stringify(row.answer) : null, cast: 'jsonb' },
-      ]),
-    );
-    return rows.length > 0 ? 'applied' : 'duplicate';
+  apply(userId: string, row: ReviewLog): Promise<ApplyStatus> {
+    return this.repo.insertReviewLog(userId, row);
   }
 
   fromDb(d: Readonly<Record<string, unknown>>): unknown {

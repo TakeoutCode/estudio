@@ -1,6 +1,9 @@
+import type { UserSettings } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
+import { syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
+import type { ApplyStatus } from '../sync/sync-handler.js';
 
 @Injectable()
 export class UsersRepository {
@@ -8,6 +11,19 @@ export class UsersRepository {
 
   private get tx() {
     return (this.txHost as PrismaTxHost).tx;
+  }
+
+  async upsertSettingsLww(userId: string, row: UserSettings): Promise<ApplyStatus> {
+    const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>(
+      upsertLwwSql('user_settings', [
+        { name: 'id', value: row.id, cast: 'uuid' },
+        { name: 'user_id', value: userId, cast: 'uuid' },
+        { name: 'section', value: row.section },
+        { name: 'data', value: JSON.stringify(row.data), cast: 'jsonb' },
+        ...syncMetaColumns(row),
+      ]),
+    );
+    return rows.length > 0 ? 'applied' : 'stale';
   }
 
   findPasswordHash(userId: string): Promise<{ passwordHash: string } | null> {

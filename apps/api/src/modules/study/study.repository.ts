@@ -1,4 +1,5 @@
 import type {
+  ReviewLog,
   Reward,
   RewardRedemption,
   SelfExplanation,
@@ -133,6 +134,27 @@ export class StudyRepository {
       WHERE t."user_id" = ${userId}::uuid AND t."deleted_at" IS NULL
         AND t."state" NOT IN ('idle', 'ended')
       ORDER BY t."hlc" COLLATE "C" DESC`.then((rows) => rows.map((r) => r.data as Record<string, unknown>));
+  }
+
+  /** R3: solo inserción; un id repetido es 'duplicate' y el trigger impide UPDATE y DELETE. */
+  async insertReviewLog(userId: string, row: ReviewLog): Promise<ApplyStatus> {
+    const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>(
+      insertAppendSql('review_log', [
+        { name: 'id', value: row.id, cast: 'uuid' },
+        { name: 'user_id', value: userId, cast: 'uuid' },
+        { name: 'card_id', value: row.cardId, cast: 'uuid' },
+        { name: 'card_kind', value: row.cardKind },
+        { name: 'reviewed_at', value: row.reviewedAt, cast: 'bigint' },
+        { name: 'rating', value: row.rating, cast: 'smallint' },
+        { name: 'duration_ms', value: row.durationMs, cast: 'integer' },
+        { name: 'type', value: row.type },
+        { name: 'confidence', value: row.confidence, cast: 'smallint' },
+        { name: 'session_id', value: row.sessionId, cast: 'uuid' },
+        { name: 'device_id', value: row.deviceId, cast: 'uuid' },
+        { name: 'answer', value: row.answer ? JSON.stringify(row.answer) : null, cast: 'jsonb' },
+      ]),
+    );
+    return rows.length > 0 ? 'applied' : 'duplicate';
   }
 
   async insertTimerBlockLog(userId: string, b: TimerBlockLog): Promise<ApplyStatus> {
