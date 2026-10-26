@@ -17,6 +17,7 @@ import { deviceId, observeHlc } from '@/db/clock';
 import type { projectCards as ProjectCardsFn } from '@/db/projection';
 import {
   type EstudioDb,
+  FULL_RESYNC_KEY,
   type OutboxEntry,
   SERVER_OFFSET_KEY,
   SYNC_CURSOR_KEY,
@@ -180,6 +181,7 @@ async function resetForFullResync(database: EstudioDb): Promise<void> {
       ].map((table) => table.clear()),
     );
     await database.meta.put({ key: CURSOR_KEY, value: '0' });
+    await database.meta.put({ key: FULL_RESYNC_KEY, value: true });
   });
 }
 
@@ -203,6 +205,7 @@ async function reapplyOutbox(database: EstudioDb, projectCards: ProjectCards): P
       }
     }
     await projectCards(database, touchedCards);
+    await database.meta.delete(FULL_RESYNC_KEY);
   });
 }
 
@@ -216,15 +219,18 @@ export async function pullAll(
   const projectCards = await loadProjection();
   let pulled = 0;
   let cursor = await readCursor(database);
-  let resynced = false;
+  // Un pull completo que quedó a medias (la app se cerró) sigue pendiente de reaplicar el outbox.
+  let resyncPending = (await database.meta.get(FULL_RESYNC_KEY))?.value === true;
+  let resetNow = false;
   for (;;) {
     let page: PullResponse;
     try {
       page = await transport.pull(cursor);
     } catch (error) {
-      if (error instanceof ApiError && error.code === 'cursor_expired' && !resynced) {
+      if (error instanceof ApiError && error.code === 'cursor_expired' && !resetNow) {
         await resetForFullResync(database);
-        resynced = true;
+        resyncPending = true;
+        resetNow = true;
         cursor = '0';
         continue;
       }
@@ -235,7 +241,7 @@ export async function pullAll(
     cursor = page.cursor;
     if (!page.hasMore) break;
   }
-  if (resynced) await reapplyOutbox(database, projectCards);
+  if (resyncPending) await reapplyOutbox(database, projectCards);
   return pulled;
 }
 

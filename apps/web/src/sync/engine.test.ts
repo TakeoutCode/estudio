@@ -304,6 +304,44 @@ describe('pull (SYNC SY4)', () => {
     expect(await database.outbox.count()).toBe(4); // dos repasos, el borrado y el cambio
   });
 
+  it('SY8, SY-T9: si el pull completo queda a medias, lo rechazado vuelve a estar en este dispositivo', async () => {
+    const database = replica();
+    const server = new FakeSyncServer();
+    await createDeck({ name: 'Ya sincronizado' }, { database, now: T0 });
+    await syncOnce(database, server.transport, () => T0);
+    const mine = await createDeck({ name: 'Rechazado' }, { database, now: T0 + 1000 });
+    // El servidor lo rechazó antes: sigue en el outbox y en este dispositivo (SY8).
+    await database.outbox.toCollection().modify({ status: 'rejected', code: 'not_found' });
+    // Otro dispositivo borra algo y el servidor lo purga: el cursor ya no sirve (410).
+    await server.push({
+      deviceId: OTHER_NODE,
+      mutations: [
+        {
+          mutationId: newId(),
+          op: 'upsert',
+          entity: 'deck',
+          row: remoteDeck(T0 + 500, { deletedAt: T0 + 500 }),
+        },
+      ],
+    });
+    server.purgeTombstones();
+    await database.meta.put({ key: 'syncCursor', value: '1' });
+
+    // Se vacía todo para el pull completo, y la app se cierra antes de terminarlo.
+    const cut: SyncTransport = {
+      push: (request) => server.transport.push(request),
+      pull: (cursor) =>
+        cursor === '0' ? Promise.reject(new ApiError(503, 'unavailable')) : server.transport.pull(cursor),
+    };
+    await expect(pullAll(database, cut, () => T0)).rejects.toThrow('unavailable');
+    expect(await database.decks.get(mine.id)).toBeUndefined();
+
+    await pullAll(database, server.transport, () => T0);
+    expect(await database.decks.get(mine.id)).toMatchObject({ name: 'Rechazado' });
+    expect(await database.outbox.where('status').equals('rejected').count()).toBe(1);
+    expect(await database.meta.get('fullResyncPending')).toBeUndefined();
+  });
+
   it('SY-T9: un error del pull que no es 410 se propaga, y un segundo 410 seguido también', async () => {
     const database = replica();
     const failing = (error: ApiError): SyncTransport => ({

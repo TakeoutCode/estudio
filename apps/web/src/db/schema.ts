@@ -58,6 +58,11 @@ export interface PendingUpload {
 export const SYNC_CURSOR_KEY = 'syncCursor';
 /** Desfase estimado con el reloj del servidor (`serverNow` del pull, SYNC SY7). */
 export const SERVER_OFFSET_KEY = 'serverOffsetMs';
+/**
+ * SYNC §4: hay un pull completo sin terminar (tras un 410). Si la app se cierra a mitad, la
+ * próxima vuelta lo sabe y, al terminar, vuelve a poner en local lo que sigue en el outbox.
+ */
+export const FULL_RESYNC_KEY = 'fullResyncPending';
 
 /** Tabla de Dexie de cada entidad que se sincroniza. */
 export const TABLE_FOR = {
