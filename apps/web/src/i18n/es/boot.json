@@ -75,15 +75,6 @@
   "settings": {
     "title": "Ajustes"
   },
-  "ui": {
-    "number": {
-      "decrease": "Restar uno: {{label}}",
-      "increase": "Sumar uno: {{label}}",
-      "range": "De {{min}} a {{max}}",
-      "invalid": "Escribe un número de {{min}} a {{max}}."
-    },
-    "source": "(fuente, se abre en otra pestaña)"
-  },
   "offline": {
     "banner": "Sin conexión · tus repasos se guardan en este dispositivo"
   },

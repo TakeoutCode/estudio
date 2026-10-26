@@ -1153,5 +1153,14 @@
       "offline": "Requiere conexión.",
       "failed": "No se pudo revisar con la IA. Tu explicación igual te sirvió."
     }
+  },
+  "ui": {
+    "number": {
+      "decrease": "Restar uno: {{label}}",
+      "increase": "Sumar uno: {{label}}",
+      "range": "De {{min}} a {{max}}",
+      "invalid": "Escribe un número de {{min}} a {{max}}."
+    },
+    "source": "(fuente, se abre en otra pestaña)"
   }
 }
