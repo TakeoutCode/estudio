@@ -39,11 +39,16 @@ export class AuthService {
     private readonly clock: Clock,
   ) {}
 
-  /** BE10, ADR-007: solo correos permitidos, y la misma respuesta en todos los casos. */
+  /**
+   * BE10, ADR-007: solo correos permitidos, y la misma respuesta en todos los casos. El hash se
+   * calcula siempre: argon2 es lo que más tarda, y saltarlo delataría por el tiempo qué correo
+   * está permitido o ya tiene cuenta.
+   */
   async register({ email, password }: Credentials): Promise<void> {
+    const passwordHash = await hashPassword(password);
     if (!this.config.get('ALLOWED_EMAILS').includes(email)) return;
     if (await this.repo.findUserByEmail(email)) return;
-    await this.repo.createUser({ id: newId(), email, passwordHash: await hashPassword(password) });
+    await this.repo.createUser({ id: newId(), email, passwordHash });
   }
 
   async login({ email, password }: Credentials): Promise<IssuedSession> {
