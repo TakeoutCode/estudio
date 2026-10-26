@@ -1,4 +1,4 @@
-import type { ApiErrorCode, Card } from '@estudio/shared';
+import { type ApiErrorCode, type Card, cardIdFor } from '@estudio/shared';
 import { Injectable } from '@nestjs/common';
 import { dbNumber, dbNumberOrNull } from '../sync/sql.js';
 import { type ApplyStatus, type EntitySyncHandler, SyncHandler } from '../sync/sync-handler.js';
@@ -13,8 +13,9 @@ export class CardSyncHandler implements EntitySyncHandler<'card'> {
 
   constructor(private readonly repo: DecksRepository) {}
 
-  check(): null {
-    return null;
+  /** SYNC §1: el id sale de la nota y el ordinal; otro id duplicaría la tarjeta entre dispositivos. */
+  check(_userId: string, row: Card): ApiErrorCode | null {
+    return row.id === cardIdFor(row.noteId, row.ordinal) ? null : 'validation_failed';
   }
 
   async refs(userId: string, row: Card): Promise<ApiErrorCode | null> {

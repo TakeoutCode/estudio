@@ -1,4 +1,5 @@
 import {
+  cardIdFor,
   MAX_HLC_DRIFT_MS,
   newId,
   type PullResponse,
@@ -189,6 +190,22 @@ describe('sync contra Postgres real (SYNC.md)', () => {
     expect(results.map((r) => r.status)).toEqual(['applied', 'applied', 'applied']);
     return { deck, note, card };
   };
+
+  it('SYNC §1: el id de una tarjeta es el de su nota y su ordinal; otro se rechaza', async () => {
+    const { note } = await ownedCard(a.token);
+    const results = (
+      await push(a.token, [
+        upsert(cardRow(now, NODE, note.id, { id: newId(), ordinal: 1 }), 'card'),
+        upsert(cardRow(now, NODE, note.id, { id: cardIdFor(note.id, 2), ordinal: 1 }), 'card'),
+        upsert(cardRow(now, NODE, note.id, { id: cardIdFor(note.id, 1), ordinal: 1 }), 'card'),
+      ])
+    ).results;
+    expect(results.map((r) => [r.status, r.code])).toEqual([
+      ['rejected', 'validation_failed'],
+      ['rejected', 'validation_failed'],
+      ['applied', undefined],
+    ]);
+  });
 
   it('BE2: nota, tarjeta y repaso solo pueden referirse a filas de ella', async () => {
     const mine = await ownedCard(a.token);
