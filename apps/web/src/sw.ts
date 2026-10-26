@@ -6,7 +6,7 @@ import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst } from 'workbox-strategies';
 // AGENTS AG5: el título por defecto sale del catálogo; solo esa clave entra en el SW.
-import { app } from './i18n/es/common.json';
+import { app } from './i18n/es/boot.json';
 
 declare const self: ServiceWorkerGlobalScope;
 

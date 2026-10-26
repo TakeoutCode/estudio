@@ -1,4 +1,4 @@
-import './lib/i18n';
+import { loadFullCatalog } from './lib/i18n';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
@@ -26,4 +26,6 @@ export function boot(root: HTMLElement): void {
       <RouterProvider router={router} />
     </StrictMode>,
   );
+  // FE9: el resto del catálogo, ya con Hoy pedido; así las demás rutas no lo esperan.
+  void loadFullCatalog();
 }

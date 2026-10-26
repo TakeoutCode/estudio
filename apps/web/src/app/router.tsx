@@ -1,12 +1,13 @@
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { RequireAccount } from '@/features/auth';
+import { loadFullCatalog } from '@/lib/i18n';
 import { RootLayout } from './RootLayout';
 import { RouteError } from './RouteError';
 
 // Rutas lazy: la de estudio no carga el editor (FRONTEND FE9). FE13: cada pantalla tiene su
 // error boundary dentro del layout (las pestañas y los avisos siguen); el de la raíz queda por si
 // falla el layout mismo.
-export const routes: RouteObject[] = [
+export const routes: RouteObject[] = withCatalog([
   {
     path: '/',
     element: <RootLayout />,
@@ -171,6 +172,21 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-];
+]);
+
+/**
+ * FE9: toda ruta lazy menos Hoy espera también el resto del catálogo (`rest.json`), que no
+ * entra en el JS inicial. Hoy se pinta con `boot.json`.
+ */
+function withCatalog(list: RouteObject[]): RouteObject[] {
+  return list.map((route) => {
+    const { lazy, children } = route;
+    const load =
+      typeof lazy === 'function' && route.index !== true
+        ? async () => (await Promise.all([lazy(), loadFullCatalog()]))[0]
+        : lazy;
+    return { ...route, lazy: load, ...(children ? { children: withCatalog(children) } : {}) } as RouteObject;
+  });
+}
 
 export const router = createBrowserRouter(routes);

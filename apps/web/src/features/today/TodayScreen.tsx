@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { NotificationsAtOpen } from '@/features/notifications';
 import { SleepCheckIn } from '@/features/sleep';
 import { type PlanSnapshot, useTodayPlan } from '@/features/study';
+import { loadFullCatalog } from '@/lib/i18n';
 import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
@@ -12,14 +13,20 @@ import { LinkRow } from '@/ui/LinkRow';
 import { PageHeader } from '@/ui/PageHeader';
 import { FewerNewOffer } from './FewerNewOffer';
 
-// FE9: la gamificación no entra en el JS inicial de Hoy; apagada, ni siquiera se muestra.
-const GamificationCard = lazy(async () => ({
-  default: (await import('@/features/gamification')).GamificationCard,
-}));
+// FE9: la gamificación no entra en el JS inicial de Hoy; apagada, ni siquiera se muestra. Sus
+// textos están en el resto del catálogo.
+const GamificationCard = lazy(async () => {
+  const [{ GamificationCard: Card }] = await Promise.all([
+    import('@/features/gamification'),
+    loadFullCatalog(),
+  ]);
+  return { default: Card };
+});
 // FE9: los exámenes tampoco; Hoy solo muestra su repaso previo (LD12).
-const FinalReviewOffers = lazy(async () => ({
-  default: (await import('@/features/exams')).FinalReviewOffers,
-}));
+const FinalReviewOffers = lazy(async () => {
+  const [{ FinalReviewOffers: Offers }] = await Promise.all([import('@/features/exams'), loadFullCatalog()]);
+  return { default: Offers };
+});
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const primary = `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy ${focus}`;

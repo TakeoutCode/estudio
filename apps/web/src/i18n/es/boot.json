@@ -1,0 +1,110 @@
+{
+  "app": {
+    "name": "Estudio",
+    "tagline": "Repaso espaciado y práctica para tus exámenes"
+  },
+  "nav": {
+    "label": "Secciones"
+  },
+  "today": {
+    "title": "Hoy",
+    "greeting": "Qué bueno verte",
+    "empty": "No hay tarjetas pendientes. Puedes añadir nuevas o descansar.",
+    "pending_zero": "Hoy no hay repasos pendientes",
+    "pending_one": "Tienes {{count}} pendiente",
+    "pending_other": "Tienes {{count}} pendientes",
+    "newCards_one": "Y {{count}} nueva para aprender",
+    "newCards_other": "Y {{count}} nuevas para aprender",
+    "start": "Empezar",
+    "addCard": "Nueva tarjeta",
+    "decks": "Tus mazos",
+    "decksPaused_one": "Tus mazos · {{count}} en pausa",
+    "decksPaused_other": "Tus mazos · {{count}} en pausa",
+    "improve": {
+      "title": "Para mejorar",
+      "hint": "Estas tarjetas quedan aparte: cambiarles la explicación o escribirlas con tus palabras suele ayudar más que repetirlas.",
+      "edit": "Reformular"
+    },
+    "fewerNew": {
+      "title": "Una propuesta para estos días",
+      "body": "Tu retención en los repasos lleva al menos {{days}} días por debajo de tu objetivo. Te proponemos bajar las nuevas por día de {{current}} a {{proposed}} mientras afianzas lo que ya tienes. Lo decides tú.",
+      "hint": "También puede ayudar revisar tu carga y cómo vienes durmiendo.",
+      "week": "Ver Tu semana",
+      "accept_one": "Bajar a {{count}} nueva",
+      "accept_other": "Bajar a {{count}} nuevas",
+      "later": "Ahora no",
+      "failed": "No se pudo guardar tu respuesta. Intenta de nuevo."
+    },
+    "finalReview_one": "Repaso previo para {{exam}}: {{count}} tarjeta.",
+    "finalReview_other": "Repaso previo para {{exam}}: {{count}} tarjetas.",
+    "finalReviewStart": "Empezar"
+  },
+  "sleep": {
+    "question": "¿Cómo dormiste anoche?",
+    "option": "{{quality}} de 5: {{label}}",
+    "quality": {
+      "1": "Muy mal",
+      "2": "Mal",
+      "3": "Regular",
+      "4": "Bien",
+      "5": "Muy bien"
+    },
+    "hint": "Opcional, con un toque. Es contexto para Tu semana, no una meta; lo apagas en Ajustes.",
+    "saved": "Anoche: {{quality}} de 5",
+    "change": "Cambiar",
+    "failed": "No se pudo guardar. Intenta de nuevo."
+  },
+  "study": {
+    "notice": {
+      "overdue": "Hoy toca repasar lo pendiente; las nuevas esperan a otro día.",
+      "lowRetention": "Esta sesión es solo de repaso, para afianzar lo reciente.",
+      "spread": "Repartimos lo pendiente en los próximos {{days}} días.",
+      "newCap_one": "Hoy ya empezaste {{count}} nueva; las siguientes entran mañana.",
+      "newCap_other": "Hoy ya empezaste {{count}} nuevas; las siguientes entran mañana."
+    }
+  },
+  "exams": {
+    "title": "Exámenes"
+  },
+  "decks": {
+    "title": "Mazos"
+  },
+  "dashboard": {
+    "title": "Tu semana"
+  },
+  "settings": {
+    "title": "Ajustes"
+  },
+  "ui": {
+    "number": {
+      "decrease": "Restar uno: {{label}}",
+      "increase": "Sumar uno: {{label}}",
+      "range": "De {{min}} a {{max}}",
+      "invalid": "Escribe un número de {{min}} a {{max}}."
+    }
+  },
+  "offline": {
+    "banner": "Sin conexión · tus repasos se guardan en este dispositivo"
+  },
+  "update": {
+    "available": "Hay una versión nueva de la app.",
+    "required": "Actualiza la app para seguir sincronizando. Lo que respondiste está guardado.",
+    "apply": "Actualizar",
+    "afterSession": "Se actualizará al terminar la sesión"
+  },
+  "error": {
+    "boot": "No se pudo abrir la app. Recarga la página; lo que respondiste sigue guardado en este dispositivo.",
+    "generic": "Algo no salió bien. Lo que respondiste sigue guardado en este dispositivo.",
+    "retry": "Reintentar"
+  },
+  "notifications": {
+    "backoff": {
+      "question": "¿Quieres seguir recibiendo recordatorios?",
+      "asBefore": "Como antes",
+      "reduced_one": "Cada {{count}} día",
+      "reduced_other": "Cada {{count}} días",
+      "off": "Desactivar",
+      "failed": "No se pudo guardar tu respuesta. Intenta de nuevo."
+    }
+  }
+}

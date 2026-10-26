@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import '@/lib/i18n';
+import { loadFullCatalog } from '@/lib/i18n';
 import { cleanup, configure } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
@@ -7,6 +7,9 @@ import { afterEach } from 'vitest';
 // (CI, la suite completa) una pantalla con varias lecturas de Dexie tarda más y la prueba
 // fallaba sin que nada estuviera mal. Solo cambia cuánto se espera, no lo que se verifica.
 configure({ asyncUtilTimeout: 3000 });
+
+// FE9: en la app, el resto del catálogo llega con las rutas; las pruebas lo cargan de entrada.
+await loadFullCatalog();
 
 afterEach(() => {
   cleanup();

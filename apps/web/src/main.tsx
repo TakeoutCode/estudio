@@ -1,6 +1,6 @@
 import './lib/zod-config';
 import './index.css';
-import common from './i18n/es/common.json';
+import boot from './i18n/es/boot.json';
 
 // Si algo falla al cargar la app (entorno inválido, chunk que no llega), se muestra un
 // aviso en lugar de una pantalla en blanco (UI-UX UX3).
@@ -13,5 +13,5 @@ import('./boot')
   })
   .catch((error: unknown) => {
     console.error(error);
-    root.textContent = common.error.boot;
+    root.textContent = boot.error.boot;
   });
