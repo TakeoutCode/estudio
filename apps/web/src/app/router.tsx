@@ -15,7 +15,7 @@ export const routes: RouteObject[] = [
       {
         path: 'login',
         errorElement: <RouteError />,
-        lazy: async () => ({ Component: (await import('@/features/auth')).LoginScreen }),
+        lazy: async () => ({ Component: await (await import('@/features/auth')).loadLoginScreen() }),
       },
       {
         element: <RequireAccount />,
@@ -53,14 +53,14 @@ export const routes: RouteObject[] = [
               // `settings` no depende de las otras features: sus secciones se componen aquí.
               const [
                 { SettingsScreen, SyncSection },
-                { NotificationsSection },
-                { DeleteAccountSection },
+                NotificationsSection,
+                DeleteAccountSection,
                 { BackupSection },
                 { GamificationSection },
               ] = await Promise.all([
-                import('@/features/settings'),
-                import('@/features/notifications'),
-                import('@/features/auth'),
+                import('@/features/settings').then((m) => m.loadSettingsScreen()),
+                import('@/features/notifications').then((m) => m.loadNotificationsSection()),
+                import('@/features/auth').then((m) => m.loadDeleteAccountSection()),
                 import('@/features/backup'),
                 import('@/features/gamification'),
               ]);
@@ -113,15 +113,21 @@ export const routes: RouteObject[] = [
           },
           {
             path: 'contrast',
-            lazy: async () => ({ Component: (await import('@/features/contrast')).ContrastScreen }),
+            lazy: async () => ({
+              Component: await (await import('@/features/contrast')).loadContrastScreen(),
+            }),
           },
           {
             path: 'contrast/new',
-            lazy: async () => ({ Component: (await import('@/features/contrast')).ContrastEditorScreen }),
+            lazy: async () => ({
+              Component: await (await import('@/features/contrast')).loadContrastEditorScreen(),
+            }),
           },
           {
             path: 'contrast/:groupId',
-            lazy: async () => ({ Component: (await import('@/features/contrast')).ContrastEditorScreen }),
+            lazy: async () => ({
+              Component: await (await import('@/features/contrast')).loadContrastEditorScreen(),
+            }),
           },
           {
             path: 'rewards',
