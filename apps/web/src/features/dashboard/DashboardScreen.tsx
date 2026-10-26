@@ -7,6 +7,7 @@ import { Link } from 'react-router';
 import { useTodayPlan } from '@/features/study';
 import { EmptyState } from '@/ui/EmptyState';
 import { PageHeader } from '@/ui/PageHeader';
+import { SourceLink } from '@/ui/SourceLink';
 import { useWeeklyMetrics } from './use-weekly-metrics';
 import { useMockSummaries } from './queries';
 
@@ -175,7 +176,8 @@ function Retention({ metrics }: { readonly metrics: WeeklyMetrics }) {
         {t('dashboard.retention.expected', {
           target: percent(target),
           forget: Math.round((1 - target) * 100),
-        })}
+        })}{' '}
+        <SourceLink source={21} />
       </p>
     </Card>
   );

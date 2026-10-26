@@ -2,17 +2,12 @@ import type { Proportion } from '@estudio/srs';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
+import { SourceLink } from '@/ui/SourceLink';
 import { type ContrastGroupView, type ContrastOverview, useContrastOverview } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const textLink = `-ml-2 inline-flex min-h-11 items-center self-start px-2 text-primary ${focus}`;
 const primaryLink = `inline-flex min-h-11 items-center justify-center rounded-(--radius-card) bg-primary px-4 font-bold text-primary-contrast candy ${focus}`;
-
-/** STUDY-METHODS, fuentes [7] y [8]: la evidencia sobre intercalar es contradictoria (R20). */
-const SOURCES = [
-  { ref: 7, url: 'https://doi.org/10.1037/bul0000209' },
-  { ref: 8, url: 'https://link.springer.com/article/10.1007/s40037-017-0365-x' },
-] as const;
 
 /**
  * R9, P4, LD10: los grupos de tarjetas que se confunden. Cuando ella acierta cada una al menos
@@ -32,20 +27,8 @@ export function ContrastScreen() {
       </header>
       <p className="m-0">{t('contrast.intro')}</p>
       <p className="m-0 text-caption text-muted">
-        {t('contrast.evidence')}{' '}
-        {SOURCES.map((source, i) => (
-          <span key={source.ref}>
-            <a
-              className={`text-primary underline ${focus}`}
-              href={source.url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              [{source.ref}]
-            </a>
-            {i < SOURCES.length - 1 ? ' ' : ''}
-          </span>
-        ))}
+        {/* STUDY-METHODS [7] y [8]: la evidencia sobre intercalar es contradictoria (R20). */}
+        {t('contrast.evidence')} <SourceLink source={7} /> <SourceLink source={8} />
       </p>
       {overview === undefined ? null : overview.groups.length === 0 ? (
         <EmptyState

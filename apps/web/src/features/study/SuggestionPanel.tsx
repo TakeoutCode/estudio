@@ -1,6 +1,7 @@
 import type { PlannerConfig } from '@estudio/shared';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SourceLink } from '@/ui/SourceLink';
 import type { Suggestion } from './use-session-suggestion';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
@@ -46,6 +47,12 @@ export function SuggestionPanel({
     >
       <p id={id} className="m-0">
         {text}
+        {suggestion.kind === 'stop' && suggestion.reason === 'bedtime' ? (
+          <>
+            {' '}
+            <SourceLink source={29} />
+          </>
+        ) : null}
       </p>
       <div className="flex justify-end gap-2">
         {suggestion.kind === 'stop' ? (

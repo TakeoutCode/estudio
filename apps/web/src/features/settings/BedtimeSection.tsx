@@ -1,6 +1,7 @@
 import { type LocalTime, LocalTimeSchema, type MinuteRange } from '@estudio/shared';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SourceLink } from '@/ui/SourceLink';
 import { updateProfile } from './commands';
 import { useNotificationPrefs, useProfile } from './queries';
 
@@ -71,6 +72,12 @@ function BedtimeField({
       </div>
       <p id={`${id}-hint`} className="m-0 text-caption text-muted" aria-live="polite">
         {hint}
+        {chosen.success && chosen.data !== quietHours.end ? (
+          <>
+            {' '}
+            <SourceLink source={29} />
+          </>
+        ) : null}
       </p>
       {chosen.success ? (
         <button

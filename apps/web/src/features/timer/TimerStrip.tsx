@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { updateStudyConfig } from '@/features/settings';
 import { ClockIcon } from '@/ui/icons';
 import { NumberField } from '@/ui/NumberField';
+import { SourceLink } from '@/ui/SourceLink';
 import { dispatchTimer, recordManualMinutes, type TimerAction, type TimerResult } from './commands';
 import { formatClock } from './format';
 import type { TimerView } from './queries';
@@ -364,7 +365,9 @@ function TimerStart({
             />
           </div>
         ) : null}
-        <p className="m-0 text-caption text-muted">{t('timer.rhythmHint')}</p>
+        <p className="m-0 text-caption text-muted">
+          {t('timer.rhythmHint')} <SourceLink source={22} />
+        </p>
       </fieldset>
       <div className="flex flex-col gap-2">
         <button type="submit" className={`${strong} min-h-14 w-full`} disabled={busy || !ready}>

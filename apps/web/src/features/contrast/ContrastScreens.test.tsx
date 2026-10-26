@@ -30,10 +30,10 @@ describe('Tarjetas que se confunden (R9, LD10)', () => {
     expect(
       await screen.findByText('Todavía no hay grupos. Crea uno con tarjetas que se te mezclen.'),
     ).toBeTruthy();
-    expect(screen.getByRole('link', { name: '[7]' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: /^\[7\]/ }).getAttribute('href')).toBe(
       'https://doi.org/10.1037/bul0000209',
     );
-    expect(screen.getByRole('link', { name: '[8]' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /^\[8\]/ })).toBeTruthy();
   });
 
   it('crea un grupo buscando tarjetas; pide nombre y 2 tarjetas; luego aparece con su estado', async () => {

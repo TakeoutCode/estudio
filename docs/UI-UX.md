@@ -93,7 +93,7 @@ Tema "lazo": blanco de base, rosa como acento y formas redondeadas. El rosa fuer
 - Las tarjetas con muchos fallos aparecen como lista "Para mejorar", nunca como "fallos".
 - La calibración se muestra como una frase semanal neutra ("Tu intuición frente a lo que pasó").
 - El tiempo activo sale de los repasos (R21) y no tiene meta diaria.
-- **NO DEBE** mostrarse ninguna cifra de olvido o de mejora sin enlace a su fuente primaria (R20); el componente `<SourceLink ref="n" />` es obligatorio.
+- **NO DEBE** mostrarse ninguna cifra de olvido o de mejora sin enlace a su fuente primaria (R20); el componente `<SourceLink source={n} />` (`ui/SourceLink.tsx`, con el número de STUDY-METHODS) es obligatorio, también para los efectos que la app cita: el olvido esperado con la retención objetivo [21], los sets de contraste [7] [8], dormir y consolidar [29] y el ritmo 25/5 [22]. La prop no se llama `ref` porque React la reserva.
 
 ## 9. Gamificación (diseño; STUDY-METHODS no la investigó)
 

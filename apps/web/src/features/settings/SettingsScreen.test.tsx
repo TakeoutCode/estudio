@@ -103,9 +103,15 @@ describe('Ajustes · retención objetivo (R2, LD8)', () => {
 
   it('§5: dice cuánto olvido es lo esperado con el valor elegido; el control respeta 80-95', async () => {
     renderSettings();
+    const expected = await screen.findByText(
+      'Con 90 %, olvidar unas 10 de cada 100 al repasarlas es lo esperado.',
+    );
+    // R20, UX9: la cifra de olvido enlaza su fuente primaria.
     expect(
-      await screen.findByText('Con 90 %, olvidar unas 10 de cada 100 al repasarlas es lo esperado.'),
-    ).toBeTruthy();
+      within(expected)
+        .getByRole('link', { name: /^\[21\]/ })
+        .getAttribute('href'),
+    ).toBe('https://docs.ankiweb.net/faqs/what-spaced-repetition-algorithm.md');
     const slider = screen.getByRole('slider', { name: 'Retención objetivo' });
     expect(slider.getAttribute('min')).toBe('80');
     expect(slider.getAttribute('max')).toBe('95');

@@ -32,6 +32,7 @@ import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
 import { ChevronLeftIcon } from '@/ui/icons';
+import { SourceLink } from '@/ui/SourceLink';
 import {
   allowedRatings,
   AttemptControls,
@@ -852,7 +853,11 @@ function SessionDone({
         <h2 className="m-0 text-title font-extrabold">{t('study.done.title')}</h2>
         <p className="m-0">{t('study.done.summary', { count: answered })}</p>
         {view ? <SummaryFacts view={view} /> : null}
-        {bedtime ? <p className="m-0 text-muted">{t('study.done.bedtime')}</p> : null}
+        {bedtime ? (
+          <p className="m-0 text-muted">
+            {t('study.done.bedtime')} <SourceLink source={29} />
+          </p>
+        ) : null}
       </section>
       <ActionBar>
         <button

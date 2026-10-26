@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { ActionBar } from '@/ui/ActionBar';
 import { NumberField } from '@/ui/NumberField';
 import { PageHeader } from '@/ui/PageHeader';
+import { SourceLink } from '@/ui/SourceLink';
 import { Toggle } from '@/ui/Toggle';
 import { BedtimeSection } from './BedtimeSection';
 import { BreakUsageSection } from './BreakUsageSection';
@@ -240,7 +241,8 @@ function SettingsForm({
         <LoadEstimate load={load} points={points} savedPoints={savedPoints} percent={percent} />
         {/* §5: con 90 %, olvidar 1 de cada 10 es lo previsto, y la app lo dice. */}
         <p className="m-0 text-caption text-muted">
-          {t('settings.retention.expected', { value: percent(points), forget: 100 - points })}
+          {t('settings.retention.expected', { value: percent(points), forget: 100 - points })}{' '}
+          <SourceLink source={21} />
         </p>
       </section>
 
@@ -270,7 +272,10 @@ function SettingsForm({
         <h2 id={`${ids}-timer`} className="m-0 text-body font-semibold">
           {t('settings.timer.title')}
         </h2>
-        <p className="m-0 text-caption text-muted">{t('timer.rhythmHint')}</p>
+        {/* R17: el más estudiado con estudiantes, no el óptimo [22]. */}
+        <p className="m-0 text-caption text-muted">
+          {t('timer.rhythmHint')} <SourceLink source={22} />
+        </p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-4">
           {TIMER_KEYS.map((key) => (
             <NumberField
