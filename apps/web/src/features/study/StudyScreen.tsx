@@ -582,7 +582,7 @@ function CurrentCard({
     )
       .then(({ state: next }) => {
         onAnswered(next);
-        markAnswered();
+        markAnswered(cardId);
       })
       .catch(() => {
         setSaveFailed(true); // la tarjeta sigue en pantalla; nada se perdió
@@ -699,7 +699,7 @@ function CurrentCard({
   if (card === undefined) return null;
   if (card === null) {
     // Borrada durante la sesión (p. ej. desde otro dispositivo): se pasa a la siguiente.
-    return <SkipDeleted onSkip={markAnswered} />;
+    return <SkipDeleted cardId={cardId} />;
   }
   return (
     <>
@@ -792,10 +792,11 @@ const writesAnswer = (kind: CardKind): boolean =>
   kind === 'label_image' ||
   kind === 'clinical_case';
 
-function SkipDeleted({ onSkip }: { readonly onSkip: () => void }) {
+function SkipDeleted({ cardId }: { readonly cardId: string }) {
+  const markAnswered = useStudy((s) => s.markAnswered);
   useEffect(() => {
-    onSkip();
-  }, [onSkip]);
+    markAnswered(cardId);
+  }, [markAnswered, cardId]);
   return null;
 }
 

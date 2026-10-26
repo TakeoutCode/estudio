@@ -125,7 +125,11 @@ interface StudyState {
   readonly chooseConfidence: (confidence: Confidence) => void;
   /** Solo antes del intento (R1): después de comprobar ya no cambia. */
   readonly setWork: (work: ExerciseWork) => void;
-  readonly markAnswered: () => void;
+  /**
+   * Pasa a la siguiente, solo si `cardId` sigue en pantalla: guardar un repaso es asíncrono, y
+   * uno que termina tarde no debe borrar el intento de la tarjeta que ya está a la vista.
+   */
+  readonly markAnswered: (cardId: string) => void;
   /** Detiene el reloj de la tarjeta desde `at` (descanso, app oculta o fuera de la sesión). */
   readonly hold: (reason: CardPause, at: number) => void;
   /** Cierra esa pausa: la duración de la tarjeta sigue desde donde quedó. */
@@ -184,15 +188,19 @@ export const useStudy = create<StudyState>()((set) => ({
   chooseConfidence: (confidence) => {
     set((s) => (s.currentCardId && s.phase === 'prompt' ? { confidence } : s));
   },
-  markAnswered: () => {
-    set((s) => ({
-      currentCardId: null,
-      phase: 'prompt',
-      confidence: null,
-      attempt: null,
-      work: null,
-      answered: s.answered + 1,
-    }));
+  markAnswered: (cardId) => {
+    set((s) =>
+      s.currentCardId === cardId
+        ? {
+            currentCardId: null,
+            phase: 'prompt',
+            confidence: null,
+            attempt: null,
+            work: null,
+            answered: s.answered + 1,
+          }
+        : s,
+    );
   },
   hold: (reason, at) => {
     set((s) => {
