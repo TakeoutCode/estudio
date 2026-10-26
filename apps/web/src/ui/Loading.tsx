@@ -32,10 +32,10 @@ export function Loading() {
     <div aria-busy="true" className="flex flex-col gap-3">
       <span className="sr-only">{t('app.loading')}</span>
       <div aria-hidden="true" className="flex flex-col gap-3 motion-safe:animate-pulse">
-        <div className="h-8 w-2/5 rounded-(--radius-card) bg-blush" />
-        <div className="h-28 rounded-(--radius-card) bg-blush" />
-        <div className="h-14 rounded-(--radius-card) bg-blush" />
-        <div className="h-14 rounded-(--radius-card) bg-blush" />
+        <div className="h-8 w-2/5 rounded-(--radius-card) bg-line" />
+        <div className="h-28 rounded-(--radius-card) bg-line" />
+        <div className="h-14 rounded-(--radius-card) bg-line" />
+        <div className="h-14 rounded-(--radius-card) bg-line" />
       </div>
     </div>
   );
