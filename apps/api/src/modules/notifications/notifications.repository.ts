@@ -6,7 +6,7 @@ import {
   type ReviewLog,
   ReviewLogSchema,
 } from '@estudio/shared';
-import type { ReminderEvent } from '@estudio/srs';
+import type { ReminderEvent, SkipReason } from '@estudio/srs';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client.js';
@@ -59,6 +59,11 @@ export interface NewEvent {
   readonly payload: Prisma.InputJsonValue | null;
   readonly examDays: readonly string[];
 }
+
+/** NOTIFICATIONS §2: cómo terminó un envío; una supresión lleva su motivo. */
+export type Outcome =
+  | { readonly status: 'sent' | 'failed'; readonly reason: null }
+  | { readonly status: 'suppressed'; readonly reason: SkipReason };
 
 @Injectable()
 export class NotificationsRepository {
@@ -124,8 +129,8 @@ export class NotificationsRepository {
     if (existing?.sentAt != null) return;
     await this.tx.scheduledNotification.upsert({
       where: { timerSessionId_blockIndex: key },
-      create: { id, userId, ...key, fireAt: input.fireAt },
-      update: { fireAt: input.fireAt, cancelledAt: null },
+      create: { id, userId, ...key, fireAt: input.fireAt, status: 'pending' },
+      update: { fireAt: input.fireAt, cancelledAt: null, status: 'pending', reason: null },
     });
   }
 
@@ -137,7 +142,8 @@ export class NotificationsRepository {
   ): Promise<void> {
     await this.tx.scheduledNotification.updateMany({
       where: { userId, timerSessionId, blockIndex, sentAt: null },
-      data: { cancelledAt: now },
+      // §2: volvió a la app antes del fin; esa supresión también se registra.
+      data: { cancelledAt: now, status: 'suppressed', reason: 'foreground' },
     });
   }
 
@@ -152,6 +158,11 @@ export class NotificationsRepository {
   /** `sentAt` marca el bloque como procesado: no se vuelve a evaluar aunque se suprima. */
   async claimBreakEnd(id: string, now: number): Promise<void> {
     await this.tx.scheduledNotification.update({ where: { id }, data: { sentAt: now } });
+  }
+
+  /** §2: cómo terminó, también si se suprimió y por qué. */
+  async finishBreakEnd(id: string, outcome: Outcome): Promise<void> {
+    await this.tx.scheduledNotification.update({ where: { id }, data: outcome });
   }
 
   // ── Recordatorios (NT3, NT5) ────────────────────────────────────────────────────
@@ -279,13 +290,10 @@ export class NotificationsRepository {
     return result.count === 1;
   }
 
-  async finishEvent(id: string, outcome: 'sent' | 'failed' | 'no_subscription', now: number): Promise<void> {
+  async finishEvent(id: string, outcome: Outcome, now: number): Promise<void> {
     await this.tx.notificationEvent.update({
       where: { id },
-      data:
-        outcome === 'sent'
-          ? { status: 'sent', sentAt: now }
-          : { status: 'failed', reason: outcome === 'no_subscription' ? outcome : null },
+      data: outcome.status === 'sent' ? { ...outcome, sentAt: now } : outcome,
     });
   }
 

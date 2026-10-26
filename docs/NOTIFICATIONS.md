@@ -31,10 +31,10 @@
 
 - `PushSubscription` (solo servidor): `id`, `userId`, `deviceId`, `endpoint` (único), `p256dh`, `auth`, `userAgent`, `createdAt`, `lastSuccessAt`, `failures`.
 - `NotificationEvent` (solo inserción): `id`, `userId`, `kinds[]` (uno o varios recordatorios agrupados), `localDate`, `slot` (1 = a la hora del recordatorio, 2 = a la segunda hora; único por usuario, día y slot), `scheduledFor`, `sentAt`, `openedAt`, `status` (`pending` mientras se entrega, luego `sent` | `failed` | `suppressed`), `reason`, `payloadKey` y `payloadParams` (los parámetros del texto, no el texto), y `examDays` (los `examId:N` avisados en ese evento, para avisar una vez por examen y por cada N).
-- `ScheduledNotification` (fin de descanso): `id`, `userId`, `timerSessionId`, `blockIndex`, `fireAt`, `cancelledAt`, `sentAt`, con unicidad `(timerSessionId, blockIndex)` para enviarlo una sola vez.
+- `ScheduledNotification` (fin de descanso): `id`, `userId`, `timerSessionId`, `blockIndex`, `fireAt`, `cancelledAt`, `sentAt` (cuándo lo procesó el poller, se haya enviado o no), `status` y `reason` (como en `NotificationEvent`), con unicidad `(timerSessionId, blockIndex)` para enviarlo una sola vez.
 - `NotificationState` por usuario: `backoffResetAt` ("Como antes") y `backoffQuestionAnsweredAt`. La serie de ignorados y el modo reducido no se guardan: se calculan con `backoffState` a partir de los eventos enviados, así no se desincronizan.
 
-`reason` ∈ `disabled`, `quiet_hours`, `daily_cap`, `below_min_due`, `backoff`, `no_subscription`, `foreground`. Registrar cada supresión permite revisar la política con datos (§6).
+`reason` ∈ `disabled`, `quiet_hours`, `daily_cap`, `below_min_due`, `backoff`, `no_subscription` (no había a dónde enviarlo), `foreground` (volvió a la app antes del fin de descanso) y `expired` (el poller llegó después del TTL del aviso). Todos son `suppressed`; `failed` queda para un envío que el servicio push rechazó. Registrar cada supresión, también las del fin de descanso, permite revisar la política con datos (§6).
 
 ## 3. Decisión pura
 

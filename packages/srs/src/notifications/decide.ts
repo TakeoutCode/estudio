@@ -11,9 +11,20 @@ import {
 
 const HOUR_MS = 3_600_000;
 
-/** Por qué no se envió: se registra en cada supresión para revisar la política (§6). */
+/**
+ * Por qué no se envió: se registra en cada supresión para revisar la política (§6).
+ * `foreground`: volvió a la app antes del fin de descanso; `expired`: el poller llegó después
+ * del TTL del aviso y ya no servía.
+ */
 export type SkipReason =
-  'disabled' | 'quiet_hours' | 'daily_cap' | 'below_min_due' | 'backoff' | 'no_subscription' | 'foreground';
+  | 'disabled'
+  | 'quiet_hours'
+  | 'daily_cap'
+  | 'below_min_due'
+  | 'backoff'
+  | 'no_subscription'
+  | 'foreground'
+  | 'expired';
 
 export type Decision = { readonly send: true } | { readonly send: false; readonly reason: SkipReason };
 

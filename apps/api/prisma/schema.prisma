@@ -553,7 +553,11 @@ model ScheduledNotification {
   blockIndex     Int     @map("block_index")
   fireAt         BigInt  @map("fire_at")
   cancelledAt    BigInt? @map("cancelled_at")
+  /// Cuándo lo procesó el poller, se haya enviado o no.
   sentAt         BigInt? @map("sent_at")
+  /// §2: pending | sent | failed | suppressed; null en lo procesado antes de registrarlo.
+  status         String?
+  reason         String?
   user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([timerSessionId, blockIndex])

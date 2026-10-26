@@ -24,6 +24,7 @@ import {
   reminderCandidates,
   reminderTimeCrossed,
   replayCards,
+  type SkipReason,
 } from '@estudio/srs';
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
@@ -31,7 +32,7 @@ import { UseCls } from 'nestjs-cls';
 import { Clock } from '../../common/clock.js';
 import { DomainError } from '../../common/domain-error.js';
 import { HealthMetrics } from '../health/health-metrics.js';
-import { type NewEvent, NotificationsRepository } from './notifications.repository.js';
+import { type NewEvent, NotificationsRepository, type Outcome } from './notifications.repository.js';
 import { PushSender } from './push-sender.js';
 import { type ReminderParams, reminderBody, text } from './texts.js';
 
@@ -50,6 +51,8 @@ interface Outgoing {
   readonly userId: string;
   /** `null` en el fin de descanso: no es un recordatorio y no lleva evento (NT4). */
   readonly eventId: string | null;
+  /** El fin de descanso que se envía (`ScheduledNotification`), o `null` en un recordatorio. */
+  readonly breakEndId: string | null;
   readonly payload: PushPayload;
   readonly ttlSec: number;
 }
@@ -194,6 +197,7 @@ export class NotificationsService {
     return {
       userId,
       eventId: event.id,
+      breakEndId: null,
       payload: {
         title: text('title'),
         body: reminderBody(event.payload),
@@ -325,9 +329,18 @@ export class NotificationsService {
     const outgoing: Outgoing[] = [];
     for (const due of await this.repo.dueBreakEnds(now)) {
       await this.repo.claimBreakEnd(due.id, now);
-      if (now - due.fireAt > ttlMs) continue; // el poller no corrió a tiempo: ya no sirve
+      const suppress = (reason: SkipReason) =>
+        this.repo.finishBreakEnd(due.id, { status: 'suppressed', reason });
+      // El poller no corrió a tiempo: ya no sirve.
+      if (now - due.fireAt > ttlMs) {
+        await suppress('expired');
+        continue;
+      }
       const ctx = contextOf(await this.repo.settingsOf(due.userId));
-      if (!ctx) continue;
+      if (!ctx) {
+        await suppress('disabled');
+        continue;
+      }
       const decision = decideNotification({
         kind: 'break_end',
         nowUtc: now,
@@ -337,10 +350,14 @@ export class NotificationsService {
         dueCount: 0,
         backoff: NO_BACKOFF,
       });
-      if (!decision.send) continue;
+      if (!decision.send) {
+        await suppress(decision.reason);
+        continue;
+      }
       outgoing.push({
         userId: due.userId,
         eventId: null,
+        breakEndId: due.id,
         payload: { title: text('breakEnd'), body: text('breakEndBody'), tag: 'break', url: '/study' },
         ttlSec: NOTIFICATION_DELIVERY.breakEndTtlSeconds,
       });
@@ -359,9 +376,13 @@ export class NotificationsService {
         await this.metrics.recordPushDelivery(now, result === 'gone'); // QA8: tasa de 410
         delivered ||= result === 'ok';
       }
-      if (item.eventId === null) return;
-      const outcome = subscriptions.length === 0 ? 'no_subscription' : delivered ? 'sent' : 'failed';
-      await this.repo.finishEvent(item.eventId, outcome, now);
+      // §2: sin suscripciones no hubo a dónde enviar; es una supresión, no un fallo.
+      const outcome: Outcome =
+        subscriptions.length === 0
+          ? { status: 'suppressed', reason: 'no_subscription' }
+          : { status: delivered ? 'sent' : 'failed', reason: null };
+      if (item.eventId !== null) await this.repo.finishEvent(item.eventId, outcome, now);
+      if (item.breakEndId !== null) await this.repo.finishBreakEnd(item.breakEndId, outcome);
     } catch (error: unknown) {
       // BE6: sin contenido del aviso en el log.
       this.logger.error({ err: error, userId: item.userId }, 'No se pudo entregar un aviso');

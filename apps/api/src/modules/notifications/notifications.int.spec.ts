@@ -250,7 +250,7 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
     expect(sender.to(user.endpoint)).toHaveLength(1);
   });
 
-  it('NT-T9: un 410 borra la suscripción y el evento queda fallido', async () => {
+  it('NT-T9: un 410 borra la suscripción y el evento queda fallido; sin suscripción, suprimido', async () => {
     const user = await seed('avisos-d@ejemplo.mx', { time: '19:30', due: 10 });
     sender.responses.set(user.endpoint, 'gone');
     await tick(0, 19, 30);
@@ -262,7 +262,7 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
     await tick(1, 19, 30);
     expect(await events(user.userId)).toMatchObject([
       { status: 'failed' },
-      { status: 'failed', reason: 'no_subscription' },
+      { status: 'suppressed', reason: 'no_subscription' },
     ]);
   });
 
@@ -345,6 +345,21 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
     await service.runBreakEndTick(local(1, 23)); // horas silenciosas (R12)
     expect(sender.to(user.endpoint)).toHaveLength(1);
     expect(await events(user.userId)).toEqual([]); // no cuenta como recordatorio (§3g)
+
+    // §2: cada bloque guarda cómo terminó, también lo que se suprimió.
+    await schedule(3, local(2, 12));
+    await service.runBreakEndTick(local(2, 12) + 6 * MIN); // pasó el TTL de 5 min
+    const outcomes = await server.prisma.$queryRaw<
+      { block_index: number; status: string; reason: string | null }[]
+    >`
+      SELECT block_index, status, reason FROM scheduled_notification
+      WHERE timer_session_id = ${timerSessionId}::uuid ORDER BY block_index`;
+    expect(outcomes).toEqual([
+      { block_index: 0, status: 'sent', reason: null },
+      { block_index: 1, status: 'suppressed', reason: 'foreground' },
+      { block_index: 2, status: 'suppressed', reason: 'quiet_hours' },
+      { block_index: 3, status: 'suppressed', reason: 'expired' },
+    ]);
   });
 
   it('NT8: la suscripción exige https y sesión; borrarla deja de enviar a ese dispositivo', async () => {
