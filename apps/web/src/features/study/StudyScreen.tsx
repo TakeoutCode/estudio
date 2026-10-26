@@ -8,7 +8,6 @@ import {
   needsTopicIntro,
   nextCard,
   type SessionPlan,
-  type TimerBlockRecord,
   toRating,
 } from '@estudio/srs';
 import { lazy, type ReactNode, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
@@ -18,8 +17,9 @@ import {
   AwayPrompt,
   BreakPanel,
   dispatchTimer,
-  type TimerResult,
+  reportTimerResult,
   TimerStrip,
+  useTimerAway,
   useTimerTicker,
   useTimerView,
 } from '@/features/timer';
@@ -337,13 +337,10 @@ function Session({
     };
   }, [waitUntil]);
 
-  const [away, setAway] = useState<{ sessionId: string; interrupted: TimerBlockRecord } | null>(null);
-  const onTimerResult = (result: TimerResult) => {
-    if (result.notice === 'interrupted_while_away' && result.closed) {
-      setAway({ sessionId: result.sessionId, interrupted: result.closed });
-    }
-  };
-  const now = useTimerTicker(timer, step?.kind === 'card' && currentCardId !== null, onTimerResult);
+  // §3: la vuelta tras tener la app cerrada pudo detectarla el ticker de otra pantalla.
+  const away = useTimerAway((s) => s.away);
+  const setAway = useTimerAway((s) => s.setAway);
+  const now = useTimerTicker(timer, step?.kind === 'card' && currentCardId !== null, reportTimerResult);
   const serverNow = now + (timer?.offsetMs ?? 0);
 
   // P5 y P6: sugerencias suaves entre tarjetas; nunca bloquean.
@@ -410,7 +407,7 @@ function Session({
         <TimerStrip
           view={timer}
           now={now}
-          onResult={onTimerResult}
+          onResult={reportTimerResult}
           breakAfterCard={{
             pending: breakRequested,
             request: takeBreak,

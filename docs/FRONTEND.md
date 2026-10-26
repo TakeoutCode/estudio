@@ -97,7 +97,7 @@ export async function renameDeck(id: DeckId, name: string) {
 // ✅ {phase === 'revealed' && <Answer card={card} explanation={card.explanation} />}   // R4
 ```
 
-**FE11 · DEBE** calcular el tiempo restante con `remainingMs(timer, serverNow())` de `srs`. Un `requestAnimationFrame` o un intervalo de 1 s solo sirve para repintar, y se recalcula en `visibilitychange`. Al pasar a segundo plano durante un descanso se programa el aviso de fin de descanso (`PUT /notifications/break-end`), y al volver se cancela (NOTIFICATIONS.md). *Razón:* §3; iOS congela los timers en segundo plano.
+**FE11 · DEBE** calcular el tiempo restante con `remainingMs(timer, serverNow())` de `srs`. Un `requestAnimationFrame` o un intervalo de 1 s solo sirve para repintar, y se recalcula en `visibilitychange`. Al pasar a segundo plano durante un descanso se programa el aviso de fin de descanso (`PUT /notifications/break-end`), y al volver se cancela (NOTIFICATIONS.md). Fuera de la pantalla de estudio, con la app abierta, `TimerKeepAlive` (en el layout, con `lazy`) sigue mandando `tick` en el dispositivo dueño: reformular una tarjeta a mitad de bloque no lo interrumpe. Si ese tick detecta la vuelta tras tener la app cerrada, la pregunta de §3 espera en `useTimerAway` hasta que ella vuelva a estudiar. *Razón:* §3; iOS congela los timers en segundo plano, y ahí el hueco sí cuenta.
 
 **FE12 · DEBE** implementar los atajos en un único hook: `Espacio`/`Enter` revelan, `1`-`4` califican y `?` muestra la ayuda. Se ignoran con el foco en `input`, `textarea` o `contenteditable`, y ningún atajo salta el intento (R1). *Razón:* en la PC se estudia con teclado, y en "escribir respuesta" las teclas son texto.
 
