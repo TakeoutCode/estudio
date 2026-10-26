@@ -199,6 +199,69 @@ describe('avisos (NOTIFICATIONS.md, BE14)', () => {
     expect(sender.to(user.endpoint)).toHaveLength(1);
   });
 
+  it('NT-T11: el examen se avisa una vez a 7 días y otra a 1, juntos con el diario', async () => {
+    const user = await seed('avisos-l@ejemplo.mx', { time: '19:50', due: 12 });
+    const exam = { id: newId(), title: 'Final de Anatomía', date: startOfLocalDate('2026-10-27', TZ) };
+    const wall = local(-1, 12);
+    await push(user, [
+      upsert('exam', {
+        ...exam,
+        topicIds: [user.topicId],
+        hlc: hlcAt(wall, PHONE),
+        updatedAt: wall,
+        deletedAt: null,
+      }),
+    ]);
+
+    // Abre cada aviso: si los ignorara, a partir del tercero entraría en modo reducido (§3f).
+    for (let day = 0; day <= 6; day += 1) {
+      await tick(day, 19, 50);
+      const latest = (await events(user.userId)).at(-1);
+      await server
+        .api()
+        .post(`/notifications/${latest?.id ?? ''}/opened`)
+        .set('Authorization', auth(user))
+        .expect(204);
+    }
+    const all = await events(user.userId);
+    expect(all.map((e) => [e.kinds, e.examDays])).toEqual([
+      [['exam_soon', 'daily_reminder'], [`${exam.id}:7`]],
+      ...Array.from({ length: 5 }, () => [['daily_reminder'], []]),
+      [['exam_soon', 'daily_reminder'], [`${exam.id}:1`]],
+    ]);
+    // Una sola notificación por día, también los dos días del examen (NT5).
+    expect(sender.to(user.endpoint)).toHaveLength(7);
+    expect(sender.to(user.endpoint)[6]?.payload.body).toBe(
+      'Final de Anatomía en 1 día · 12 tarjetas pendientes · Huesos del carpo',
+    );
+  });
+
+  it('NT-T3, §3g: 3 descansos y 1 recordatorio el mismo día salen los 4, aun con tope de 1', async () => {
+    const user = await seed('avisos-k@ejemplo.mx', {
+      time: '19:45',
+      due: 12,
+      notifications: { maxRemindersPerDay: 1 },
+    });
+    const timerSessionId = newId();
+    for (const [blockIndex, at] of [local(0, 12), local(0, 13), local(0, 14)].entries()) {
+      await server
+        .api()
+        .put('/notifications/break-end')
+        .set('Authorization', auth(user))
+        .send({ timerSessionId, blockIndex, fireAt: at })
+        .expect(204);
+      await service.runBreakEndTick(at);
+    }
+    await tick(0, 19, 45);
+    expect(sender.to(user.endpoint).map((s) => s.payload.tag)).toEqual([
+      'break',
+      'break',
+      'break',
+      'reminder',
+    ]);
+    expect(await events(user.userId)).toMatchObject([{ status: 'sent', kinds: ['daily_reminder'] }]);
+  });
+
   it('NT-T1, §6: con 9 pendientes no se envía y queda registrado con su motivo', async () => {
     const user = await seed('avisos-b@ejemplo.mx', { time: '19:10', due: 9 });
     await tick(0, 19, 10);
