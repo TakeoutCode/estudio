@@ -5,6 +5,8 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst } from 'workbox-strategies';
+// AGENTS AG5: el título por defecto sale del catálogo; solo esa clave entra en el SW.
+import { app } from './i18n/es/common.json';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -54,7 +56,7 @@ function parsePayload(data: PushMessageData | null): PushPayload {
   } catch {
     // Carga ilegible: igual se muestra una notificación (NT8).
   }
-  return { title: 'Estudio' };
+  return { title: app.name };
 }
 
 // NOTIFICATIONS NT8: cada push muestra una notificación; iOS revoca suscripciones silenciosas.
@@ -65,7 +67,7 @@ self.addEventListener('push', (event: PushEvent) => {
     self.registration.showNotification(payload.title, {
       body: payload.body,
       tag: payload.tag,
-      icon: '/icon.svg',
+      icon: '/icon-192.png', // FE6: no todos los sistemas muestran un SVG en la notificación
       data: { url: payload.url ?? '/' },
     }),
   );
