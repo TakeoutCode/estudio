@@ -24,8 +24,9 @@ import type {
   UserSettings,
 } from '@estudio/shared';
 import type { CardState } from '@estudio/srs';
-import { type Collection, Dexie, type EntityTable } from 'dexie';
+import { type Collection, Dexie, type EntityTable, type Transaction } from 'dexie';
 import type { DiagnosticEntry } from './diagnostics';
+import { freeMediaCache, retryOnQuota } from './quota';
 
 /** Entrada del outbox (SYNC §3). Las rechazadas se quedan, visibles en Ajustes (SY8). */
 export interface OutboxEntry extends Mutation {
@@ -114,8 +115,18 @@ export class EstudioDb extends Dexie {
   outbox!: EntityTable<OutboxEntry, 'mutationId'>;
   meta!: EntityTable<MetaEntry, 'key'>;
 
-  constructor(name = 'estudio') {
+  constructor(name = 'estudio', freeSpace: () => Promise<boolean> = freeMediaCache) {
     super(name);
+    // FRONTEND FE7: si una transacción no cabe, se libera la caché de media y se repite una vez.
+    // Solo las de primer nivel: una anidada falla con la de afuera, que es la que se repite.
+    const transaction = this.transaction.bind(this) as (...args: unknown[]) => PromiseLike<unknown>;
+    this.transaction = ((...args: unknown[]) =>
+      // Los tipos de Dexie la dan siempre definida; fuera de una transacción es null.
+      (Dexie.currentTransaction as Transaction | null)
+        ? transaction(...args)
+        : Dexie.Promise.resolve(
+            retryOnQuota(() => transaction(...args), freeSpace),
+          )) as typeof this.transaction;
     // SYNC SY9: solo se agregan versiones; nunca se edita una ya publicada.
     this.version(1).stores({
       decks: 'id, updatedAt',
