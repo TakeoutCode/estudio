@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { accountFor, E2E_PROJECTS } from './e2e/accounts';
+import { accountFor, E2E_API, E2E_PROJECTS } from './e2e/accounts';
 
 // QUALITY §1 y QA4 (paso 6): flujos completos en un iPhone (WebKit) y en escritorio (Chromium),
 // contra la API real con su Postgres. La base la pone quien corre las pruebas: en CI un servicio
@@ -9,14 +9,14 @@ import { accountFor, E2E_PROJECTS } from './e2e/accounts';
 // Puertos propios (4180 y 3190) para no chocar con `pnpm dev` (5180 y 3180).
 
 const WEB = 'http://localhost:4180';
-const API = 'http://localhost:3190';
+const API = E2E_API;
 const databaseUrl = process.env.E2E_DATABASE_URL ?? 'postgresql://e2e:e2e@localhost:5444/e2e';
 
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   expect: { timeout: 10_000 },
-  // Un solo worker: cada proyecto inicia sesión una vez (BE12 limita el login a 5 por minuto).
+  // Un solo worker: las pruebas comparten la base y la sesión de cada proyecto.
   workers: 1,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
@@ -41,6 +41,9 @@ export default defineConfig({
         DIRECT_DATABASE_URL: databaseUrl,
         JWT_ACCESS_SECRET: 'secreto-de-pruebas-e2e-de-al-menos-32-caracteres',
         WEB_ORIGINS: WEB,
+        // Como en Vercel (BE12): la IP del cliente sale de X-Forwarded-For. Cada "dispositivo" de
+        // las pruebas manda la suya (e2e/fixtures.ts), así el límite de login no las cruza.
+        TRUST_PROXY_HOPS: '1',
         ALLOWED_EMAILS: E2E_PROJECTS.map(accountFor).join(','),
       },
     },

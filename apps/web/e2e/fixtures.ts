@@ -1,5 +1,5 @@
 import { type BrowserContext, test as base, expect, type Page } from '@playwright/test';
-import { accountFor, E2E_PASSWORD } from './accounts';
+import { accountFor, E2E_API, E2E_PASSWORD } from './accounts';
 
 export interface Account {
   readonly context: BrowserContext;
@@ -7,31 +7,40 @@ export interface Account {
   page: Page;
 }
 
-/** BE12: con varios intentos seguidos la API responde 429 y la pantalla lo dice. */
-const RATE_LIMIT_WAIT_MS = 61_000;
+let devices = 0;
 
-async function signIn(page: Page, email: string): Promise<void> {
+/**
+ * BE12 limita el login a 5 por minuto por IP. Cada contexto ("dispositivo") llega a la API con su
+ * propia IP en X-Forwarded-For, como detrás del proxy de Vercel (la API de las pruebas corre con
+ * TRUST_PROXY_HOPS=1): así los logins de las pruebas no se cruzan y no hace falta esperar.
+ */
+export async function asOwnDevice(context: BrowserContext): Promise<void> {
+  devices += 1;
+  const ip = `198.51.100.${String(devices)}`; // TEST-NET-2, RFC 5737
+  await context.route(`${E2E_API}/**`, (route) =>
+    route.continue({ headers: { ...route.request().headers(), 'x-forwarded-for': ip } }),
+  );
+}
+
+export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/');
   await page.getByRole('button', { name: '¿Primera vez aquí? Crea tu cuenta' }).click();
   await page.getByLabel('Correo').fill(email);
   await page.getByLabel('Contraseña (12 caracteres o más)').fill(E2E_PASSWORD);
-  for (let attempt = 1; ; attempt += 1) {
-    await page.getByRole('button', { name: 'Crear cuenta' }).click();
-    // Crear una cuenta que ya existe responde igual (BE10) y luego entra con la misma contraseña.
-    const outcome = await Promise.race([
-      page
-        .getByLabel('Correo')
-        .waitFor({ state: 'detached', timeout: 30_000 })
-        .then(() => 'in' as const),
-      page
-        .getByText('Hubo varios intentos seguidos')
-        .waitFor({ timeout: 30_000 })
-        .then(() => 'limited' as const),
-    ]);
-    if (outcome === 'in') break;
-    if (attempt === 3) throw new Error('el login sigue limitado');
-    await page.waitForTimeout(RATE_LIMIT_WAIT_MS);
-  }
+  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  // Crear una cuenta que ya existe responde igual (BE10) y luego entra con la misma contraseña.
+  const outcome = await Promise.race([
+    page
+      .getByLabel('Correo')
+      .waitFor({ state: 'detached', timeout: 30_000 })
+      .then(() => 'in' as const),
+    page
+      .getByText('Hubo varios intentos seguidos')
+      .waitFor({ timeout: 30_000 })
+      .then(() => 'limited' as const),
+  ]);
+  // Con una IP por dispositivo (asOwnDevice) el límite por IP no se alcanza: si pasa, es un error.
+  if (outcome === 'limited') throw new Error('BE12 limitó el login de las pruebas');
   // UX10: la pregunta de la gamificación sale una sola vez por cuenta; aquí se apaga (lo verifica
   // gamification.spec). En otra corrida contra la misma base ya no aparece.
   const no = page.getByRole('button', { name: 'No, gracias' });
@@ -46,13 +55,14 @@ async function signIn(page: Page, email: string): Promise<void> {
 }
 
 /**
- * BE12 limita el login a 5 por minuto: cada proyecto inicia sesión una sola vez y todas sus
- * pruebas usan esa sesión. Si una prueba falla, Playwright reinicia el worker y vuelve a entrar.
+ * Cada proyecto inicia sesión una sola vez y todas sus pruebas usan esa sesión. Si una prueba
+ * falla, Playwright reinicia el worker y vuelve a entrar.
  */
 export const test = base.extend<object, { account: Account }>({
   account: [
     async ({ browser }, use, workerInfo) => {
       const context = await browser.newContext(workerInfo.project.use);
+      await asOwnDevice(context);
       const page = await context.newPage();
       await signIn(page, accountFor(workerInfo.project.name));
       await use({ context, page });

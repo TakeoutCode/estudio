@@ -9,7 +9,7 @@
 | Unitarias | Vitest + fast-check | `srs` (replay, planificador, temporizador, calificación, notificaciones, métricas, gamificación), `shared` (esquemas, HLC) |
 | Integración api | Vitest + Testcontainers (Postgres 17) + fakes de `AiProvider`, `MediaPurger` y `PushSender` (`MediaSigner` es una firma local y corre real) | sync, auth, cron, triggers, migraciones, seeder |
 | Integración web | Vitest + `fake-indexeddb` + Testing Library | comandos (entidad + outbox), migraciones de Dexie, fases de la sesión |
-| E2E | Playwright: proyecto `iphone` (`devices['iPhone 13']`, WebKit) y `desktop` (Chromium) | flujos completos sin red y entre dos contextos (dos "dispositivos") |
+| E2E | Playwright: proyecto `iphone` (`devices['iPhone 13']`, WebKit) y `desktop` (Chromium) | flujos completos sin red (`e2e/study.spec.ts`) y entre dos contextos, dos "dispositivos" de la misma cuenta (`e2e/devices.spec.ts`, SY-T1). Cada contexto llega a la API con su propia IP en `X-Forwarded-For` (la API de las pruebas corre con `TRUST_PROXY_HOPS=1`, como en Vercel), así el límite de login de BE12 no las cruza y ninguna espera |
 
 **QA1 · DEBE** usar en `srs` el reloj falso de Vitest o un `now` explícito. **NO DEBE** haber `sleep` ni reloj real en ninguna prueba. *Razón:* determinismo (AGENTS AG3).
 
