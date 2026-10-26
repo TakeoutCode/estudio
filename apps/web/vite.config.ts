@@ -44,7 +44,7 @@ export default defineConfig({
           { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,woff2}'] },
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
       devOptions: { enabled: false },
     }),
   ],
