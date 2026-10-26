@@ -29,8 +29,8 @@ export const routes: RouteObject[] = [
             path: 'study',
             lazy: async () => {
               // UX6, UX10: la celebración de hitos acompaña a la sesión sin entrar en ella.
-              const [{ StudyScreen }, { MilestoneCelebration }] = await Promise.all([
-                import('@/features/study'),
+              const [StudyScreen, { MilestoneCelebration }] = await Promise.all([
+                import('@/features/study').then((m) => m.loadStudyScreen()),
                 import('@/features/gamification'),
               ]);
               return {
