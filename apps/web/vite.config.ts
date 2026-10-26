@@ -24,6 +24,9 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: false,
       includeManifestIcons: false, // los íconos ya entran por globPatterns
+      // Las previews de Vercel con protección piden su cookie también para el manifest; sin
+      // credenciales, Vercel lo redirige a su login y la CSP (default-src 'self') lo bloquea.
+      useCredentials: true,
       manifest: {
         id: '/',
         name: 'Estudio',
