@@ -1,5 +1,5 @@
 // ADR-018: la función de Vercel (servicio `api`) como un solo módulo ESM con sus dependencias JS
-// adentro, a partir de dist/ (tsc). El runtime de Vercel no permite require() de un módulo ESM, y
+// adentro, a partir de dist/vercel.js (tsc). El runtime de Vercel no permite require() de un módulo ESM, y
 // @nestjs/throttler, nestjs-cls y nestjs-pino (CommonJS) hacen require de Nest 12 (solo ESM):
 // empaquetados, esos require se resuelven aquí. Quedan fuera @node-rs/argon2 (binario nativo),
 // que se copia junto al bundle, y los paquetes opcionales sin instalar, que Nest y pg cargan solo
@@ -34,7 +34,7 @@ const optionalPackages: Plugin = {
 rmSync(OUT_DIR, { recursive: true, force: true });
 await build({
   absWorkingDir: API_ROOT,
-  entryPoints: ['dist/main.js'],
+  entryPoints: ['dist/vercel.js'],
   outfile: join(OUT_DIR, 'main.mjs'),
   bundle: true,
   platform: 'node',

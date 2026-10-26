@@ -138,7 +138,7 @@ Solo hay FK hacia `User`. Entre entidades sincronizables no hay FK porque un lot
 
 **BE13 · DEBE** poner a los terceros detrás de puertos (`AiProvider`, `MediaSigner`, `MediaPurger`, `PushSender`), cada uno con implementación real y una falsa para pruebas, con timeouts explícitos (IA 30 s, push 10 s, Cloudinary 10 s) y reintentos solo ante 429/5xx con backoff. *Razón:* pruebas de integración sin red y sin costo.
 
-**BE14 · DEBE** correr el cron y los envíos programados con `@nestjs/schedule` en el daemon `scheduler` (`SchedulerModule`, entrada `src/scheduler.ts`), nunca en la función HTTP (`src/main.ts`, sin `ScheduleModule`), bajo advisory lock (ARC7) y con `now` explícito a `srs`. En local, `pnpm dev` junta la API y el cron en un proceso (`src/dev.ts`). *Razón:* la función se pausa entre requests (ADR-018), y mientras el daemon viejo y el nuevo se solapan en un deploy no deben duplicarse avisos (§3). Detalle en NOTIFICATIONS.md.
+**BE14 · DEBE** correr el cron y los envíos programados con `@nestjs/schedule` en el daemon `scheduler` (`SchedulerModule`, entrada `src/scheduler.ts`), nunca en la función HTTP (`src/vercel.ts`; `src/main.ts` para `pnpm start`, ambas sin `ScheduleModule`), bajo advisory lock (ARC7) y con `now` explícito a `srs`. En local, `pnpm dev` junta la API y el cron en un proceso (`src/dev.ts`). *Razón:* la función se pausa entre requests (ADR-018), y mientras el daemon viejo y el nuevo se solapan en un deploy no deben duplicarse avisos (§3). Detalle en NOTIFICATIONS.md.
 
 ## 6. Checklist de revisión
 

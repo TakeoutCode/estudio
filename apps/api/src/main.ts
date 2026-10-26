@@ -5,8 +5,8 @@ import { AppModule } from './app.module.js';
 import { configureApp } from './bootstrap.js';
 import { AppConfig } from './config/app-config.js';
 
-// ADR-018: la función de Vercel (servicio `api`), solo HTTP. scripts/bundle-vercel.mjs la
-// empaqueta desde aquí y Vercel usa su `listen`; el cron corre aparte, en `scheduler.ts`.
+// La API HTTP como servidor propio (`pnpm start`, e2e); en Vercel la entrada es `vercel.ts`. El
+// cron corre aparte, en `scheduler.ts`.
 const app = configureApp(
   await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, bodyParser: false }),
 );
