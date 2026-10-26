@@ -54,6 +54,18 @@ export function insertAppendSql(table: string, columns: readonly Column[]): Pris
     RETURNING "server_seq"`;
 }
 
+/**
+ * BE2: la fila `id` de `table` es de ella (aunque esté borrada). Con `orPurged`, también si
+ * ya se purgó: un registro de solo inserción (un repaso, un canje) se conserva aunque su padre
+ * ya no exista (SYNC §5, §6).
+ */
+export function ownedRowSql(table: string, userId: string, id: string, orPurged = false): Prisma.Sql {
+  const owned = Prisma.sql`SELECT 1 FROM ${ident(table)} WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;
+  if (!orPurged) return owned;
+  return Prisma.sql`${owned} UNION ALL
+    SELECT 1 FROM "purged_row" WHERE "user_id" = ${userId}::uuid AND "id" = ${id}::uuid AND "table" = ${table}`;
+}
+
 /** Lectura de columnas que llegan de `to_jsonb(fila)`. */
 export const dbNumber = (value: unknown): number => Number(value);
 export const dbNumberOrNull = (value: unknown): number | null => (value === null ? null : Number(value));

@@ -2,7 +2,7 @@ import type { Card, ContrastGroup, Deck, Note, Tag, Topic } from '@estudio/share
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
-import { type Column, ident, syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
+import { type Column, ident, ownedRowSql, syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
 import type { ApplyStatus } from '../sync/sync-handler.js';
 
 /** Tablas que otras entidades referencian (BE2). */
@@ -105,9 +105,9 @@ export class DecksRepository {
     return Number(rows[0]?.n ?? 0) === unique.length;
   }
 
-  async owns(table: OwnedTable, userId: string, id: string): Promise<boolean> {
-    const rows = await this.tx.$queryRaw<unknown[]>`
-      SELECT 1 FROM ${ident(table)} WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;
+  /** Con `orPurged`, también si ya se purgó (para registros de solo inserción, SYNC §5). */
+  async owns(table: OwnedTable, userId: string, id: string, orPurged = false): Promise<boolean> {
+    const rows = await this.tx.$queryRaw<unknown[]>(ownedRowSql(table, userId, id, orPurged));
     return rows.length > 0;
   }
 }

@@ -55,7 +55,7 @@ export class SyncPurgeService {
         deferred += ids.length - ready.length;
         if (ready.length > 0) allowed.set(handler, ready);
       }
-      tombstones += await this.purgeUser(userId, allowed, claim.cutoff);
+      tombstones += await this.purgeUser(userId, allowed, claim.cutoff, now);
     }
     // BE6: solo conteos.
     this.logger.log({ appliedMutations: claim.appliedMutations, tombstones, deferred }, 'Purga de sync');
@@ -104,13 +104,13 @@ export class SyncPurgeService {
 
   /** ADR-005: con el lock de la cuenta, como un push, para no cruzarse con su `server_seq`. */
   @Transactional()
-  async purgeUser(userId: string, allowed: PurgeBatch, cutoff: number): Promise<number> {
+  async purgeUser(userId: string, allowed: PurgeBatch, cutoff: number, now: number): Promise<number> {
     if (allowed.size === 0) return 0;
     await this.repo.lockUser(userId);
     let newest: bigint | null = null;
     let count = 0;
     for (const [handler, ids] of allowed) {
-      for (const seq of await this.repo.purgeTombstones(userId, handler.table, ids, cutoff)) {
+      for (const seq of await this.repo.purgeTombstones(userId, handler.table, ids, cutoff, now)) {
         count += 1;
         if (newest === null || seq > newest) newest = seq;
       }

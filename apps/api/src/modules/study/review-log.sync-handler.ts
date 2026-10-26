@@ -21,9 +21,9 @@ export class ReviewLogSyncHandler implements EntitySyncHandler<'reviewLog'> {
     return row.reviewedAt - now > MAX_HLC_DRIFT_MS ? 'validation_failed' : null;
   }
 
-  /** BE2: la tarjeta es de ella (aunque esté borrada: sus repasos se conservan, SYNC §5). */
+  /** BE2: la tarjeta es de ella (aunque esté borrada o purgada: sus repasos se conservan, SYNC §5). */
   async refs(userId: string, row: ReviewLog): Promise<ApiErrorCode | null> {
-    return (await this.decks.owns('card', userId, row.cardId)) ? null : 'not_found';
+    return (await this.decks.owns('card', userId, row.cardId, true)) ? null : 'not_found';
   }
 
   apply(userId: string, row: ReviewLog): Promise<ApplyStatus> {

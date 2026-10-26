@@ -71,10 +71,17 @@ export class SyncService {
     await this.repo.lockUser(userId);
     const results: PushResult[] = [];
     for (const { mutationId, handler, row } of accepted) {
+      const lww = ENTITY_STRATEGY[handler.entity] === 'lww';
+      // SYNC §6: purgado el borrado, una edición vieja ya no revive la fila; pierde como un HLC
+      // menor y el dispositivo la deja al hacer el pull completo que le pide el 410.
+      if (lww && (await this.repo.wasPurged(userId, (row as SyncMeta).id))) {
+        results.push({ mutationId, status: 'stale' });
+        continue;
+      }
       // En orden: una tarjeta creada en este mismo lote ya existe cuando llega su repaso. Un
       // borrado LWW no exige que lo que referencia siga existiendo (SYNC §6): purgado el padre,
       // el borrado de un hijo se rechazaría para siempre. Revivirlo sí vuelve a exigirlo.
-      const tombstone = ENTITY_STRATEGY[handler.entity] === 'lww' && (row as SyncMeta).deletedAt !== null;
+      const tombstone = lww && (row as SyncMeta).deletedAt !== null;
       const refError = tombstone ? null : ((await handler.refs?.(userId, row)) ?? null);
       if (refError) {
         results.push({ mutationId, status: 'rejected', code: refError });

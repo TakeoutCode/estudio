@@ -2,7 +2,7 @@ import { type AiDraft, type AiFeedback, newId } from '@estudio/shared';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
-import { insertAppendSql, syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
+import { insertAppendSql, ownedRowSql, syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
 import type { ApplyStatus } from '../sync/sync-handler.js';
 
 export interface UsageToday {
@@ -88,17 +88,17 @@ export class AiRepository {
     return rows.length > 0 ? 'applied' : 'duplicate';
   }
 
-  /** BE2: el mazo, la nota o la tarjeta existen y son de ella (aunque estén borrados). */
-  async owns(table: 'deck' | 'note' | 'card', userId: string, id: string): Promise<boolean> {
-    const rows =
-      table === 'card'
-        ? await this.tx.$queryRaw<unknown[]>`
-            SELECT 1 FROM "card" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`
-        : table === 'deck'
-          ? await this.tx.$queryRaw<unknown[]>`
-            SELECT 1 FROM "deck" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`
-          : await this.tx.$queryRaw<unknown[]>`
-            SELECT 1 FROM "note" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;
+  /**
+   * BE2: el mazo, la nota o la tarjeta existen y son de ella (aunque estén borrados). Con
+   * `orPurged`, también si ya se purgó (una retroalimentación es de solo inserción, SYNC §5).
+   */
+  async owns(
+    table: 'deck' | 'note' | 'card',
+    userId: string,
+    id: string,
+    orPurged = false,
+  ): Promise<boolean> {
+    const rows = await this.tx.$queryRaw<unknown[]>(ownedRowSql(table, userId, id, orPurged));
     return rows.length > 0;
   }
 }

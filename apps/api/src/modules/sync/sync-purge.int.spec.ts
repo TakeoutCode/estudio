@@ -1,4 +1,5 @@
 import {
+  cardIdFor,
   newId,
   type PullResponse,
   PullResponseSchema,
@@ -8,8 +9,10 @@ import {
 import { ClsService } from 'nestjs-cls';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  cardRow,
   deckRow,
   hlcAt,
+  noteRow,
   type IntegrationApp,
   signIn,
   startIntegrationApp,
@@ -153,6 +156,46 @@ describe('SYNC §3 y §6: purga diaria del servidor', () => {
     expect(await exists('media_asset', kept.id)).toBe(false);
   });
 
+  it('SYNC §6: purgada la nota, una edición vieja ya no la revive; sus repasos sí se guardan (§5)', async () => {
+    const d = await signIn(server, 'purga-e@ejemplo.mx');
+    const deck = deckRow(old - 2, NODE);
+    const note = noteRow(old - 2, NODE, deck.id);
+    const card = cardRow(old - 2, NODE, note.id);
+    await push(d.token, [upsert(deck), upsert(note, 'note'), upsert(card, 'card')]);
+    await push(d.token, [upsert(deletedAt(note, old), 'note'), upsert(deletedAt(card, old), 'card')]);
+    await purge.run(now);
+
+    // Un dispositivo sin red desde antes del borrado la edita y repasa su tarjeta.
+    const edited = { ...note, hlc: hlcAt(now, NODE), updatedAt: now };
+    const review = {
+      mutationId: newId(),
+      op: 'append',
+      entity: 'reviewLog',
+      row: {
+        id: newId(),
+        cardId: card.id,
+        cardKind: 'basic',
+        reviewedAt: now - DAY,
+        rating: 3,
+        durationMs: 4000,
+        type: 'review',
+        confidence: null,
+        sessionId: newId(),
+        deviceId: NODE,
+      },
+    };
+    const reverse = cardRow(now, NODE, note.id, { id: cardIdFor(note.id, 1), ordinal: 1 });
+    const results = (await push(d.token, [upsert(edited, 'note'), review, upsert(reverse, 'card')])).results;
+    expect(results.map((r) => [r.status, r.code])).toEqual([
+      ['stale', undefined],
+      ['applied', undefined],
+      ['rejected', 'not_found'], // la nota ya no existe: no se crean hijos nuevos
+    ]);
+    const ids = (await pull(d.token)).changes.map((c) => c.row.id);
+    expect(ids).not.toContain(note.id);
+    expect(ids).toContain(review.row.id);
+  });
+
   it('un borrado revivido entre la selección y el borrado se queda', async () => {
     const c = await signIn(server, 'purga-c@ejemplo.mx');
     const deck = deckRow(old - 1, NODE, { name: 'Revive' });
@@ -168,7 +211,7 @@ describe('SYNC §3 y §6: purga diaria del servidor', () => {
     // Otro dispositivo lo edita después de borrarlo (SYNC §5: lo revive).
     await push(c.token, [upsert({ ...deck, name: 'Revivido', hlc: hlcAt(now, NODE), updatedAt: now })]);
     const allowed: PurgeBatch = new Map([[decks, ids]]);
-    expect(await cls.run(() => purge.purgeUser(c.userId, allowed, claim?.cutoff ?? 0))).toBe(0);
+    expect(await cls.run(() => purge.purgeUser(c.userId, allowed, claim?.cutoff ?? 0, now))).toBe(0);
     expect(await exists('deck', deck.id)).toBe(true);
   });
 

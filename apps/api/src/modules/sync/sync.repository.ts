@@ -61,20 +61,36 @@ export class SyncRepository {
 
   /**
    * Borra físicamente esos tombstones y devuelve sus `server_seq`. Vuelve a exigir que sigan
-   * borrados y antes de `cutoff`: uno revivido o vuelto a borrar mientras tanto se queda.
+   * borrados y antes de `cutoff`: uno revivido o vuelto a borrar mientras tanto se queda. Cada
+   * id purgado queda en `purged_row`, así una edición vieja no lo revive (SYNC §6).
    */
   async purgeTombstones(
     userId: string,
     table: string,
     ids: readonly string[],
     cutoff: number,
+    now: number,
   ): Promise<bigint[]> {
     const rows = await this.tx.$queryRaw<{ server_seq: bigint }[]>`
-      DELETE FROM ${ident(table)}
-      WHERE "user_id" = ${userId}::uuid AND "id" = ANY(${ids}::uuid[])
-        AND "deleted_at" IS NOT NULL AND "deleted_at" < ${cutoff}::bigint
-      RETURNING "server_seq"`;
+      WITH "gone" AS (
+        DELETE FROM ${ident(table)}
+        WHERE "user_id" = ${userId}::uuid AND "id" = ANY(${ids}::uuid[])
+          AND "deleted_at" IS NOT NULL AND "deleted_at" < ${cutoff}::bigint
+        RETURNING "id", "server_seq"
+      ), "kept" AS (
+        INSERT INTO "purged_row" ("user_id", "id", "table", "purged_at")
+        SELECT ${userId}::uuid, "id", ${table}, ${now}::bigint FROM "gone"
+        ON CONFLICT DO NOTHING
+      )
+      SELECT "server_seq" FROM "gone"`;
     return rows.map((r) => r.server_seq);
+  }
+
+  /** SYNC §6: la fila se purgó; ya no se revive. */
+  async wasPurged(userId: string, id: string): Promise<boolean> {
+    const rows = await this.tx.$queryRaw<unknown[]>`
+      SELECT 1 FROM "purged_row" WHERE "user_id" = ${userId}::uuid AND "id" = ${id}::uuid`;
+    return rows.length > 0;
   }
 
   /** SYNC §4: un cursor por debajo de esto pudo no ver un borrado que ya no existe → 410. */

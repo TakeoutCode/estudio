@@ -47,6 +47,7 @@ model User {
   pushSubscriptions      PushSubscription[]
   notificationEvents     NotificationEvent[]
   scheduledNotifications ScheduledNotification[]
+  purgedRows             PurgedRow[]
   notificationState      NotificationState?
 
   @@map("user")
@@ -109,6 +110,20 @@ model AppliedMutation {
 
   @@id([userId, mutationId])
   @@map("applied_mutation")
+}
+
+/// SYNC §6: ids de filas LWW ya purgadas. Una edición vieja con ese id no las revive, y un
+/// registro de solo inserción (un repaso, un canje) se acepta aunque su padre ya no exista (§5).
+model PurgedRow {
+  userId   String @map("user_id") @db.Uuid
+  id       String @db.Uuid
+  /// La tabla de la que salió ("note", "card"…).
+  table    String
+  purgedAt BigInt @map("purged_at")
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, id])
+  @@map("purged_row")
 }
 
 model Deck {

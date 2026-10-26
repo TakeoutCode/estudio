@@ -19,7 +19,8 @@ export class AiFeedbackSyncHandler implements EntitySyncHandler<'aiFeedback'> {
 
   /** BE2: la tarjeta es de ella (aunque esté borrada). */
   async refs(userId: string, row: AiFeedback): Promise<ApiErrorCode | null> {
-    return (await this.repo.owns('card', userId, row.cardId)) ? null : 'not_found';
+    // SYNC §5: se conserva aunque la tarjeta ya se haya purgado.
+    return (await this.repo.owns('card', userId, row.cardId, true)) ? null : 'not_found';
   }
 
   apply(userId: string, row: AiFeedback): Promise<ApplyStatus> {

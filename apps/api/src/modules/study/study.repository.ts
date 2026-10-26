@@ -11,7 +11,7 @@ import type {
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import type { PrismaTxHost } from '../../prisma/transaction.js';
-import { insertAppendSql, syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
+import { insertAppendSql, ownedRowSql, syncMetaColumns, upsertLwwSql } from '../sync/sql.js';
 import type { ApplyStatus } from '../sync/sync-handler.js';
 
 @Injectable()
@@ -120,10 +120,9 @@ export class StudyRepository {
     return rows.length > 0 ? 'applied' : 'duplicate';
   }
 
-  /** BE2: el premio existe y es de ella (aunque esté borrado: el canje guarda su foto). */
+  /** BE2: el premio es de ella, aunque esté borrado o purgado: el canje guarda su foto (SYNC §5). */
   async ownsReward(userId: string, id: string): Promise<boolean> {
-    const rows = await this.tx.$queryRaw<unknown[]>`
-      SELECT 1 FROM "reward" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;
+    const rows = await this.tx.$queryRaw<unknown[]>(ownedRowSql('reward', userId, id, true));
     return rows.length > 0;
   }
 
@@ -185,10 +184,9 @@ export class StudyRepository {
     return rows.length > 0;
   }
 
-  /** BE2: la sesión existe y es de ella (aunque esté terminada o borrada). */
+  /** BE2: la sesión existe y es de ella (aunque esté terminada, borrada o purgada, SYNC §5). */
   async ownsTimerSession(userId: string, id: string): Promise<boolean> {
-    const rows = await this.tx.$queryRaw<unknown[]>`
-      SELECT 1 FROM "timer_session" WHERE "id" = ${id}::uuid AND "user_id" = ${userId}::uuid`;
+    const rows = await this.tx.$queryRaw<unknown[]>(ownedRowSql('timer_session', userId, id, true));
     return rows.length > 0;
   }
 }
