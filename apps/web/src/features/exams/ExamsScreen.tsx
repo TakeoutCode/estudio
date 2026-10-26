@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ActionBar } from '@/ui/ActionBar';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { PageHeader } from '@/ui/PageHeader';
 import { type ExamsOverview, useExamsOverview } from './queries';
 
@@ -19,7 +20,7 @@ const primary = `inline-flex min-h-14 w-full items-center justify-center rounded
 export function ExamsScreen() {
   const { t } = useTranslation();
   const overview = useExamsOverview();
-  if (!overview) return null;
+  if (!overview) return <Loading />;
   const upcoming = overview.exams.filter((e) => !overview.plans.get(e.id)?.past);
   const past = overview.exams.filter((e) => overview.plans.get(e.id)?.past);
   return (

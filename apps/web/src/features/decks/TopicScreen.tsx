@@ -3,6 +3,7 @@ import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { deleteTopic, updateTopic } from './commands';
 import { useTopic } from './queries';
 
@@ -17,7 +18,7 @@ export function TopicScreen() {
   const { t } = useTranslation();
   const { topicId } = useParams();
   const topic = useTopic(topicId);
-  if (topic === undefined) return null;
+  if (topic === undefined) return <Loading />;
   if (topic === null) {
     return (
       <>

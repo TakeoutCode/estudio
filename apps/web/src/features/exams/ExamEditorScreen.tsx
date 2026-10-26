@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import { createExam, deleteExam, updateExam } from './commands';
 import { type DeckTopics, useExam, useTimeZone, useTopicsByDeck } from './queries';
+import { Loading } from '@/ui/Loading';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const field = `w-full rounded-(--radius-card) border-2 border-line-strong bg-bg px-4 py-2 text-text ${focus}`;
@@ -16,7 +17,7 @@ export function ExamEditorScreen() {
   const exam = useExam(examId);
   const groups = useTopicsByDeck();
   const timeZone = useTimeZone();
-  if (exam === undefined || groups === undefined || timeZone === undefined) return null;
+  if (exam === undefined || groups === undefined || timeZone === undefined) return <Loading />;
   return <ExamForm key={exam?.id ?? 'new'} exam={exam} groups={groups} timeZone={timeZone} />;
 }
 

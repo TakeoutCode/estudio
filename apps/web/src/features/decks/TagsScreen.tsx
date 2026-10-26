@@ -3,6 +3,7 @@ import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { deleteTag, renameTag } from './commands';
 import { type TagOverview, useTagOverview } from './queries';
 import { deckSummary } from './summary';
@@ -28,7 +29,9 @@ export function TagsScreen() {
         </Link>
         <h1 className="m-0 text-title font-extrabold">{t('tags.title')}</h1>
       </header>
-      {overview === undefined ? null : overview.length === 0 ? (
+      {overview === undefined ? (
+        <Loading />
+      ) : overview.length === 0 ? (
         <EmptyState
           message={t('tags.empty')}
           action={

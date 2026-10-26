@@ -32,6 +32,7 @@ import { ActionBar } from '@/ui/ActionBar';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
 import { ChevronLeftIcon } from '@/ui/icons';
+import { Loading } from '@/ui/Loading';
 import { SourceLink } from '@/ui/SourceLink';
 import {
   allowedRatings,
@@ -163,8 +164,8 @@ export function StudyScreen() {
       />
     );
   }
-  if (!session) return null;
-  if (scopeKey(session.scope) !== key) return null; // se está armando la otra
+  if (!session) return <Loading />;
+  if (scopeKey(session.scope) !== key) return <Loading />; // se está armando la otra
   if (session.plan.queue.length === 0) {
     const empty = {
       today: 'today.empty',

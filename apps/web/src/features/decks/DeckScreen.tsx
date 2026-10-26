@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ActionBar } from '@/ui/ActionBar';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { Toggle } from '@/ui/Toggle';
 import { deleteDeck, setDeckPaused, updateDeck } from './commands';
 import { type DeckDetail, type DeckNoteRow, matchesSearch, useDeckDetail } from './queries';
@@ -28,7 +29,7 @@ export function DeckScreen() {
   const { t } = useTranslation();
   const { deckId } = useParams();
   const detail = useDeckDetail(deckId);
-  if (detail === undefined) return null;
+  if (detail === undefined) return <Loading />;
   if (detail === null) {
     return (
       <>

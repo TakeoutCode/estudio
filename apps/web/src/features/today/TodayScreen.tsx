@@ -10,6 +10,7 @@ import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
 import { BowIcon, CardsIcon, HeartIcon, PlayIcon, PlusIcon, SparkleIcon } from '@/ui/icons';
 import { LinkRow } from '@/ui/LinkRow';
+import { Loading } from '@/ui/Loading';
 import { PageHeader } from '@/ui/PageHeader';
 import { FewerNewOffer } from './FewerNewOffer';
 
@@ -45,7 +46,7 @@ export function TodayScreen() {
       <PageHeader title={t('today.title')} eyebrow={t('today.greeting')} />
       <NotificationsAtOpen />
       <SleepCheckIn />
-      {snapshot ? <Summary snapshot={snapshot} /> : null}
+      {snapshot ? <Summary snapshot={snapshot} /> : <Loading />}
     </>
   );
 }

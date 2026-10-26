@@ -18,6 +18,7 @@ import { ApiError } from '@/lib/api';
 import { useOnline } from '@/lib/use-online';
 import { Banner } from '@/ui/Banner';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { acceptAiDraft, type AiDraftsKind, editAiDraft, rejectAiDraft, requestAiDrafts } from './commands';
 import { useDeckAiDrafts } from './queries';
 
@@ -39,7 +40,7 @@ export function AiDraftsScreen() {
   const { t } = useTranslation();
   const { deckId } = useParams();
   const data = useDeckAiDrafts(deckId);
-  if (data === undefined) return null;
+  if (data === undefined) return <Loading />;
   if (data === null) {
     return (
       <>

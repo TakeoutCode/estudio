@@ -2,6 +2,7 @@ import type { Proportion } from '@estudio/srs';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { SourceLink } from '@/ui/SourceLink';
 import { type ContrastGroupView, type ContrastOverview, useContrastOverview } from './queries';
 
@@ -30,7 +31,9 @@ export function ContrastScreen() {
         {/* STUDY-METHODS [7] y [8]: la evidencia sobre intercalar es contradictoria (R20). */}
         {t('contrast.evidence')} <SourceLink source={7} /> <SourceLink source={8} />
       </p>
-      {overview === undefined ? null : overview.groups.length === 0 ? (
+      {overview === undefined ? (
+        <Loading />
+      ) : overview.groups.length === 0 ? (
         <EmptyState
           message={t('contrast.empty')}
           action={

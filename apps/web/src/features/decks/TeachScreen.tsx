@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { saveSelfExplanation } from '@/features/study';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { type TeachView, useTeachView } from './queries';
 
 const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
@@ -25,7 +26,7 @@ export function TeachScreen() {
   const { t } = useTranslation();
   const { topicId } = useParams();
   const view = useTeachView(topicId);
-  if (view === undefined) return null;
+  if (view === undefined) return <Loading />;
   if (view === null) {
     return (
       <>

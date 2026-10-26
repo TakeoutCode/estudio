@@ -4,6 +4,7 @@ import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { NumberField } from '@/ui/NumberField';
 import { deleteReward, redeemReward, saveReward } from './commands';
 import { LevelBar } from './GamificationCard';
@@ -38,7 +39,9 @@ export function RewardsScreen() {
         </Link>
         <h1 className="m-0 text-title font-extrabold">{t('gamification.title')}</h1>
       </header>
-      {config === undefined ? null : config.enabled === true ? (
+      {config === undefined ? (
+        <Loading />
+      ) : config.enabled === true ? (
         <Enabled />
       ) : (
         <EmptyState

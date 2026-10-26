@@ -49,6 +49,7 @@ import {
 import { type EditorPicture, OcclusionEditor } from './OcclusionEditor';
 import { useDecks, useMnemonicOffer, useNote, useTags, useTopics } from './queries';
 import { TagsField } from './TagsField';
+import { Loading } from '@/ui/Loading';
 
 const NEW_DECK = 'new';
 const NO_TOPIC = '';
@@ -86,7 +87,7 @@ export function NoteEditorScreen() {
   const [params] = useSearchParams();
   const decks = useDecks();
   const note = useNote(noteId);
-  if (decks === undefined || note === undefined) return null;
+  if (decks === undefined || note === undefined) return <Loading />;
   const fromDeck = decks.find((deck) => deck.id === params.get('mazo'))?.id ?? null;
   const editorMode: Mode = note
     ? isExerciseKind(note.content.kind)

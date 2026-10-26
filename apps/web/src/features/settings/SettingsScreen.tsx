@@ -8,6 +8,7 @@ import {
 import { type ReactNode, type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionBar } from '@/ui/ActionBar';
+import { Loading } from '@/ui/Loading';
 import { NumberField } from '@/ui/NumberField';
 import { PageHeader } from '@/ui/PageHeader';
 import { SourceLink } from '@/ui/SourceLink';
@@ -69,7 +70,9 @@ export function SettingsScreen({
     <SettingsForm config={config} end={end}>
       {children}
     </SettingsForm>
-  ) : null;
+  ) : (
+    <Loading />
+  );
 }
 
 type Status = 'idle' | 'saved' | 'failed';

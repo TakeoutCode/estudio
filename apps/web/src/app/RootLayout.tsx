@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react';
-import { Outlet, useLocation } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import { Outlet, useLocation, useNavigation } from 'react-router';
+import { useDelayed } from '@/ui/Loading';
 import { OfflineBanner } from './OfflineBanner';
 import { showsTabs, TabBar } from './TabBar';
 import { UpdatePrompt } from './UpdatePrompt';
@@ -14,8 +16,11 @@ const TimerKeepAlive = lazy(async () => ({ default: (await import('@/features/ti
  */
 export function RootLayout() {
   useStoredTheme();
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const tabs = showsTabs(pathname);
+  // UX3: si la pantalla siguiente tarda más de 300 ms en llegar (su chunk, sin red), se avisa.
+  const slow = useDelayed(useNavigation().state === 'loading');
   return (
     <div
       data-tabs={tabs ? '' : undefined}
@@ -27,6 +32,13 @@ export function RootLayout() {
           <TimerKeepAlive />
         </Suspense>
       )}
+      {slow ? (
+        <div
+          role="progressbar"
+          aria-label={t('app.loading')}
+          className="fixed inset-x-0 top-0 z-50 h-1 bg-primary motion-safe:animate-pulse"
+        />
+      ) : null}
       <UpdatePrompt />
       <OfflineBanner />
       <main className="flex flex-1 flex-col gap-4">

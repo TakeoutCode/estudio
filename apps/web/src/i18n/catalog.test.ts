@@ -9,6 +9,8 @@ import restText from './es/rest.json?raw';
 const SOURCES = import.meta.glob<string>(
   [
     '../main.tsx',
+    '../app/RootLayout.tsx',
+    '../ui/Loading.tsx',
     '../app/TabBar.tsx',
     '../app/OfflineBanner.tsx',
     '../app/UpdatePrompt.tsx',

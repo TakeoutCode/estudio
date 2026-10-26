@@ -4,6 +4,7 @@ import { type SubmitEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { createContrastGroup, deleteContrastGroup, updateContrastGroup } from './commands';
 import { type NoteChoice, useContrastGroup, useNoteChoices } from './queries';
 
@@ -20,7 +21,7 @@ export function ContrastEditorScreen() {
   const { groupId } = useParams();
   const group = useContrastGroup(groupId);
   const choices = useNoteChoices();
-  if (group === undefined || choices === undefined) return null;
+  if (group === undefined || choices === undefined) return <Loading />;
   if (groupId && group === null) {
     // Se borró en otro dispositivo.
     return (

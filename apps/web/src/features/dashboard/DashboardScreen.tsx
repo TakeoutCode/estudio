@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useTodayPlan } from '@/features/study';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { PageHeader } from '@/ui/PageHeader';
 import { SourceLink } from '@/ui/SourceLink';
 import { useWeeklyMetrics } from './use-weekly-metrics';
@@ -37,6 +38,8 @@ export function DashboardScreen() {
       ) : null}
       {view.status === 'ready' ? (
         <Summary metrics={view.metrics} config={view.config} timeZone={view.timeZone} />
+      ) : view.status === 'loading' ? (
+        <Loading />
       ) : null}
     </>
   );

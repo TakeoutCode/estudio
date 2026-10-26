@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Estudio",
-    "tagline": "Repaso espaciado y práctica para tus exámenes"
+    "tagline": "Repaso espaciado y práctica para tus exámenes",
+    "loading": "Cargando…"
   },
   "nav": {
     "label": "Secciones"

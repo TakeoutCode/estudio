@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router';
 import { EmptyState } from '@/ui/EmptyState';
 import { CardsIcon, PlayIcon, TagIcon, TwinsIcon } from '@/ui/icons';
 import { LinkRow } from '@/ui/LinkRow';
+import { Loading } from '@/ui/Loading';
 import { PageHeader } from '@/ui/PageHeader';
 import { createDeck } from './commands';
 import { type DeckOverview, useDeckOverview } from './queries';
@@ -23,7 +24,9 @@ export function DecksScreen() {
   return (
     <>
       <PageHeader title={t('decks.title')} />
-      {overview === undefined ? null : overview.length === 0 ? (
+      {overview === undefined ? (
+        <Loading />
+      ) : overview.length === 0 ? (
         <EmptyState message={t('decks.empty')} />
       ) : (
         <>

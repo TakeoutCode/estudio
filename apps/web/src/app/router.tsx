@@ -1,6 +1,7 @@
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { RequireAccount } from '@/features/auth';
 import { loadFullCatalog } from '@/lib/i18n';
+import { Loading } from '@/ui/Loading';
 import { RootLayout } from './RootLayout';
 import { RouteError } from './RouteError';
 
@@ -11,6 +12,8 @@ export const routes: RouteObject[] = withCatalog([
   {
     path: '/',
     element: <RootLayout />,
+    // UX3: mientras llega la primera pantalla (su chunk); el esqueleto, solo pasados 300 ms.
+    hydrateFallbackElement: <Loading />,
     errorElement: <RouteError standalone />,
     children: [
       {

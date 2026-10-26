@@ -14,6 +14,7 @@ import { OcclusionFigure } from '@/features/media';
 import { useHoldSessionLock } from '@/lib/session-lock';
 import { usePageVisibility } from '@/lib/use-page-visibility';
 import { EmptyState } from '@/ui/EmptyState';
+import { Loading } from '@/ui/Loading';
 import { answerMockItem, gradeMockItem, NoMockQuestionsError, startMock } from './commands';
 import { type MockCardView, type MockView, useMockView } from './queries';
 
@@ -51,7 +52,7 @@ export function MockScreen() {
   const { t } = useTranslation();
   const { examId } = useParams();
   const view = useMockView(examId);
-  if (view === undefined) return null;
+  if (view === undefined) return <Loading />;
   return (
     <>
       <header className="flex flex-col">

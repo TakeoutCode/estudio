@@ -45,7 +45,7 @@ Tema "lazo": blanco de base, rosa como acento y formas redondeadas. El rosa fuer
 
 | Estado | Regla | Ejemplo ✅ |
 |---|---|---|
-| Carga | Esqueleto solo si tarda más de 300 ms | — |
+| Carga | Esqueleto solo si tarda más de 300 ms (`ui/Loading.tsx`; la primera pantalla y una navegación lenta, con la barra del layout) | — |
 | Vacío | Ofrecer una acción | "No hay tarjetas pendientes. Puedes añadir nuevas o descansar." |
 | Error | Qué pasó, más un botón para reintentar | "No se pudo generar el borrador. Tu texto sigue aquí. [Reintentar]" |
 | Sin conexión | No es un error | "Sin conexión · tus repasos se guardan en este dispositivo" |
