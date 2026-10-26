@@ -8,6 +8,7 @@
     "build": "vite build --manifest",
     "preview": "vite preview",
     "size": "size-limit",
+    "icons": "tsx scripts/render-icons.ts",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.sw.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
     "lint": "eslint .",
     "test": "vitest run --coverage",

@@ -35,9 +35,13 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#fefcfd',
         theme_color: '#fefcfd',
+        // FRONTEND FE6: los PNG salen de los SVG con `pnpm icons` (iOS no usa SVG).
         icons: [
           { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: '/icon-maskable.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+          { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       injectManifest: { globPatterns: ['**/*.{js,css,html,svg,woff2}'] },
